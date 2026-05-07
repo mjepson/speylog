@@ -166,33 +166,48 @@
     }
 
     // ══════════════════════════════════════
-    // Auth View
+    // Auth View — Magic Links
     // ══════════════════════════════════════
     function AuthView({S,t}){
-      const[mode,setMode]=useState("signin");
       const[email,setEmail]=useState("");
-      const[password,setPassword]=useState("");
       const[displayName,setDisplayName]=useState("");
       const[err,setErr]=useState("");
       const[busy,setBusy]=useState(false);
-      const[info,setInfo]=useState("");
+      const[sent,setSent]=useState(false);
 
       const submit=async()=>{
-        setErr("");setInfo("");setBusy(true);
+        setErr("");setBusy(true);
         try{
-          if(mode==="signin"){
-            const {error}=await sb.auth.signInWithPassword({email,password});
-            if(error)throw error;
-          }else{
-            const {data,error}=await sb.auth.signUp({email,password,options:{data:{display_name:displayName||email.split("@")[0]}}});
-            if(error)throw error;
-            if(data.user&&!data.session){
-              setInfo("Sjekk e-posten din for å bekrefte kontoen.");
+          const {error}=await sb.auth.signInWithOtp({
+            email,
+            options:{
+              emailRedirectTo:window.location.origin,
+              data:displayName?{display_name:displayName}:undefined,
+              shouldCreateUser:true,
             }
-          }
+          });
+          if(error)throw error;
+          setSent(true);
         }catch(e){setErr(e.message||"Noe gikk galt");}
         setBusy(false);
       };
+
+      if(sent){
+        return (
+          <div className="safe-top safe-bottom" style={{...S.app,...S.center,minHeight:"100vh"}}>
+            <div style={{textAlign:"center",marginBottom:30}}>
+              {I.fish(56,t.primary)}
+              <h1 style={{fontFamily:t.titleFont,fontSize:32,fontWeight:700,color:t.text,margin:"12px 0 4px"}}>Sjekk e-posten</h1>
+            </div>
+            <div style={{...S.sec,width:"100%",maxWidth:340,textAlign:"center"}}>
+              <p style={{fontSize:15,color:t.text,margin:"0 0 10px",lineHeight:1.5}}>Vi har sendt en innloggingslenke til</p>
+              <p style={{fontSize:15,color:t.primary,fontWeight:600,margin:"0 0 16px"}}>{email}</p>
+              <p style={{fontSize:13,color:t.textMuted,margin:"0 0 18px",lineHeight:1.5}}>Åpne e-posten på denne enheten og trykk på lenken for å logge inn.</p>
+              <button style={{...S.btnSec,fontSize:13}} onClick={()=>{setSent(false);setEmail("");}}>Bruk en annen e-post</button>
+            </div>
+          </div>
+        );
+      }
 
       return (
         <div className="safe-top safe-bottom" style={{...S.app,...S.center,minHeight:"100vh"}}>
@@ -202,22 +217,14 @@
             <p style={{fontSize:14,color:t.textMuted,margin:0}}>Personlig fangstlogg for laksefiske</p>
           </div>
           <div style={{...S.sec,width:"100%",maxWidth:340}}>
-            <div style={{display:"flex",gap:6,marginBottom:16}}>
-              <button style={mode==="signin"?S.tabActive:S.tab} onClick={()=>setMode("signin")}>Logg inn</button>
-              <button style={mode==="signup"?S.tabActive:S.tab} onClick={()=>setMode("signup")}>Opprett</button>
-            </div>
-            {mode==="signup"&&<>
-              <label style={{fontSize:12,fontWeight:600,color:t.textSec}}>Navn</label>
-              <input style={{...S.inp,marginTop:4,marginBottom:10}} placeholder="Magnus" value={displayName} onChange={e=>setDisplayName(e.target.value)}/>
-            </>}
+            <p style={{fontSize:14,color:t.textSec,margin:"0 0 16px",textAlign:"center",lineHeight:1.5}}>Skriv inn e-posten din, så sender vi deg en innloggingslenke.</p>
+            <label style={{fontSize:12,fontWeight:600,color:t.textSec}}>Navn (kun ny bruker)</label>
+            <input style={{...S.inp,marginTop:4,marginBottom:10}} placeholder="Magnus" value={displayName} onChange={e=>setDisplayName(e.target.value)}/>
             <label style={{fontSize:12,fontWeight:600,color:t.textSec}}>E-post</label>
-            <input style={{...S.inp,marginTop:4,marginBottom:10}} type="email" placeholder="navn@example.com" value={email} onChange={e=>setEmail(e.target.value)}/>
-            <label style={{fontSize:12,fontWeight:600,color:t.textSec}}>Passord</label>
-            <input style={{...S.inp,marginTop:4,marginBottom:14}} type="password" placeholder="••••••••" value={password} onChange={e=>setPassword(e.target.value)}/>
+            <input style={{...S.inp,marginTop:4,marginBottom:14}} type="email" inputMode="email" autoComplete="email" placeholder="navn@example.com" value={email} onChange={e=>setEmail(e.target.value)}/>
             {err&&<p style={{color:t.danger,fontSize:13,marginBottom:10}}>{err}</p>}
-            {info&&<p style={{color:t.released,fontSize:13,marginBottom:10}}>{info}</p>}
-            <button style={{...S.btnPriFull,opacity:busy?.6:1}} disabled={busy||!email||!password} onClick={submit}>
-              {busy?"Vent...":(mode==="signin"?"Logg inn":"Opprett konto")}
+            <button style={{...S.btnPriFull,opacity:busy?.6:1}} disabled={busy||!email} onClick={submit}>
+              {busy?"Sender..." : "Send innloggingslenke"}
             </button>
           </div>
         </div>
