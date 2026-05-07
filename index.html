@@ -166,44 +166,72 @@
     }
 
     // ══════════════════════════════════════
-    // Auth View — Magic Links
+    // Auth View — OTP Code (works in PWA)
     // ══════════════════════════════════════
     function AuthView({S,t}){
       const[email,setEmail]=useState("");
       const[displayName,setDisplayName]=useState("");
+      const[code,setCode]=useState("");
       const[err,setErr]=useState("");
       const[busy,setBusy]=useState(false);
-      const[sent,setSent]=useState(false);
+      const[step,setStep]=useState("email"); // 'email' or 'code'
 
-      const submit=async()=>{
+      const sendCode=async()=>{
         setErr("");setBusy(true);
         try{
           const {error}=await sb.auth.signInWithOtp({
             email,
             options:{
-              emailRedirectTo:window.location.origin,
               data:displayName?{display_name:displayName}:undefined,
               shouldCreateUser:true,
             }
           });
           if(error)throw error;
-          setSent(true);
+          setStep("code");
         }catch(e){setErr(e.message||"Noe gikk galt");}
         setBusy(false);
       };
 
-      if(sent){
+      const verifyCode=async()=>{
+        setErr("");setBusy(true);
+        try{
+          const {error}=await sb.auth.verifyOtp({
+            email,
+            token:code.trim(),
+            type:"email",
+          });
+          if(error)throw error;
+          // Success — App component handles session change automatically
+        }catch(e){setErr(e.message||"Feil kode. Prøv igjen.");}
+        setBusy(false);
+      };
+
+      if(step==="code"){
         return (
           <div className="safe-top safe-bottom" style={{...S.app,...S.center,minHeight:"100vh"}}>
             <div style={{textAlign:"center",marginBottom:30}}>
               {I.fish(56,t.primary)}
-              <h1 style={{fontFamily:t.titleFont,fontSize:32,fontWeight:700,color:t.text,margin:"12px 0 4px"}}>Sjekk e-posten</h1>
+              <h1 style={{fontFamily:t.titleFont,fontSize:28,fontWeight:700,color:t.text,margin:"12px 0 4px"}}>Skriv inn koden</h1>
             </div>
-            <div style={{...S.sec,width:"100%",maxWidth:340,textAlign:"center"}}>
-              <p style={{fontSize:15,color:t.text,margin:"0 0 10px",lineHeight:1.5}}>Vi har sendt en innloggingslenke til</p>
-              <p style={{fontSize:15,color:t.primary,fontWeight:600,margin:"0 0 16px"}}>{email}</p>
-              <p style={{fontSize:13,color:t.textMuted,margin:"0 0 18px",lineHeight:1.5}}>Åpne e-posten på denne enheten og trykk på lenken for å logge inn.</p>
-              <button style={{...S.btnSec,fontSize:13}} onClick={()=>{setSent(false);setEmail("");}}>Bruk en annen e-post</button>
+            <div style={{...S.sec,width:"100%",maxWidth:340}}>
+              <p style={{fontSize:14,color:t.textSec,margin:"0 0 4px",textAlign:"center",lineHeight:1.5}}>Vi har sendt en 6-sifret kode til</p>
+              <p style={{fontSize:14,color:t.primary,fontWeight:600,margin:"0 0 16px",textAlign:"center"}}>{email}</p>
+              <input
+                style={{...S.inp,fontSize:24,textAlign:"center",letterSpacing:6,fontWeight:600,marginBottom:14}}
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                pattern="[0-9]*"
+                maxLength={6}
+                placeholder="000000"
+                value={code}
+                onChange={e=>setCode(e.target.value.replace(/\D/g,""))}
+                autoFocus
+              />
+              {err&&<p style={{color:t.danger,fontSize:13,marginBottom:10}}>{err}</p>}
+              <button style={{...S.btnPriFull,opacity:(busy||code.length<6)?.6:1,marginBottom:8}} disabled={busy||code.length<6} onClick={verifyCode}>
+                {busy?"Sjekker..." : "Logg inn"}
+              </button>
+              <button style={{...S.btnSec,fontSize:13,width:"100%"}} onClick={()=>{setStep("email");setCode("");setErr("");}}>Bruk en annen e-post</button>
             </div>
           </div>
         );
@@ -217,14 +245,14 @@
             <p style={{fontSize:14,color:t.textMuted,margin:0}}>Personlig fangstlogg for laksefiske</p>
           </div>
           <div style={{...S.sec,width:"100%",maxWidth:340}}>
-            <p style={{fontSize:14,color:t.textSec,margin:"0 0 16px",textAlign:"center",lineHeight:1.5}}>Skriv inn e-posten din, så sender vi deg en innloggingslenke.</p>
+            <p style={{fontSize:14,color:t.textSec,margin:"0 0 16px",textAlign:"center",lineHeight:1.5}}>Skriv inn e-posten din, så sender vi deg en innloggingskode.</p>
             <label style={{fontSize:12,fontWeight:600,color:t.textSec}}>Navn (kun ny bruker)</label>
             <input style={{...S.inp,marginTop:4,marginBottom:10}} placeholder="Magnus" value={displayName} onChange={e=>setDisplayName(e.target.value)}/>
             <label style={{fontSize:12,fontWeight:600,color:t.textSec}}>E-post</label>
             <input style={{...S.inp,marginTop:4,marginBottom:14}} type="email" inputMode="email" autoComplete="email" placeholder="navn@example.com" value={email} onChange={e=>setEmail(e.target.value)}/>
             {err&&<p style={{color:t.danger,fontSize:13,marginBottom:10}}>{err}</p>}
-            <button style={{...S.btnPriFull,opacity:busy?.6:1}} disabled={busy||!email} onClick={submit}>
-              {busy?"Sender..." : "Send innloggingslenke"}
+            <button style={{...S.btnPriFull,opacity:busy?.6:1}} disabled={busy||!email} onClick={sendCode}>
+              {busy?"Sender..." : "Send kode"}
             </button>
           </div>
         </div>
