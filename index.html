@@ -243,7 +243,7 @@
             {I.fish(56,t.primary)}
             <h1 style={{fontFamily:t.titleFont,fontSize:32,fontWeight:700,color:t.text,margin:"12px 0 4px"}}>Fangstlogg</h1>
             <p style={{fontSize:14,color:t.textMuted,margin:0}}>Personlig fangstlogg for laksefiske</p>
-            <p style={{fontSize:11,color:t.textMuted,margin:"6px 0 0",opacity:.6}}>v22</p>
+            <p style={{fontSize:11,color:t.textMuted,margin:"6px 0 0",opacity:.6}}>v23</p>
           </div>
           <div style={{...S.sec,width:"100%",maxWidth:340}}>
             <p style={{fontSize:14,color:t.textSec,margin:"0 0 16px",textAlign:"center",lineHeight:1.5}}>Skriv inn e-posten din, så sender vi deg en innloggingskode.</p>
@@ -280,9 +280,12 @@
       const allRivers=[...new Set([...DEFAULT_RIVERS,...customRivers])].sort((a,b)=>a.localeCompare(b,"nb"));
 
       const loadCatches=async()=>{
-        const {data:mine}=await sb.from("catches").select("*").eq("user_id",session.user.id).order("date",{ascending:false});
+        const {data:mine,error:mineErr}=await sb.from("catches").select("*").eq("user_id",session.user.id).order("date",{ascending:false});
+        if(mineErr)console.error("Mine fangster feil:",mineErr);
         setCatches(mine||[]);
-        const {data:pub}=await sb.from("catches").select("*, profiles(display_name, username)").eq("is_public",true).order("date",{ascending:false}).limit(100);
+        const {data:pub,error:pubErr}=await sb.from("catches").select("*, profiles(display_name, username)").eq("is_public",true).order("date",{ascending:false}).limit(100);
+        if(pubErr)console.error("Felles feed feil:",pubErr);
+        console.log("Felles feed data:",pub);
         setPublicFeed(pub||[]);
         setLoading(false);
       };
@@ -450,7 +453,7 @@
         <div style={{marginTop:24,display:"flex",flexDirection:"column",gap:12,alignItems:"center"}}>
           <div style={{display:"flex",gap:6,alignItems:"center"}}>{I.palette()}{Object.entries(THEMES).map(([k,th])=>(<button key={k} onClick={()=>switchTheme(k)} style={{padding:"5px 12px",borderRadius:8,border:k===themeKey?`2px solid ${t.primary}`:`1px solid ${t.inputBorder}`,background:k===themeKey?t.primaryLight:t.cardBg,fontSize:12,fontWeight:k===themeKey?600:400,color:k===themeKey?t.primary:t.textSec,fontFamily:t.font,cursor:"pointer"}}>{th.name}</button>))}</div>
           <button onClick={onSignOut} style={{display:"flex",alignItems:"center",gap:6,padding:"7px 14px",borderRadius:8,border:`1px solid ${t.inputBorder}`,background:t.cardBg,fontSize:12,color:t.textMuted,fontFamily:t.font,cursor:"pointer"}}>{I.logout()} Logg ut ({session.user.email})</button>
-          <p style={{fontSize:10,color:t.textMuted,opacity:.5,margin:"4px 0 0"}}>v22</p>
+          <p style={{fontSize:10,color:t.textMuted,opacity:.5,margin:"4px 0 0"}}>v23</p>
         </div>
       </div>);
     }
