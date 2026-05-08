@@ -1,4 +1,4 @@
-const CACHE_NAME = 'fangstlogg-v25';
+const CACHE_NAME = 'fangstlogg-v24';
 const ASSETS = [
   '/',
   '/index.html',
@@ -25,22 +25,8 @@ self.addEventListener('activate', event => {
 });
 
 self.addEventListener('fetch', event => {
-  const url = event.request.url;
-
-  // BYPASS service worker entirely for:
-  // - Supabase API calls (database, auth)
-  // - Supabase Storage (images) — let browser handle caching
-  // - Any non-GET request
-  if (
-    url.includes('supabase.co') ||
-    url.includes('supabase.in') ||
-    event.request.method !== 'GET'
-  ) {
-    return; // Let the browser handle it natively
-  }
-
-  // Google Fonts: network-first with cache fallback
-  if (url.includes('fonts.googleapis.com') || url.includes('fonts.gstatic.com')) {
+  // For Google Fonts, use network-first
+  if (event.request.url.includes('fonts.googleapis.com') || event.request.url.includes('fonts.gstatic.com')) {
     event.respondWith(
       fetch(event.request).then(response => {
         const clone = response.clone();
@@ -51,14 +37,17 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // App shell (HTML/JS/CSS/icons): network-first so updates show without manual cache clears
+  // For app assets, use cache-first
   event.respondWith(
-    fetch(event.request).then(response => {
-      if (response.status === 200) {
-        const clone = response.clone();
-        caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
-      }
-      return response;
-    }).catch(() => caches.match(event.request))
+    caches.match(event.request).then(cached => {
+      if (cached) return cached;
+      return fetch(event.request).then(response => {
+        if (response.status === 200) {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
+        }
+        return response;
+      });
+    })
   );
 });
