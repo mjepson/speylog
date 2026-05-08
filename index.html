@@ -214,15 +214,15 @@
               <h1 style={{fontFamily:t.titleFont,fontSize:28,fontWeight:700,color:t.text,margin:"12px 0 4px"}}>Skriv inn koden</h1>
             </div>
             <div style={{...S.sec,width:"100%",maxWidth:340}}>
-              <p style={{fontSize:14,color:t.textSec,margin:"0 0 4px",textAlign:"center",lineHeight:1.5}}>Vi har sendt en 6-sifret kode til</p>
+              <p style={{fontSize:14,color:t.textSec,margin:"0 0 4px",textAlign:"center",lineHeight:1.5}}>Vi har sendt en kode til</p>
               <p style={{fontSize:14,color:t.primary,fontWeight:600,margin:"0 0 16px",textAlign:"center"}}>{email}</p>
               <input
                 style={{...S.inp,fontSize:24,textAlign:"center",letterSpacing:6,fontWeight:600,marginBottom:14}}
                 inputMode="numeric"
                 autoComplete="one-time-code"
                 pattern="[0-9]*"
-                maxLength={6}
-                placeholder="000000"
+                maxLength={8}
+                placeholder="00000000"
                 value={code}
                 onChange={e=>setCode(e.target.value.replace(/\D/g,""))}
                 autoFocus
@@ -243,6 +243,7 @@
             {I.fish(56,t.primary)}
             <h1 style={{fontFamily:t.titleFont,fontSize:32,fontWeight:700,color:t.text,margin:"12px 0 4px"}}>Fangstlogg</h1>
             <p style={{fontSize:14,color:t.textMuted,margin:0}}>Personlig fangstlogg for laksefiske</p>
+            <p style={{fontSize:11,color:t.textMuted,margin:"6px 0 0",opacity:.6}}>v21</p>
           </div>
           <div style={{...S.sec,width:"100%",maxWidth:340}}>
             <p style={{fontSize:14,color:t.textSec,margin:"0 0 16px",textAlign:"center",lineHeight:1.5}}>Skriv inn e-posten din, så sender vi deg en innloggingskode.</p>
