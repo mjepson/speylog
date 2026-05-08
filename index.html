@@ -243,7 +243,7 @@
             {I.fish(56,t.primary)}
             <h1 style={{fontFamily:t.titleFont,fontSize:32,fontWeight:700,color:t.text,margin:"12px 0 4px"}}>Fangstlogg</h1>
             <p style={{fontSize:14,color:t.textMuted,margin:0}}>Personlig fangstlogg for laksefiske</p>
-            <p style={{fontSize:11,color:t.textMuted,margin:"6px 0 0",opacity:.6}}>v24</p>
+            <p style={{fontSize:11,color:t.textMuted,margin:"6px 0 0",opacity:.6}}>v26</p>
           </div>
           <div style={{...S.sec,width:"100%",maxWidth:340}}>
             <p style={{fontSize:14,color:t.textSec,margin:"0 0 16px",textAlign:"center",lineHeight:1.5}}>Skriv inn e-posten din, så sender vi deg en innloggingskode.</p>
@@ -387,7 +387,7 @@
 
       return (
         <div style={S.app}>
-          {view==="list"&&<ListView catches={filtered} total={catches.length} fp={fp} S={S} t={t} themeKey={themeKey} switchTheme={switchTheme} tab={tab} setTab={setTab} session={session} onSelect={c=>{setSelected(c);setView("detail")}} onAdd={()=>setView("add")} onStats={()=>setView("stats")} onSignOut={signOut}/>}
+          {view==="list"&&<ListView catches={filtered} total={catches.length} fp={fp} S={S} t={t} themeKey={themeKey} switchTheme={switchTheme} tab={tab} setTab={setTab} session={session} onSelect={c=>{setSelected(c);setView("detail")}} onAdd={()=>setView("add")} onStats={()=>setView("stats")} onSignOut={signOut} onRefresh={loadCatches}/>}
           {view==="stats"&&<StatsView catches={catches} fp={fp} S={S} t={t} onBack={()=>setView("list")}/>}
           {view==="add"&&<FormView allRivers={allRivers} prefs={prefs} S={S} t={t} onSave={addCatch} onCancel={()=>setView("list")}/>}
           {view==="detail"&&selected&&<DetailView c={selected} session={session} S={S} t={t} onBack={()=>setView("list")} onEdit={()=>{setEditing({...selected});setView("edit")}} onDelete={()=>setDelModal(selected.id)}/>}
@@ -434,9 +434,54 @@
     function Lbl({t:text,th}){return <label style={{display:"block",fontSize:12,fontWeight:600,color:th.textSec,marginBottom:2,marginTop:10}}>{text}</label>;}
 
     // ── ListView ──
-    function ListView({catches,total,fp,S,t,themeKey,switchTheme,tab,setTab,session,onSelect,onAdd,onStats,onSignOut}){
+    function ListView({catches,total,fp,S,t,themeKey,switchTheme,tab,setTab,session,onSelect,onAdd,onStats,onSignOut,onRefresh}){
       const sorted=[...catches].sort((a,b)=>new Date(b.date)-new Date(a.date));
-      return(<div className="safe-top safe-bottom" style={S.page}>
+      const[pullY,setPullY]=useState(0);
+      const[refreshing,setRefreshing]=useState(false);
+      const startY=useRef(0);
+      const isPulling=useRef(false);
+      const PULL_THRESHOLD=70;
+      const MAX_PULL=120;
+
+      const handleTouchStart=(e)=>{
+        if(window.scrollY<=0&&!refreshing){
+          startY.current=e.touches[0].clientY;
+          isPulling.current=true;
+        }
+      };
+      const handleTouchMove=(e)=>{
+        if(!isPulling.current||refreshing)return;
+        const diff=e.touches[0].clientY-startY.current;
+        if(diff>0&&window.scrollY<=0){
+          setPullY(Math.min(diff*0.5,MAX_PULL));
+        }else{
+          isPulling.current=false;
+          setPullY(0);
+        }
+      };
+      const handleTouchEnd=async()=>{
+        if(!isPulling.current)return;
+        isPulling.current=false;
+        if(pullY>=PULL_THRESHOLD){
+          setRefreshing(true);
+          setPullY(50);
+          try{await onRefresh();}catch(e){console.error(e);}
+          setRefreshing(false);
+          setPullY(0);
+        }else{
+          setPullY(0);
+        }
+      };
+
+      const pullProgress=Math.min(pullY/PULL_THRESHOLD,1);
+
+      return(<div className="safe-top safe-bottom" style={S.page} onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}>
+        {(pullY>0||refreshing)&&(
+          <div style={{position:"absolute",top:0,left:0,right:0,display:"flex",justifyContent:"center",alignItems:"center",height:pullY,pointerEvents:"none",zIndex:10}}>
+            <div style={{width:32,height:32,borderRadius:16,border:`3px solid ${t.cardBorder}`,borderTopColor:t.primary,opacity:refreshing?1:pullProgress,transform:refreshing?"none":`rotate(${pullProgress*360}deg)`,animation:refreshing?"spin 0.8s linear infinite":"none"}}/>
+          </div>
+        )}
+        <div style={{transform:`translateY(${pullY}px)`,transition:isPulling.current?"none":"transform 0.2s"}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
           <div><h1 style={{fontFamily:t.titleFont,fontSize:26,fontWeight:700,color:t.text,margin:0}}>Fangstlogg</h1><p style={{fontSize:13,color:t.textMuted,margin:"2px 0 0"}}>{tab==="mine"?`${total} fangst${total!==1?"er":""}`:"Felles feed"}</p></div>
           <div style={{display:"flex",gap:8}}><button style={S.circBtn} onClick={onStats}>{I.chart()}</button><button style={S.circPri} onClick={onAdd}>{I.plus()}</button></div>
@@ -450,7 +495,8 @@
         <div style={{marginTop:24,display:"flex",flexDirection:"column",gap:12,alignItems:"center"}}>
           <div style={{display:"flex",gap:6,alignItems:"center"}}>{I.palette()}{Object.entries(THEMES).map(([k,th])=>(<button key={k} onClick={()=>switchTheme(k)} style={{padding:"5px 12px",borderRadius:8,border:k===themeKey?`2px solid ${t.primary}`:`1px solid ${t.inputBorder}`,background:k===themeKey?t.primaryLight:t.cardBg,fontSize:12,fontWeight:k===themeKey?600:400,color:k===themeKey?t.primary:t.textSec,fontFamily:t.font,cursor:"pointer"}}>{th.name}</button>))}</div>
           <button onClick={onSignOut} style={{display:"flex",alignItems:"center",gap:6,padding:"7px 14px",borderRadius:8,border:`1px solid ${t.inputBorder}`,background:t.cardBg,fontSize:12,color:t.textMuted,fontFamily:t.font,cursor:"pointer"}}>{I.logout()} Logg ut ({session.user.email})</button>
-          <p style={{fontSize:10,color:t.textMuted,opacity:.5,margin:"4px 0 0"}}>v24</p>
+          <p style={{fontSize:10,color:t.textMuted,opacity:.5,margin:"4px 0 0"}}>v26</p>
+        </div>
         </div>
       </div>);
     }
