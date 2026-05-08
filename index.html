@@ -243,7 +243,7 @@
             {I.fish(56,t.primary)}
             <h1 style={{fontFamily:t.titleFont,fontSize:32,fontWeight:700,color:t.text,margin:"12px 0 4px"}}>Fangstlogg</h1>
             <p style={{fontSize:14,color:t.textMuted,margin:0}}>Personlig fangstlogg for laksefiske</p>
-            <p style={{fontSize:11,color:t.textMuted,margin:"6px 0 0",opacity:.6}}>v21</p>
+            <p style={{fontSize:11,color:t.textMuted,margin:"6px 0 0",opacity:.6}}>v22</p>
           </div>
           <div style={{...S.sec,width:"100%",maxWidth:340}}>
             <p style={{fontSize:14,color:t.textSec,margin:"0 0 16px",textAlign:"center",lineHeight:1.5}}>Skriv inn e-posten din, så sender vi deg en innloggingskode.</p>
@@ -282,7 +282,7 @@
       const loadCatches=async()=>{
         const {data:mine}=await sb.from("catches").select("*").eq("user_id",session.user.id).order("date",{ascending:false});
         setCatches(mine||[]);
-        const {data:pub}=await sb.from("catches").select("*, profiles(display_name, username)").eq("is_public",true).neq("user_id",session.user.id).order("date",{ascending:false}).limit(100);
+        const {data:pub}=await sb.from("catches").select("*, profiles(display_name, username)").eq("is_public",true).order("date",{ascending:false}).limit(100);
         setPublicFeed(pub||[]);
         setLoading(false);
       };
@@ -446,7 +446,7 @@
           <button style={tab==="feed"?S.tabActive:S.tab} onClick={()=>setTab("feed")}>Felles feed</button>
         </div>
         <Filters fp={fp} S={S} t={t}/>
-        {sorted.length===0?(<div style={{textAlign:"center",padding:"50px 20px"}}>{I.fish(44,t.textMuted)}<p style={{marginTop:10,color:t.textMuted}}>{tab==="mine"?(total===0?"Ingen fangster ennå.":"Ingen treff."):"Ingen offentlige fangster ennå."}</p></div>):(<div style={{display:"flex",flexDirection:"column",gap:8}}>{sorted.map(c=><CatchCard key={c.id} c={c} S={S} t={t} showOwner={tab==="feed"} onClick={()=>onSelect(c)}/>)}</div>)}
+        {sorted.length===0?(<div style={{textAlign:"center",padding:"50px 20px"}}>{I.fish(44,t.textMuted)}<p style={{marginTop:10,color:t.textMuted}}>{tab==="mine"?(total===0?"Ingen fangster ennå.":"Ingen treff."):"Ingen offentlige fangster ennå."}</p></div>):(<div style={{display:"flex",flexDirection:"column",gap:8}}>{sorted.map(c=><CatchCard key={c.id} c={c} S={S} t={t} showOwner={tab==="feed"} currentUserId={session.user.id} onClick={()=>onSelect(c)}/>)}</div>)}
         <div style={{marginTop:24,display:"flex",flexDirection:"column",gap:12,alignItems:"center"}}>
           <div style={{display:"flex",gap:6,alignItems:"center"}}>{I.palette()}{Object.entries(THEMES).map(([k,th])=>(<button key={k} onClick={()=>switchTheme(k)} style={{padding:"5px 12px",borderRadius:8,border:k===themeKey?`2px solid ${t.primary}`:`1px solid ${t.inputBorder}`,background:k===themeKey?t.primaryLight:t.cardBg,fontSize:12,fontWeight:k===themeKey?600:400,color:k===themeKey?t.primary:t.textSec,fontFamily:t.font,cursor:"pointer"}}>{th.name}</button>))}</div>
           <button onClick={onSignOut} style={{display:"flex",alignItems:"center",gap:6,padding:"7px 14px",borderRadius:8,border:`1px solid ${t.inputBorder}`,background:t.cardBg,fontSize:12,color:t.textMuted,fontFamily:t.font,cursor:"pointer"}}>{I.logout()} Logg ut ({session.user.email})</button>
@@ -454,15 +454,17 @@
       </div>);
     }
 
-    function CatchCard({c,S,t,showOwner,onClick}){
+    function CatchCard({c,S,t,showOwner,currentUserId,onClick}){
       const photos=c.photos||[];
       const thumb=photos.length>0?photos[0]:null;
+      const isOwn=c.user_id===currentUserId;
       const ownerName=c.profiles?.display_name||c.profiles?.username||"";
+      const displayedName=isOwn?(ownerName?`${ownerName} (deg)`:"Du"):ownerName;
       return(<div style={S.card} onClick={onClick}>
         {thumb?<div style={S.thumb}><img src={thumb} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/></div>:<div style={S.thumbNone}>{I.fish(24,t.textMuted)}</div>}
         <div style={{flex:1,minWidth:0}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><span style={{fontSize:15,fontWeight:600,color:t.text}}>{c.species}</span><span style={{fontSize:11,color:t.textMuted}}>{fmtDate(c.date)}</span></div>
-          <div style={{fontSize:13,color:t.textSec,marginBottom:5,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{showOwner&&ownerName&&<strong>{ownerName} — </strong>}{c.river}{c.beat?` — ${c.beat}`:""}</div>
+          <div style={{fontSize:13,color:t.textSec,marginBottom:5,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{showOwner&&displayedName&&<strong>{displayedName} — </strong>}{c.river}{c.beat?` — ${c.beat}`:""}</div>
           <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
             {c.weight!=null&&<span style={S.chip}>{c.weight} kg</span>}
             {c.length!=null&&<span style={S.chip}>{c.length} cm</span>}
