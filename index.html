@@ -16,9 +16,9 @@
   <style>
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
     html,body,#root{height:100%}
-    body{-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent;overscroll-behavior:none}
+    body{-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent;overscroll-behavior:none;background:#162320}
     input,select,textarea,button{font-family:inherit}
-    .safe-top{padding-top:0}
+    .safe-top{padding-top:16px}
     .is-standalone .safe-top{padding-top:56px}
     .safe-bottom{padding-bottom:calc(24px + env(safe-area-inset-bottom, 0px))}
     .photo-scroll{display:flex;gap:8px;overflow-x:auto;-webkit-overflow-scrolling:touch;scroll-snap-type:x mandatory;padding:2px 0}
@@ -101,7 +101,7 @@
     const I={
       fish:(s=20,c="currentColor")=>React.createElement("svg",{width:s,height:s,viewBox:"0 0 24 24",fill:"none",stroke:c,strokeWidth:"1.8",strokeLinecap:"round"},React.createElement("path",{d:"M6.5 12c3-6 11-6 14.5 0-3.5 6-11.5 6-14.5 0z"}),React.createElement("path",{d:"M2.5 12c0 0-1-3 .5-5s3-2.5 3-2.5"}),React.createElement("path",{d:"M2.5 12c0 0-1 3 .5 5s3 2.5 3 2.5"}),React.createElement("circle",{cx:"16",cy:"12",r:"1",fill:c})),
       plus:()=><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>,
-      back:()=><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>,
+      back:()=><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>,
       trash:()=><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>,
       cam:()=><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>,
       chart:()=><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>,
@@ -109,6 +109,7 @@
       rel:(r)=>r?<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>:<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
       search:()=><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>,
       x:()=><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
+      xLarge:()=><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
       palette:()=><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="8" r="1.5" fill="currentColor"/><circle cx="8" cy="12" r="1.5" fill="currentColor"/><circle cx="15.5" cy="10.5" r="1.5" fill="currentColor"/><circle cx="9" cy="15.5" r="1.5" fill="currentColor"/></svg>,
       imgPlus:()=><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/><line x1="14" y1="4" x2="14" y2="10"/><line x1="11" y1="7" x2="17" y2="7"/></svg>,
       logout:()=><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>,
@@ -133,7 +134,7 @@
         center:{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",minHeight:"100vh",background:t.bg,padding:20},
         page:{paddingLeft:16,paddingRight:16,paddingBottom:24},
         topBar:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10},
-        backBtn:{display:"flex",alignItems:"center",gap:4,background:"none",border:"none",fontSize:17,color:t.primary,cursor:"pointer",fontFamily:t.font,fontWeight:500,padding:"6px 0"},
+        backBtn:{display:"flex",alignItems:"center",justifyContent:"center",background:"none",border:"none",color:t.primary,cursor:"pointer",padding:8,marginLeft:-8},
         smBtn:{width:34,height:34,borderRadius:17,background:t.cardBg,color:t.primary,border:`1px solid ${t.cardBorder}`,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"},
         circPri:{width:44,height:44,borderRadius:22,background:t.primary,color:t.name==="Mørk"?"#0f1a17":"#fff",border:"none",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",boxShadow:t.btnShadow},
         circBtn:{width:44,height:44,borderRadius:22,background:t.cardBg,color:t.primary,border:`1px solid ${t.cardBorder}`,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"},
@@ -170,6 +171,16 @@
       const[themeKey,setThemeKey]=useState(lsGet("fl_theme")||"dark");
       const t=THEMES[themeKey];
       const S=makeStyles(t);
+
+      useEffect(()=>{
+        // Body-bakgrunn matches temaet (synes på sidene utenfor 480px-containeren)
+        const bgColor=themeKey==="dark"?"#0f1a17":themeKey==="coastal"?"#faf8f4":"#f6f9f4";
+        document.body.style.background=bgColor;
+        document.documentElement.style.background=bgColor;
+        // theme-color meta for browser-chrome
+        const meta=document.querySelector('meta[name="theme-color"]');
+        if(meta)meta.setAttribute("content",bgColor);
+      },[themeKey]);
 
       useEffect(()=>{
         sb.auth.getSession().then(({data})=>{setSession(data.session);setLoading(false);});
@@ -261,7 +272,7 @@
             <img src="/icons/icon-192x192.png" alt="Fangstlogg" style={{width:96,height:96,borderRadius:22,boxShadow:t.btnShadow}}/>
             <h1 style={{fontFamily:t.titleFont,fontSize:32,fontWeight:700,color:t.text,margin:"14px 0 4px"}}>Fangstlogg</h1>
             <p style={{fontSize:15,color:t.textMuted,margin:0}}>Personlig fangstlogg for laksefiske</p>
-            <p style={{fontSize:11,color:t.textMuted,margin:"6px 0 0",opacity:.6}}>v30</p>
+            <p style={{fontSize:11,color:t.textMuted,margin:"6px 0 0",opacity:.6}}>v31</p>
           </div>
           <div style={{...S.sec,width:"100%",maxWidth:340}}>
             <p style={{fontSize:15,color:t.textSec,margin:"0 0 16px",textAlign:"center",lineHeight:1.5}}>Skriv inn e-posten din, så sender vi deg en innloggingskode.</p>
@@ -518,7 +529,7 @@
         <Filters fp={fp} S={S} t={t}/>
         {sorted.length===0?(<div style={{textAlign:"center",padding:"50px 20px"}}>{I.fish(44,t.textMuted)}<p style={{marginTop:10,color:t.textMuted,fontSize:15}}>{tab==="mine"?(total===0?"Ingen fangster ennå.":"Ingen treff."):"Ingen offentlige fangster ennå."}</p></div>):(<div style={{display:"flex",flexDirection:"column",gap:8}}>{sorted.map(c=><CatchCard key={c.id} c={c} S={S} t={t} showOwner={tab==="feed"} currentUserId={session.user.id} onClick={()=>onSelect(c)}/>)}</div>)}
         <div style={{marginTop:30,textAlign:"center"}}>
-          <p style={{fontSize:11,color:t.textMuted,opacity:.5,margin:0}}>v30</p>
+          <p style={{fontSize:11,color:t.textMuted,opacity:.5,margin:0}}>v31</p>
         </div>
         </div>
       </div>);
@@ -702,7 +713,7 @@
       const seed=c.profiles?.username||c.user_id;
       return(<div className="safe-top safe-bottom" style={S.page}>
         <div style={S.topBar}>
-          <button style={S.backBtn} onClick={onBack}>{I.back()} Tilbake</button>
+          <button style={S.backBtn} onClick={onBack}>{I.back()}</button>
           {isOwn&&<div style={{display:"flex",gap:8}}><button style={S.smBtn} onClick={onEdit}>{I.edit()}</button><button style={{...S.smBtn,color:t.danger}} onClick={onDelete}>{I.trash()}</button></div>}
         </div>
         {photos.length===1&&<div style={{borderRadius:14,overflow:"hidden",marginBottom:14,aspectRatio:"3/4",cursor:"pointer"}} onClick={()=>setLightbox(0)}><img src={photos[0]} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/></div>}
