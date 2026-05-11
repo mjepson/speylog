@@ -26,6 +26,7 @@
     .photo-scroll>div{scroll-snap-align:start;flex-shrink:0}
     .spinner{width:32px;height:32px;border:3px solid #d4ddd4;border-top-color:#1a5c3a;border-radius:50%;animation:spin 1s linear infinite}
     @keyframes spin{to{transform:rotate(360deg)}}
+    @keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
   </style>
 </head>
 <body>
@@ -117,6 +118,8 @@
       lock:()=><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>,
       list:()=><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>,
       grid:()=><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="14" x2="21" y2="14"/></svg>,
+      expand:()=><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>,
+      share:()=><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>,
     };
 
     // ── Avatar ──
@@ -124,9 +127,111 @@
       const initials=(name||"?").trim().charAt(0).toUpperCase()||"?";
       const bg=avatarColor(seed||name||"?");
       const style={width:size,height:size,borderRadius:size/2,flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",background:bg,color:"#fff",fontSize:Math.round(size*0.42),fontWeight:600,fontFamily:t.font,overflow:"hidden",border:`1px solid ${t.cardBorder}`,cursor:onClick?"pointer":"default"};
-      const inner=url?<img src={url} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>:initials;
+      const inner=url?<img src={url} alt="" loading="lazy" style={{width:"100%",height:"100%",objectFit:"cover"}}/>:initials;
       if(onClick)return <button onClick={onClick} style={{...style,padding:0}}>{inner}</button>;
       return <div style={style}>{inner}</div>;
+    }
+
+    // ── LazyImage: only loads when near viewport ──
+    function LazyImage({src,alt,style,onLoad}){
+      const ref=useRef();
+      const[shouldLoad,setShouldLoad]=useState(false);
+      const[loaded,setLoaded]=useState(false);
+      useEffect(()=>{
+        if(!ref.current||shouldLoad)return;
+        const obs=new IntersectionObserver((entries)=>{
+          entries.forEach(e=>{if(e.isIntersecting){setShouldLoad(true);obs.disconnect();}});
+        },{rootMargin:"200px"});
+        obs.observe(ref.current);
+        return()=>obs.disconnect();
+      },[shouldLoad]);
+      return <div ref={ref} style={{...style,position:"relative",overflow:"hidden"}}>
+        {shouldLoad&&<img src={src} alt={alt||""} loading="lazy" onLoad={()=>{setLoaded(true);onLoad&&onLoad();}} style={{width:"100%",height:"100%",objectFit:"cover",opacity:loaded?1:0,transition:"opacity .2s"}}/>}
+      </div>;
+    }
+
+    // ── SwipeableImages: scroll-snap horizontal carousel with dot indicators ──
+    function SwipeableImages({photos,onExpand,t,style}){
+      const scrollRef=useRef();
+      const[idx,setIdx]=useState(0);
+      const handleScroll=()=>{
+        if(!scrollRef.current)return;
+        const w=scrollRef.current.offsetWidth;
+        const i=Math.round(scrollRef.current.scrollLeft/w);
+        if(i!==idx)setIdx(i);
+      };
+      return(<div style={{position:"relative",...style}}>
+        <div ref={scrollRef} onScroll={handleScroll} style={{display:"flex",overflowX:"auto",scrollSnapType:"x mandatory",WebkitOverflowScrolling:"touch",width:"100%",height:"100%",scrollbarWidth:"none"}}>
+          {photos.map((p,i)=>(
+            <div key={i} style={{minWidth:"100%",height:"100%",scrollSnapAlign:"start",flexShrink:0}}>
+              <LazyImage src={p} style={{width:"100%",height:"100%"}}/>
+            </div>
+          ))}
+        </div>
+        {photos.length>1&&(
+          <div style={{position:"absolute",bottom:8,left:"50%",transform:"translateX(-50%)",display:"flex",gap:6,zIndex:3,pointerEvents:"none"}}>
+            {photos.map((_,i)=>(
+              <div key={i} style={{width:6,height:6,borderRadius:3,background:i===idx?"#fff":"rgba(255,255,255,.45)",boxShadow:"0 1px 2px rgba(0,0,0,.4)",transition:"background .2s"}}/>
+            ))}
+          </div>
+        )}
+        {onExpand&&(
+          <button onClick={(e)=>{e.stopPropagation();onExpand(idx);}} style={{position:"absolute",top:10,right:10,width:32,height:32,borderRadius:16,background:"rgba(0,0,0,.5)",border:"none",color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",backdropFilter:"blur(8px)",zIndex:3}}>
+            {I.expand()}
+          </button>
+        )}
+      </div>);
+    }
+
+    // ── useLongPress hook ──
+    function useLongPress(callback,{enabled=true,delay=500}={}){
+      const timer=useRef(null);
+      const target=useRef(null);
+      const triggered=useRef(false);
+      const startPos=useRef(null);
+
+      const cancel=()=>{
+        if(timer.current){clearTimeout(timer.current);timer.current=null;}
+      };
+
+      const start=(e)=>{
+        if(!enabled)return;
+        triggered.current=false;
+        const point=e.touches?e.touches[0]:e;
+        startPos.current={x:point.clientX,y:point.clientY};
+        target.current=e.currentTarget;
+        cancel();
+        timer.current=setTimeout(()=>{
+          triggered.current=true;
+          if(navigator.vibrate)navigator.vibrate(15);
+          callback();
+        },delay);
+      };
+
+      const move=(e)=>{
+        if(!timer.current||!startPos.current)return;
+        const point=e.touches?e.touches[0]:e;
+        const dx=Math.abs(point.clientX-startPos.current.x);
+        const dy=Math.abs(point.clientY-startPos.current.y);
+        if(dx>10||dy>10)cancel();
+      };
+
+      const end=()=>{cancel();};
+
+      return{
+        bind:{
+          onTouchStart:start,
+          onTouchMove:move,
+          onTouchEnd:end,
+          onTouchCancel:end,
+          onMouseDown:start,
+          onMouseMove:move,
+          onMouseUp:end,
+          onMouseLeave:end,
+        },
+        wasTriggered:()=>triggered.current,
+        reset:()=>{triggered.current=false;},
+      };
     }
 
     // ── Styles ──
@@ -274,7 +379,7 @@
             <img src="/icons/icon-192x192.png" alt="Fangstlogg" style={{width:96,height:96,borderRadius:22,boxShadow:t.btnShadow}}/>
             <h1 style={{fontFamily:t.titleFont,fontSize:32,fontWeight:700,color:t.text,margin:"14px 0 4px"}}>Fangstlogg</h1>
             <p style={{fontSize:15,color:t.textMuted,margin:0}}>Personlig fangstlogg for laksefiske</p>
-            <p style={{fontSize:11,color:t.textMuted,margin:"6px 0 0",opacity:.6}}>v33</p>
+            <p style={{fontSize:11,color:t.textMuted,margin:"6px 0 0",opacity:.6}}>v34</p>
           </div>
           <div style={{...S.sec,width:"100%",maxWidth:340}}>
             <p style={{fontSize:15,color:t.textSec,margin:"0 0 16px",textAlign:"center",lineHeight:1.5}}>Skriv inn e-posten din, så sender vi deg en innloggingskode.</p>
@@ -310,6 +415,8 @@
       const[fS,setFS]=useState("Alle");
       const[fY,setFY]=useState("Alle");
       const[delModal,setDelModal]=useState(null);
+      const[actionSheet,setActionSheet]=useState(null);
+      const[lightbox,setLightbox]=useState(null);
       const allRivers=[...new Set([...DEFAULT_RIVERS,...customRivers])].sort((a,b)=>a.localeCompare(b,"nb"));
 
       const loadCatches=async()=>{
@@ -404,6 +511,20 @@
         setDelModal(null);setView("list");
       };
 
+      const togglePublic=async(c)=>{
+        const {data,error}=await sb.from("catches").update({is_public:!c.is_public}).eq("id",c.id).select().single();
+        if(error){alert("Feil: "+error.message);return;}
+        setCatches(prev=>prev.map(x=>x.id===data.id?data:x));
+        // Update public feed too
+        if(data.is_public){
+          // Refetch to get profile data joined in
+          const {data:withProfile}=await sb.from("catches").select("*, profiles(display_name, username, avatar_url)").eq("id",data.id).single();
+          if(withProfile)setPublicFeed(prev=>[withProfile,...prev.filter(x=>x.id!==data.id)]);
+        }else{
+          setPublicFeed(prev=>prev.filter(x=>x.id!==data.id));
+        }
+      };
+
       const signOut=async()=>{await sb.auth.signOut();};
 
       const years=[...new Set(catches.map(c=>new Date(c.date).getFullYear()))].sort((a,b)=>b-a);
@@ -422,7 +543,7 @@
 
       return (
         <div style={S.app}>
-          {view==="list"&&<ListView catches={filtered} total={catches.length} fp={fp} S={S} t={t} tab={tab} setTab={setTab} viewMode={viewMode} switchViewMode={switchViewMode} session={session} profile={profile} onSelect={c=>{setSelected(c);setView("detail")}} onAdd={()=>setView("add")} onStats={()=>setView("stats")} onProfile={()=>setView("profile")} onRefresh={loadCatches}/>}
+          {view==="list"&&<ListView catches={filtered} total={catches.length} fp={fp} S={S} t={t} tab={tab} setTab={setTab} viewMode={viewMode} switchViewMode={switchViewMode} session={session} profile={profile} onSelect={c=>{setSelected(c);setView("detail")}} onAdd={()=>setView("add")} onStats={()=>setView("stats")} onProfile={()=>setView("profile")} onRefresh={loadCatches} onLongPress={(c)=>setActionSheet(c)} onExpandPhotos={(c,startIdx)=>setLightbox({photos:c.photos,index:startIdx||0})}/>}
           {view==="stats"&&<StatsView catches={catches} fp={fp} S={S} t={t} onBack={()=>setView("list")}/>}
           {view==="profile"&&<ProfileView session={session} profile={profile} catches={catches} S={S} t={t} themeKey={themeKey} switchTheme={switchTheme} onBack={()=>setView("list")} onUpdate={(p)=>setProfile(p)} onSignOut={signOut}/>}
           {view==="add"&&<FormView allRivers={allRivers} prefs={prefs} profile={profile} S={S} t={t} onSave={addCatch} onCancel={()=>setView("list")}/>}
@@ -436,8 +557,52 @@
               <button style={{...S.btnDng,flex:1}} onClick={()=>deleteCatch(delModal)}>Slett</button>
             </div>
           </div></div>}
+
+          {actionSheet&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.5)",display:"flex",alignItems:"flex-end",justifyContent:"center",zIndex:120}} onClick={()=>setActionSheet(null)}>
+            <div onClick={e=>e.stopPropagation()} style={{background:t.cardBg,borderTopLeftRadius:20,borderTopRightRadius:20,padding:"8px 0 calc(20px + env(safe-area-inset-bottom, 0px))",width:"100%",maxWidth:480,animation:"slideUp .2s ease-out"}}>
+              <div style={{width:36,height:4,borderRadius:2,background:t.inputBorder,margin:"8px auto 16px"}}/>
+              <button onClick={()=>{const c=actionSheet;setActionSheet(null);setSelected(c);setView("detail");}} style={{display:"flex",alignItems:"center",gap:14,width:"100%",padding:"14px 22px",background:"none",border:"none",fontSize:16,color:t.text,fontFamily:t.font,cursor:"pointer",textAlign:"left"}}>
+                {I.fish(20,t.primary)} <span>Åpne fangst</span>
+              </button>
+              <button onClick={()=>{const c=actionSheet;setActionSheet(null);setEditing({...c});setView("edit");}} style={{display:"flex",alignItems:"center",gap:14,width:"100%",padding:"14px 22px",background:"none",border:"none",fontSize:16,color:t.text,fontFamily:t.font,cursor:"pointer",textAlign:"left"}}>
+                <span style={{color:t.primary,display:"flex"}}>{I.edit()}</span> <span>Rediger</span>
+              </button>
+              <button onClick={()=>{togglePublic(actionSheet);setActionSheet(null);}} style={{display:"flex",alignItems:"center",gap:14,width:"100%",padding:"14px 22px",background:"none",border:"none",fontSize:16,color:t.text,fontFamily:t.font,cursor:"pointer",textAlign:"left"}}>
+                <span style={{color:t.primary,display:"flex"}}>{actionSheet.is_public?I.lock():I.world()}</span>
+                <span>{actionSheet.is_public?"Gjør privat":"Del i felles feed"}</span>
+              </button>
+              <button onClick={()=>{const id=actionSheet.id;setActionSheet(null);setDelModal(id);}} style={{display:"flex",alignItems:"center",gap:14,width:"100%",padding:"14px 22px",background:"none",border:"none",fontSize:16,color:t.danger,fontFamily:t.font,cursor:"pointer",textAlign:"left"}}>
+                {I.trash()} <span>Slett</span>
+              </button>
+              <div style={{height:1,background:t.cardBorder,margin:"6px 16px"}}/>
+              <button onClick={()=>setActionSheet(null)} style={{display:"block",width:"100%",padding:"14px 22px",background:"none",border:"none",fontSize:16,color:t.textMuted,fontFamily:t.font,cursor:"pointer",textAlign:"center"}}>Avbryt</button>
+            </div>
+          </div>}
+
+          {lightbox&&<Lightbox photos={lightbox.photos} startIndex={lightbox.index} onClose={()=>setLightbox(null)}/>}
         </div>
       );
+    }
+
+    // ── Lightbox ──
+    function Lightbox({photos,startIndex,onClose}){
+      const[idx,setIdx]=useState(startIndex||0);
+      useEffect(()=>{
+        const onKey=(e)=>{
+          if(e.key==="Escape")onClose();
+          if(e.key==="ArrowLeft"&&idx>0)setIdx(idx-1);
+          if(e.key==="ArrowRight"&&idx<photos.length-1)setIdx(idx+1);
+        };
+        document.addEventListener("keydown",onKey);
+        return()=>document.removeEventListener("keydown",onKey);
+      },[idx,photos.length,onClose]);
+      return <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.94)",zIndex:200,display:"flex",alignItems:"center",justifyContent:"center"}} onClick={onClose}>
+        <button onClick={onClose} style={{position:"absolute",top:"calc(12px + env(safe-area-inset-top))",right:16,background:"rgba(255,255,255,.15)",border:"none",borderRadius:20,width:40,height:40,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",color:"#fff",zIndex:201}}>{I.x()}</button>
+        {photos.length>1&&<div style={{position:"absolute",bottom:"calc(20px + env(safe-area-inset-bottom))",color:"#fff",fontSize:14,opacity:.7}}>{idx+1} / {photos.length}</div>}
+        {photos.length>1&&idx>0&&<button onClick={e=>{e.stopPropagation();setIdx(idx-1);}} style={{position:"absolute",left:12,top:"50%",transform:"translateY(-50%)",background:"rgba(255,255,255,.15)",border:"none",borderRadius:20,width:40,height:40,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",color:"#fff"}}>{I.back()}</button>}
+        {photos.length>1&&idx<photos.length-1&&<button onClick={e=>{e.stopPropagation();setIdx(idx+1);}} style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%) rotate(180deg)",background:"rgba(255,255,255,.15)",border:"none",borderRadius:20,width:40,height:40,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",color:"#fff"}}>{I.back()}</button>}
+        <img src={photos[idx]} alt="" style={{maxWidth:"100%",maxHeight:"90vh",objectFit:"contain"}} onClick={e=>e.stopPropagation()}/>
+      </div>;
     }
 
     // ── Components ──
@@ -470,7 +635,7 @@
     function Lbl({t:text,th}){return <label style={{display:"block",fontSize:13,fontWeight:600,color:th.textSec,marginBottom:2,marginTop:10}}>{text}</label>;}
 
     // ── ListView ──
-    function ListView({catches,total,fp,S,t,tab,setTab,viewMode,switchViewMode,session,profile,onSelect,onAdd,onStats,onProfile,onRefresh}){
+    function ListView({catches,total,fp,S,t,tab,setTab,viewMode,switchViewMode,session,profile,onSelect,onAdd,onStats,onProfile,onRefresh,onLongPress,onExpandPhotos}){
       const sorted=[...catches].sort((a,b)=>new Date(b.date)-new Date(a.date));
       const[pullY,setPullY]=useState(0);
       const[refreshing,setRefreshing]=useState(false);
@@ -539,19 +704,19 @@
         {sorted.length===0?(<div style={{textAlign:"center",padding:"50px 20px"}}>{I.fish(44,t.textMuted)}<p style={{marginTop:10,color:t.textMuted,fontSize:15}}>{tab==="mine"?(total===0?"Ingen fangster ennå.":"Ingen treff."):"Ingen offentlige fangster ennå."}</p></div>):(
           <div style={{display:"flex",flexDirection:"column",gap:viewMode==="large"?14:8}}>
             {sorted.map(c=>viewMode==="large"
-              ? <CatchCardLarge key={c.id} c={c} S={S} t={t} showOwner={tab==="feed"} currentUserId={session.user.id} onClick={()=>onSelect(c)}/>
-              : <CatchCard key={c.id} c={c} S={S} t={t} showOwner={tab==="feed"} currentUserId={session.user.id} onClick={()=>onSelect(c)}/>
+              ? <CatchCardLarge key={c.id} c={c} S={S} t={t} showOwner={tab==="feed"} currentUserId={session.user.id} onClick={()=>onSelect(c)} onLongPress={c.user_id===session.user.id?()=>onLongPress(c):null} onExpandPhotos={(idx)=>onExpandPhotos(c,idx)}/>
+              : <CatchCard key={c.id} c={c} S={S} t={t} showOwner={tab==="feed"} currentUserId={session.user.id} onClick={()=>onSelect(c)} onLongPress={c.user_id===session.user.id?()=>onLongPress(c):null}/>
             )}
           </div>
         )}
         <div style={{marginTop:30,textAlign:"center"}}>
-          <p style={{fontSize:11,color:t.textMuted,opacity:.5,margin:0}}>v33</p>
+          <p style={{fontSize:11,color:t.textMuted,opacity:.5,margin:0}}>v34</p>
         </div>
         </div>
       </div>);
     }
 
-    function CatchCard({c,S,t,showOwner,currentUserId,onClick}){
+    function CatchCard({c,S,t,showOwner,currentUserId,onClick,onLongPress}){
       const photos=c.photos||[];
       const thumb=photos.length>0?photos[0]:null;
       const isOwn=c.user_id===currentUserId;
@@ -559,8 +724,10 @@
       const avatarUrl=c.profiles?.avatar_url;
       const seed=c.profiles?.username||c.user_id;
       const displayedName=isOwn?(ownerName?`${ownerName} (deg)`:"Du"):ownerName;
-      return(<div style={S.card} onClick={onClick}>
-        {thumb?<div style={S.thumb}><img src={thumb} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/></div>:<div style={S.thumbNone}>{I.fish(24,t.textMuted)}</div>}
+      const lp=useLongPress(()=>onLongPress&&onLongPress(),{enabled:!!onLongPress});
+      const handleClick=()=>{if(lp.wasTriggered()){lp.reset();return;}onClick();};
+      return(<div style={S.card} onClick={handleClick} {...lp.bind}>
+        {thumb?<LazyImage src={thumb} style={S.thumb}/>:<div style={S.thumbNone}>{I.fish(24,t.textMuted)}</div>}
         <div style={{flex:1,minWidth:0}}>
           {showOwner?(
             <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:3}}>
@@ -586,14 +753,16 @@
       </div>);
     }
 
-    function CatchCardLarge({c,S,t,showOwner,currentUserId,onClick}){
+    function CatchCardLarge({c,S,t,showOwner,currentUserId,onClick,onLongPress,onExpandPhotos}){
       const photos=c.photos||[];
-      const thumb=photos.length>0?photos[0]:null;
       const isOwn=c.user_id===currentUserId;
       const ownerName=c.profiles?.display_name||c.profiles?.username||"";
       const avatarUrl=c.profiles?.avatar_url;
       const seed=c.profiles?.username||c.user_id;
       const displayedName=isOwn?(ownerName?`${ownerName} (deg)`:"Du"):ownerName;
+      const lp=useLongPress(()=>onLongPress&&onLongPress(),{enabled:!!onLongPress});
+      const handleClick=()=>{if(lp.wasTriggered()){lp.reset();return;}onClick();};
+      const hasPhotos=photos.length>0;
 
       const chips=(
         <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
@@ -601,31 +770,31 @@
           {c.length!=null&&<span style={{...S.chip,background:"rgba(255,255,255,.22)",color:"#fff",backdropFilter:"blur(8px)",fontWeight:600}}>{c.length} cm</span>}
           <span style={{...S.chip,background:"rgba(255,255,255,.22)",color:"#fff",backdropFilter:"blur(8px)",fontWeight:600}}>{c.equipment}</span>
           <span style={{...S.chip,display:"inline-flex",alignItems:"center",gap:3,background:"rgba(255,255,255,.22)",color:c.released?"#a7f3d0":"#fecaca",backdropFilter:"blur(8px)",fontWeight:600}}>{I.rel(c.released)}{c.released?"C&R":"Avlivet"}</span>
-          {photos.length>1&&<span style={{...S.chip,background:"rgba(255,255,255,.22)",color:"#fff",backdropFilter:"blur(8px)",fontWeight:600}}>{photos.length} bilder</span>}
         </div>
       );
 
-      return(<div onClick={onClick} style={{position:"relative",borderRadius:16,overflow:"hidden",cursor:"pointer",aspectRatio:"3/4",background:t.cardBg,border:`1px solid ${t.cardBorder}`,boxShadow:t.shadow}}>
-        {thumb?(
-          <img src={thumb} alt="" style={{width:"100%",height:"100%",objectFit:"cover",display:"block"}}/>
+      return(<div onClick={handleClick} {...lp.bind} style={{position:"relative",borderRadius:16,overflow:"hidden",cursor:"pointer",aspectRatio:"3/4",background:t.cardBg,border:`1px solid ${t.cardBorder}`,boxShadow:t.shadow}}>
+        {hasPhotos?(
+          <SwipeableImages photos={photos} onExpand={onExpandPhotos} t={t} style={{position:"absolute",inset:0}}/>
         ):(
           <div style={{width:"100%",height:"100%",display:"flex",alignItems:"center",justifyContent:"center",background:t.chipBg}}>{I.fish(80,t.textMuted)}</div>
         )}
-        {/* Top-bar: avatar/owner OR shared-badge */}
-        <div style={{position:"absolute",top:0,left:0,right:0,padding:"12px 14px",background:thumb?"linear-gradient(180deg,rgba(0,0,0,.55),rgba(0,0,0,0))":"transparent",display:"flex",justifyContent:"space-between",alignItems:"center",gap:8}}>
+        {/* Top overlay: avatar/owner + date */}
+        <div style={{position:"absolute",top:0,left:0,right:0,padding:"12px 14px",background:hasPhotos?"linear-gradient(180deg,rgba(0,0,0,.55),rgba(0,0,0,0))":"transparent",display:"flex",justifyContent:"space-between",alignItems:"center",gap:8,pointerEvents:"none",zIndex:2}}>
           {showOwner?(
             <div style={{display:"flex",alignItems:"center",gap:8,minWidth:0,flex:1}}>
               <Avatar url={avatarUrl} name={ownerName} seed={seed} size={32} t={t}/>
-              <span style={{fontSize:15,fontWeight:600,color:thumb?"#fff":t.text,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",textShadow:thumb?"0 1px 2px rgba(0,0,0,.5)":"none"}}>{displayedName}</span>
+              <span style={{fontSize:15,fontWeight:600,color:hasPhotos?"#fff":t.text,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",textShadow:hasPhotos?"0 1px 2px rgba(0,0,0,.5)":"none"}}>{displayedName}</span>
             </div>
-          ):<div/>}
-          <span style={{fontSize:13,color:thumb?"#fff":t.textMuted,fontWeight:500,textShadow:thumb?"0 1px 2px rgba(0,0,0,.5)":"none",flexShrink:0}}>{fmtDate(c.date)}</span>
+          ):(
+            isOwn&&c.is_public?<span style={{fontSize:12,color:"#fff",display:"inline-flex",alignItems:"center",gap:4,background:"rgba(0,0,0,.4)",padding:"4px 8px",borderRadius:12,backdropFilter:"blur(8px)"}}>{I.world()} Delt</span>:<div/>
+          )}
+          <span style={{fontSize:13,color:hasPhotos?"#fff":t.textMuted,fontWeight:500,textShadow:hasPhotos?"0 1px 2px rgba(0,0,0,.5)":"none",flexShrink:0,marginLeft:"auto"}}>{fmtDate(c.date)}</span>
         </div>
         {/* Bottom overlay */}
-        <div style={{position:"absolute",bottom:0,left:0,right:0,padding:"50px 14px 14px",background:thumb?"linear-gradient(0deg,rgba(0,0,0,.78),rgba(0,0,0,.45) 60%,rgba(0,0,0,0))":"transparent"}}>
-          <p style={{fontSize:17,fontWeight:700,color:thumb?"#fff":t.text,margin:"0 0 8px",textShadow:thumb?"0 1px 3px rgba(0,0,0,.6)":"none"}}>{c.species} · {c.river}{c.beat?` · ${c.beat}`:""}</p>
+        <div style={{position:"absolute",bottom:0,left:0,right:0,padding:"50px 14px 14px",background:hasPhotos?"linear-gradient(0deg,rgba(0,0,0,.78),rgba(0,0,0,.45) 60%,rgba(0,0,0,0))":"transparent",pointerEvents:"none",zIndex:2}}>
+          <p style={{fontSize:17,fontWeight:700,color:hasPhotos?"#fff":t.text,margin:"0 0 8px",textShadow:hasPhotos?"0 1px 3px rgba(0,0,0,.6)":"none"}}>{c.species} · {c.river}{c.beat?` · ${c.beat}`:""}</p>
           {chips}
-          {!showOwner&&c.is_public&&<span style={{position:"absolute",top:-30,right:14,fontSize:12,color:"#fff",display:"inline-flex",alignItems:"center",gap:4,background:"rgba(0,0,0,.4)",padding:"4px 8px",borderRadius:12,backdropFilter:"blur(8px)"}}>{I.world()} Delt</span>}
         </div>
       </div>);
     }
