@@ -1,4 +1,4 @@
-const CACHE_NAME = 'fangstlogg-v32';
+const CACHE_NAME = 'fangstlogg-v33';
 const ASSETS = [
   '/',
   '/index.html',
