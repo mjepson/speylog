@@ -528,7 +528,7 @@
             <img src="/icons/icon-192x192.png" alt="Fangstlogg" style={{width:96,height:96,borderRadius:22,boxShadow:t.btnShadow}}/>
             <h1 style={{fontFamily:t.titleFont,fontSize:32,fontWeight:700,color:t.text,margin:"14px 0 4px"}}>Fangstlogg</h1>
             <p style={{fontSize:15,color:t.textMuted,margin:0}}>Personlig fangstlogg for laksefiske</p>
-            <p style={{fontSize:11,color:t.textMuted,margin:"6px 0 0",opacity:.6}}>v37</p>
+            <p style={{fontSize:11,color:t.textMuted,margin:"6px 0 0",opacity:.6}}>v38</p>
           </div>
           <div style={{...S.sec,width:"100%",maxWidth:340}}>
             <p style={{fontSize:15,color:t.textSec,margin:"0 0 16px",textAlign:"center",lineHeight:1.5}}>Skriv inn e-posten din, så sender vi deg en innloggingskode.</p>
@@ -823,7 +823,7 @@
           </div>
         )}
         <div style={{marginTop:30,textAlign:"center"}}>
-          <p style={{fontSize:11,color:t.textMuted,opacity:.5,margin:0}}>v37</p>
+          <p style={{fontSize:11,color:t.textMuted,opacity:.5,margin:0}}>v38</p>
         </div>
         </div>
       </div>);
@@ -1042,17 +1042,28 @@
     }
 
     // ── DetailView ──
-    function DetailView({c,session,S,t,onBack,onEdit,onDelete}){
+    function DetailView({c,session,profile,S,t,onBack,onEdit,onDelete}){
       const[lightbox,setLightbox]=useState(null);
+      const[sharing,setSharing]=useState(false);
       const photos=c.photos||[];
       const isOwn=c.user_id===session.user.id;
       const ownerName=c.profiles?.display_name||c.profiles?.username||"";
       const avatarUrl=c.profiles?.avatar_url;
       const seed=c.profiles?.username||c.user_id;
+      const profileForShare=isOwn?profile:(c.profiles||null);
+      const handleShare=async()=>{
+        if(sharing)return;
+        if(!photos||photos.length===0){alert("Fangsten må ha minst ett bilde for å kunne deles.");return;}
+        setSharing(true);
+        try{await shareCatch(c,profileForShare);}finally{setSharing(false);}
+      };
       return(<div className="safe-top safe-bottom" style={S.page}>
         <div style={S.topBar}>
           <button style={S.backBtn} onClick={onBack}>{I.back()}</button>
-          {isOwn&&<div style={{display:"flex",gap:8}}><button style={S.smBtn} onClick={onEdit}>{I.edit()}</button><button style={{...S.smBtn,color:t.danger}} onClick={onDelete}>{I.trash()}</button></div>}
+          <div style={{display:"flex",gap:8}}>
+            {photos.length>0&&<button style={S.smBtn} onClick={handleShare} disabled={sharing}>{sharing?<div className="spinner" style={{width:14,height:14,borderWidth:2}}/>:I.share()}</button>}
+            {isOwn&&<><button style={S.smBtn} onClick={onEdit}>{I.edit()}</button><button style={{...S.smBtn,color:t.danger}} onClick={onDelete}>{I.trash()}</button></>}
+          </div>
         </div>
         {photos.length===1&&<div style={{borderRadius:14,overflow:"hidden",marginBottom:14,aspectRatio:"3/4",cursor:"pointer"}} onClick={()=>setLightbox(0)}><img src={photos[0]} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/></div>}
         {photos.length>1&&<div className="photo-scroll" style={{marginBottom:14}}>{photos.map((p,i)=>(<div key={i} style={{width:"80%",aspectRatio:"3/4",borderRadius:14,overflow:"hidden",cursor:"pointer"}} onClick={()=>setLightbox(i)}><img src={p} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/></div>))}</div>}
