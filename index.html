@@ -564,7 +564,7 @@
             <AppLogo size={96} t={t}/>
             <h1 style={{fontFamily:t.titleFont,fontSize:32,fontWeight:700,color:t.text,margin:"14px 0 4px"}}>Fangstlogg</h1>
             <p style={{fontSize:15,color:t.textMuted,margin:0}}>Personlig fangstlogg for laksefiske</p>
-            <p style={{fontSize:11,color:t.textMuted,margin:"6px 0 0",opacity:.6}}>v49</p>
+            <p style={{fontSize:11,color:t.textMuted,margin:"6px 0 0",opacity:.6}}>v50</p>
           </div>
           <div style={{...S.sec,width:"100%",maxWidth:340}}>
             <p style={{fontSize:15,color:t.textSec,margin:"0 0 16px",textAlign:"center",lineHeight:1.5}}>Skriv inn e-posten din, så sender vi deg en innloggingskode.</p>
@@ -599,6 +599,7 @@
       const[fR,setFR]=useState("Alle");
       const[fS,setFS]=useState("Alle");
       const[fY,setFY]=useState("Alle");
+      const[hideOwnInFeed,setHideOwnInFeed]=useState(lsGet("fl_hideOwnInFeed")||false);
       const[delModal,setDelModal]=useState(null);
       const[lightbox,setLightbox]=useState(null);
       const allRivers=[...new Set([...DEFAULT_RIVERS,...customRivers])].sort((a,b)=>a.localeCompare(b,"nb"));
@@ -617,6 +618,7 @@
 
       const savePrefs=(p)=>{setPrefs(p);lsSet("fl_prefs",p);};
       const switchViewMode=(m)=>{setViewMode(m);lsSet("fl_viewMode",m);};
+      const toggleHideOwnInFeed=()=>{const v=!hideOwnInFeed;setHideOwnInFeed(v);lsSet("fl_hideOwnInFeed",v);};
       const addCustomRiver=(name)=>{if(!customRivers.includes(name)){const next=[...customRivers,name];setCustomRivers(next);lsSet("fl_rivers",next);}};
 
       const uploadPhotos=async(photoFiles)=>{
@@ -701,6 +703,7 @@
       const usedRivers=[...new Set(catches.map(c=>c.river))].sort();
       const sourceList=tab==="mine"?catches:publicFeed;
       const filtered=sourceList.filter(c=>{
+        if(tab==="feed"&&hideOwnInFeed&&c.user_id===session.user.id)return false;
         if(fR!=="Alle"&&c.river!==fR)return false;
         if(fS!=="Alle"&&c.species!==fS)return false;
         if(fY!=="Alle"&&new Date(c.date).getFullYear()!==+fY)return false;
@@ -713,7 +716,7 @@
 
       return (
         <div style={S.app}>
-          {view==="list"&&<ListView catches={filtered} total={catches.length} fp={fp} S={S} t={t} tab={tab} setTab={setTab} viewMode={viewMode} switchViewMode={switchViewMode} session={session} profile={profile} onSelect={c=>{setSelected(c);setView("detail")}} onAdd={()=>setView("add")} onStats={()=>setView("stats")} onProfile={()=>setView("profile")} onRefresh={loadCatches} onExpandPhotos={(c,startIdx)=>setLightbox({photos:c.photos,index:startIdx||0})}/>}
+          {view==="list"&&<ListView catches={filtered} total={catches.length} fp={fp} S={S} t={t} tab={tab} setTab={setTab} viewMode={viewMode} switchViewMode={switchViewMode} hideOwnInFeed={hideOwnInFeed} toggleHideOwnInFeed={toggleHideOwnInFeed} session={session} profile={profile} onSelect={c=>{setSelected(c);setView("detail")}} onAdd={()=>setView("add")} onStats={()=>setView("stats")} onProfile={()=>setView("profile")} onRefresh={loadCatches} onExpandPhotos={(c,startIdx)=>setLightbox({photos:c.photos,index:startIdx||0})}/>}
           {view==="stats"&&<StatsView catches={catches} fp={fp} S={S} t={t} onBack={()=>setView("list")}/>}
           {view==="profile"&&<ProfileView session={session} profile={profile} catches={catches} S={S} t={t} themeKey={themeKey} switchTheme={switchTheme} onBack={()=>setView("list")} onUpdate={(p)=>setProfile(p)} onSignOut={signOut}/>}
           {view==="add"&&<FormView allRivers={allRivers} prefs={prefs} profile={profile} S={S} t={t} onSave={addCatch} onCancel={()=>setView("list")}/>}
@@ -784,7 +787,7 @@
     function Lbl({t:text,th}){return <label style={{display:"block",fontSize:13,fontWeight:600,color:th.textSec,marginBottom:2,marginTop:10}}>{text}</label>;}
 
     // ── ListView ──
-    function ListView({catches,total,fp,S,t,tab,setTab,viewMode,switchViewMode,session,profile,onSelect,onAdd,onStats,onProfile,onRefresh,onExpandPhotos}){
+    function ListView({catches,total,fp,S,t,tab,setTab,viewMode,switchViewMode,hideOwnInFeed,toggleHideOwnInFeed,session,profile,onSelect,onAdd,onStats,onProfile,onRefresh,onExpandPhotos}){
       const sorted=[...catches].sort((a,b)=>new Date(b.date)-new Date(a.date));
       const[pullY,setPullY]=useState(0);
       const[refreshing,setRefreshing]=useState(false);
@@ -850,6 +853,27 @@
           </button>
         </div>
         <Filters fp={fp} S={S} t={t}/>
+        {tab==="feed"&&(
+          <button onClick={toggleHideOwnInFeed} style={{
+            display:"flex",alignItems:"center",justifyContent:"space-between",gap:8,
+            width:"100%",padding:"8px 12px",marginBottom:12,borderRadius:10,
+            border:`1px solid ${hideOwnInFeed?t.primary:t.cardBorder}`,
+            background:hideOwnInFeed?t.primaryLight:t.cardBg,
+            color:hideOwnInFeed?t.primary:t.textSec,
+            fontSize:13,fontFamily:t.font,fontWeight:500,cursor:"pointer"
+          }}>
+            <span>Skjul mine fangster i feeden</span>
+            <span style={{
+              width:36,height:20,borderRadius:10,background:hideOwnInFeed?t.primary:t.inputBorder,
+              position:"relative",transition:"background .2s",flexShrink:0,display:"inline-block"
+            }}>
+              <span style={{
+                position:"absolute",top:2,left:hideOwnInFeed?18:2,width:16,height:16,borderRadius:8,
+                background:"#fff",transition:"left .2s",boxShadow:"0 1px 2px rgba(0,0,0,.2)"
+              }}/>
+            </span>
+          </button>
+        )}
         {sorted.length===0?(<div style={{textAlign:"center",padding:"50px 20px"}}>{I.fish(44,t.textMuted)}<p style={{marginTop:10,color:t.textMuted,fontSize:15}}>{tab==="mine"?(total===0?"Ingen fangster ennå.":"Ingen treff."):"Ingen offentlige fangster ennå."}</p></div>):(
           <div style={{display:"flex",flexDirection:"column",gap:viewMode==="large"?14:8}}>
             {sorted.map(c=>viewMode==="large"
@@ -859,7 +883,7 @@
           </div>
         )}
         <div style={{marginTop:30,textAlign:"center"}}>
-          <p style={{fontSize:11,color:t.textMuted,opacity:.5,margin:0}}>v49</p>
+          <p style={{fontSize:11,color:t.textMuted,opacity:.5,margin:0}}>v50</p>
         </div>
         </div>
       </div>);
