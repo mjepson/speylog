@@ -380,51 +380,11 @@
       return <div style={style}>{inner}</div>;
     }
 
-    // ── LazyImage: only loads when near viewport, instant-show if cached ──
-    // Module-level set of URLs that have already loaded once in this session.
-    // Used to skip the fade-in animation on remount (e.g. when navigating back from detail view).
-    const LOADED_IMAGES = new Set();
-
+    // ── LazyImage (no longer lazy): loads all images eagerly, no fade-in ──
+    // Low-traffic app — we prioritize instant display over bandwidth savings.
     function LazyImage({src,alt,style,onLoad}){
-      const ref=useRef();
-      const imgRef=useRef();
-      const wasLoaded=LOADED_IMAGES.has(src);
-      const[shouldLoad,setShouldLoad]=useState(wasLoaded);
-      const[loaded,setLoaded]=useState(wasLoaded);
-      const[fromCache,setFromCache]=useState(wasLoaded);
-      useEffect(()=>{
-        if(!ref.current||shouldLoad)return;
-        // Synchronous viewport check first — if element is already visible (or close),
-        // load immediately without waiting for IntersectionObserver tick.
-        const rect=ref.current.getBoundingClientRect();
-        const vh=window.innerHeight||document.documentElement.clientHeight;
-        const margin=600;
-        if(rect.top<vh+margin&&rect.bottom>-margin){
-          setShouldLoad(true);
-          return;
-        }
-        const obs=new IntersectionObserver((entries)=>{
-          entries.forEach(e=>{if(e.isIntersecting){setShouldLoad(true);obs.disconnect();}});
-        },{rootMargin:"600px"});
-        obs.observe(ref.current);
-        return()=>obs.disconnect();
-      },[shouldLoad]);
-      // When shouldLoad becomes true, check if the image is already complete (in browser cache)
-      useEffect(()=>{
-        if(shouldLoad&&imgRef.current&&imgRef.current.complete&&imgRef.current.naturalWidth>0){
-          setFromCache(true);
-          setLoaded(true);
-          LOADED_IMAGES.add(src);
-          onLoad&&onLoad();
-        }
-      },[shouldLoad,src]);
-      const handleLoad=()=>{
-        LOADED_IMAGES.add(src);
-        setLoaded(true);
-        onLoad&&onLoad();
-      };
-      return <div ref={ref} style={{...style,position:"relative",overflow:"hidden"}}>
-        {shouldLoad&&<img ref={imgRef} src={src} alt={alt||""} loading="lazy" onLoad={handleLoad} style={{width:"100%",height:"100%",objectFit:"cover",opacity:loaded?1:0,transition:fromCache?"none":"opacity .2s"}}/>}
+      return <div style={{...style,position:"relative",overflow:"hidden"}}>
+        <img src={src} alt={alt||""} onLoad={onLoad} style={{width:"100%",height:"100%",objectFit:"cover",display:"block"}}/>
       </div>;
     }
 
@@ -604,7 +564,7 @@
             <AppLogo size={96} t={t}/>
             <h1 style={{fontFamily:t.titleFont,fontSize:32,fontWeight:700,color:t.text,margin:"14px 0 4px"}}>Fangstlogg</h1>
             <p style={{fontSize:15,color:t.textMuted,margin:0}}>Personlig fangstlogg for laksefiske</p>
-            <p style={{fontSize:11,color:t.textMuted,margin:"6px 0 0",opacity:.6}}>v48</p>
+            <p style={{fontSize:11,color:t.textMuted,margin:"6px 0 0",opacity:.6}}>v49</p>
           </div>
           <div style={{...S.sec,width:"100%",maxWidth:340}}>
             <p style={{fontSize:15,color:t.textSec,margin:"0 0 16px",textAlign:"center",lineHeight:1.5}}>Skriv inn e-posten din, så sender vi deg en innloggingskode.</p>
@@ -899,7 +859,7 @@
           </div>
         )}
         <div style={{marginTop:30,textAlign:"center"}}>
-          <p style={{fontSize:11,color:t.textMuted,opacity:.5,margin:0}}>v48</p>
+          <p style={{fontSize:11,color:t.textMuted,opacity:.5,margin:0}}>v49</p>
         </div>
         </div>
       </div>);
