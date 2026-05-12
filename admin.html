@@ -2,1239 +2,757 @@
 <html lang="nb">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Fangstlogg">
-  <meta name="theme-color" content="#0d3a6e">
-  <meta name="description" content="Personlig fangstlogg for laksefiske">
-  <title>Fangstlogg</title>
-  <link rel="manifest" href="/manifest.json">
-  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
-  <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192x192.png">
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&family=Playfair+Display:wght@500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#0f1a17">
+  <title>Fangstlogg · Admin</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
-    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-    html,body,#root{height:100%}
-    body{-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent;overscroll-behavior:none;background:#162320}
-    input,select,textarea,button{font-family:inherit}
-    .safe-top{padding-top:16px}
-    .is-standalone .safe-top{padding-top:56px}
-    .safe-bottom{padding-bottom:calc(24px + env(safe-area-inset-bottom, 0px))}
-    .photo-scroll{display:flex;gap:8px;overflow-x:auto;-webkit-overflow-scrolling:touch;scroll-snap-type:x mandatory;padding:2px 0}
-    .photo-scroll::-webkit-scrollbar{display:none}
-    .photo-scroll>div{scroll-snap-align:start;flex-shrink:0}
-    .spinner{width:32px;height:32px;border:3px solid #d4ddd4;border-top-color:#1a5c3a;border-radius:50%;animation:spin 1s linear infinite}
-    @keyframes spin{to{transform:rotate(360deg)}}
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f1a17;
+      --bg2: #162320;
+      --card: #1c2e28;
+      --border: #2a4038;
+      --primary: #5ee6a0;
+      --primary-light: #1c3a2e;
+      --text: #e8f0ec;
+      --text-sec: #9bb5a8;
+      --text-muted: #5f7d6e;
+      --chip-bg: #243832;
+      --chip-text: #8fc4a5;
+      --danger: #f87171;
+      --released: #5ee6a0;
+      --kept: #f87171;
+      --yellow: #fbbf24;
+      --blue: #60a5fa;
+      --pink: #f472b6;
+      --radius: 12px;
+      --radius-lg: 14px;
+    }
+
+    body {
+      font-family: 'Outfit', sans-serif;
+      background: linear-gradient(180deg, var(--bg), var(--bg2));
+      color: var(--text);
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Header ── */
+    .header {
+      padding: 20px 28px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      background: var(--bg);
+      z-index: 50;
+    }
+    .header h1 { font-size: 22px; font-weight: 700; }
+    .header .sub { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
+    .dot-live {
+      width: 10px; height: 10px; border-radius: 50%;
+      background: var(--primary);
+      box-shadow: 0 0 10px var(--primary);
+    }
+
+    .container { padding: 24px 28px; max-width: 1200px; margin: 0 auto; }
+
+    /* ── Stats ── */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      margin-bottom: 24px;
+    }
+    .stat-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      position: relative;
+      overflow: hidden;
+    }
+    .stat-card .accent {
+      position: absolute; top: 0; left: 0;
+      width: 3px; height: 100%;
+      border-radius: 0 2px 2px 0;
+    }
+    .stat-card .label { font-size: 12px; color: var(--text-muted); font-weight: 500; }
+    .stat-card .value { font-size: 28px; font-weight: 700; line-height: 1; margin-top: 4px; }
+    .stat-card .sub-val { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+
+    /* ── Filters ── */
+    .filters {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .search-wrap {
+      position: relative;
+      flex: 1 1 220px;
+    }
+    .search-wrap .icon {
+      position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+      color: var(--text-muted); font-size: 15px; pointer-events: none;
+    }
+    .search-input, .filter-select {
+      background: var(--card);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-family: 'Outfit', sans-serif;
+      font-size: 14px;
+      border-radius: 10px;
+      outline: none;
+    }
+    .search-input {
+      width: 100%;
+      padding: 10px 12px 10px 34px;
+    }
+    .filter-select {
+      padding: 10px 14px;
+      font-size: 13px;
+      cursor: pointer;
+      color: var(--text-muted);
+    }
+    .filter-select.active { color: var(--text); }
+
+    /* ── Table ── */
+    .table-wrap {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+    }
+    .table-header, .table-row {
+      display: grid;
+      grid-template-columns: 2fr 1fr 100px 80px 80px 90px;
+      align-items: center;
+      padding: 12px 20px;
+    }
+    .table-header {
+      border-bottom: 1px solid var(--border);
+      font-size: 10px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+      font-weight: 600;
+    }
+    .table-header span { cursor: pointer; user-select: none; }
+    .table-row {
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+      transition: background 0.15s;
+      padding: 14px 20px;
+    }
+    .table-row:last-child { border-bottom: none; }
+    .table-row:hover { background: var(--primary-light); }
+
+    /* ── Avatar ── */
+    .avatar {
+      width: 36px; height: 36px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; color: #fff; flex-shrink: 0;
+      font-size: 14px; letter-spacing: 0.5px;
+    }
+    .avatar.lg { width: 56px; height: 56px; font-size: 21px; }
+
+    .user-cell {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+    .user-cell .name {
+      font-size: 14px; font-weight: 600;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .user-cell .email {
+      font-size: 12px; color: var(--text-muted);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+
+    /* ── Chips / Badges ── */
+    .chip {
+      font-size: 12px;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 6px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .chip .dot { width: 6px; height: 6px; border-radius: 50%; }
+    .chip-role {
+      background: var(--chip-bg);
+      color: var(--chip-text);
+    }
+    .chip-active { background: var(--primary-light); color: var(--primary); }
+    .chip-active .dot { background: var(--primary); }
+    .chip-inactive { background: #2a2a1c; color: var(--yellow); }
+    .chip-inactive .dot { background: var(--yellow); }
+    .chip-suspended { background: #2e1c1c; color: var(--danger); }
+    .chip-suspended .dot { background: var(--danger); }
+
+    .count-big { font-size: 16px; font-weight: 700; }
+    .count-muted { color: var(--text-muted); }
+    .weight-val { font-size: 13px; color: var(--text-sec); }
+    .date-val { font-size: 12px; color: var(--text-muted); }
+
+    .footer-bar {
+      display: flex;
+      justify-content: space-between;
+      padding: 14px 4px;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    /* ── Detail View ── */
+    .back-btn {
+      background: none; border: none;
+      color: var(--primary);
+      font-size: 15px; font-weight: 600;
+      cursor: pointer;
+      padding: 0 0 20px;
+      display: flex; align-items: center; gap: 6px;
+      font-family: 'Outfit', sans-serif;
+    }
+
+    .profile-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+    .profile-card .info { flex: 1; }
+    .profile-card .info h2 { font-size: 22px; font-weight: 700; }
+    .profile-card .info .email-line { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
+    .profile-card .meta {
+      display: flex; gap: 8px; margin-top: 10px;
+      align-items: center; flex-wrap: wrap;
+    }
+    .profile-card .meta-text { font-size: 12px; color: var(--text-muted); }
+
+    .tags { display: flex; gap: 6px; margin-bottom: 16px; flex-wrap: wrap; }
+    .tag {
+      font-size: 12px; color: var(--chip-text); background: var(--chip-bg);
+      padding: 4px 10px; border-radius: 6px; font-weight: 500;
+    }
+    .tag-outline {
+      background: var(--card);
+      color: var(--text-sec);
+      border: 1px solid var(--border);
+    }
+
+    .catch-table {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+    }
+    .catch-table-header {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .catch-table-header h3 { font-size: 15px; font-weight: 700; }
+    .catch-table-header .count { font-size: 12px; color: var(--text-muted); }
+
+    .catch-cols {
+      display: flex; align-items: center; gap: 12px;
+      padding: 8px 16px;
+      border-bottom: 1px solid var(--border);
+      font-size: 10px; color: var(--text-muted);
+      text-transform: uppercase; letter-spacing: 1.2px; font-weight: 600;
+    }
+    .catch-row {
+      display: flex; align-items: center; gap: 12px;
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border);
+      font-size: 13px;
+    }
+    .catch-row:last-child { border-bottom: none; }
+    .c-date { color: var(--text-muted); width: 90px; flex-shrink: 0; font-size: 12px; }
+    .c-river { color: var(--text); font-weight: 600; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .c-species { color: var(--text-sec); width: 70px; text-align: center; flex-shrink: 0; }
+    .c-length { color: var(--text); font-weight: 600; width: 55px; text-align: right; flex-shrink: 0; }
+    .c-weight { color: var(--text-sec); width: 55px; text-align: right; flex-shrink: 0; }
+    .c-status {
+      font-size: 11px; font-weight: 600;
+      padding: 2px 8px; border-radius: 4px; flex-shrink: 0;
+    }
+    .c-released { background: var(--primary-light); color: var(--released); }
+    .c-kept { background: #2e1c1c; color: var(--kept); }
+
+    .empty-state {
+      padding: 40px;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+
+    /* ── Auth ── */
+    .auth-screen {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .auth-box {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 32px;
+      width: 360px;
+      max-width: 100%;
+      text-align: center;
+    }
+    .auth-box h1 { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+    .auth-box .sub { font-size: 13px; color: var(--text-muted); margin-bottom: 24px; }
+    .auth-box input {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 12px 14px;
+      font-size: 15px;
+      border-radius: 10px;
+      outline: none;
+      font-family: 'Outfit', sans-serif;
+      margin-bottom: 12px;
+    }
+    .auth-box button {
+      width: 100%;
+      background: var(--primary);
+      color: var(--bg);
+      border: none;
+      padding: 12px;
+      font-size: 15px;
+      font-weight: 700;
+      border-radius: 10px;
+      cursor: pointer;
+      font-family: 'Outfit', sans-serif;
+    }
+    .auth-box button:disabled { opacity: 0.45; cursor: default; }
+    .auth-box .msg {
+      margin-top: 14px;
+      font-size: 13px;
+      padding: 10px;
+      border-radius: 8px;
+    }
+    .msg-ok { background: var(--primary-light); color: var(--primary); }
+    .msg-err { background: #2e1c1c; color: var(--danger); }
+    .msg-deny { background: #2e1c1c; color: var(--danger); }
+
+    /* ── Loading ── */
+    .loading {
+      min-height: 100vh;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 15px; color: var(--text-muted);
+    }
+    .spinner {
+      width: 24px; height: 24px;
+      border: 3px solid var(--border);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      margin-right: 12px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    .fade-in { animation: fadeIn .3s ease; }
+
+    /* ── Responsive ── */
+    @media (max-width: 768px) {
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+      .table-header, .table-row {
+        grid-template-columns: 2fr 80px 70px 50px;
+      }
+      .table-header .col-role,
+      .table-header .col-weight,
+      .table-row .col-role,
+      .table-row .col-weight { display: none; }
+      .container { padding: 16px; }
+      .header { padding: 16px; }
+    }
+
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
   </style>
 </head>
 <body>
-  <script>
-    if(window.navigator.standalone===true||window.matchMedia('(display-mode: standalone)').matches){
-      document.documentElement.classList.add('is-standalone');
+
+<div id="app"></div>
+
+<script>
+// ── Supabase ──
+const SUPABASE_URL = 'https://sygxotiqbljukaekiipc.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_wJX40u1dWNyz5xS3NTle7A_TI52gsrJ';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// ── Admin emails — add more as needed ──
+const ADMIN_EMAILS = ['magnus@jepson.no'];
+
+const app = document.getElementById('app');
+
+// ── Avatar color from seed ──
+function avatarColor(seed) {
+  const colors = ["#1a5c3a","#2d6a4f","#52796f","#386641","#6a994e","#8b5cf6","#7c3aed","#0891b2","#0e7490","#b45309","#a16207","#be123c","#9f1239","#9333ea","#1e40af"];
+  let h = 0;
+  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0;
+  return colors[h % colors.length];
+}
+
+function initials(name) {
+  return (name || '?').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+}
+
+function fmtDate(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  const m = ['jan','feb','mar','apr','mai','jun','jul','aug','sep','okt','nov','des'];
+  return `${d.getDate()}. ${m[d.getMonth()]} ${d.getFullYear()}`;
+}
+
+// ── State ──
+let state = {
+  loading: true,
+  session: null,
+  denied: false,
+  users: [],
+  selectedUserId: null,
+  search: '',
+  sortCol: 'name',
+  sortAsc: true,
+};
+
+// ── Auth ──
+async function init() {
+  const { data } = await sb.auth.getSession();
+  state.session = data.session;
+  state.loading = false;
+
+  if (!state.session) {
+    // Not logged in — send to main app to log in there
+    window.location.href = '/';
+    return;
+  }
+
+  const email = state.session.user.email;
+  if (!ADMIN_EMAILS.includes(email)) {
+    state.denied = true;
+    render();
+    return;
+  }
+
+  await loadData();
+  render();
+
+  sb.auth.onAuthStateChange(async (_, session) => {
+    if (!session) {
+      window.location.href = '/';
+      return;
     }
-  </script>
-  <div id="root"></div>
-  <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
-  <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
-  <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.24.7/babel.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script type="text/babel" data-type="module">
-    const {useState,useEffect,useRef}=React;
-
-    // ── Supabase Config ──
-    const SUPABASE_URL = "https://sygxotiqbljukaekiipc.supabase.co";
-    const SUPABASE_KEY = "sb_publishable_wJX40u1dWNyz5xS3NTle7A_TI52gsrJ";
-    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
-      auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
-    });
-
-    // ── Storage upload options ──
-    // cacheControl: 30 days — bilder lagres lenge i nettleser-cache
-    const UPLOAD_OPTS = { contentType: "image/jpeg", cacheControl: "2592000" };
-
-    // ── Config ──
-    const DEFAULT_RIVERS=["Altaelva","Bjerkreimselva","Bøelva","Dirdalselva","Driva","Etneelva","Figgjo","Flåmselva","Gaula","Håelva","Lærdalselva","Mandalselva","Namsen","Nidelva (Arendal)","Numedalslågen","Ogna","Orkla","Otra","Suldalslågen","Surna","Tovdalselva","Vikedalselva","River Dee","River Spey","River Tay","River Tweed"];
-    const SPECIES=["Laks","Sjøørret","Brunørret","Regnbueørret","Annet"];
-    const EQUIPMENT=["Flue","Sluk","Spinner","Wobbler","Mark","Annet"];
-
-    // ── Helpers ──
-    function estimateWeight(cm){if(!cm||cm<=0)return null;return Math.round((0.95*Math.pow(cm,3))/100000*10)/10;}
-    function parseNum(v){if(v===""||v===null||v===undefined)return null;const n=parseFloat(String(v).replace(",","."));return isNaN(n)?null:n;}
-    function fmtDate(iso){const d=new Date(iso);const m=["jan","feb","mar","apr","mai","jun","jul","aug","sep","okt","nov","des"];return`${d.getDate()}. ${m[d.getMonth()]} ${d.getFullYear()}`;}
-    function lsGet(k){try{const v=localStorage.getItem(k);return v?JSON.parse(v):null;}catch{return null;}}
-    function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){console.error(e);}}
-
-    function avatarColor(seed){
-      const colors=["#1a5c3a","#2d6a4f","#52796f","#386641","#6a994e","#8b5cf6","#7c3aed","#0891b2","#0e7490","#b45309","#a16207","#be123c","#9f1239","#9333ea","#1e40af"];
-      let h=0;
-      const s=seed||"?";
-      for(let i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))>>>0;
-      return colors[h%colors.length];
+    state.session = session;
+    const email = session.user.email;
+    if (!ADMIN_EMAILS.includes(email)) {
+      state.denied = true;
+      render();
+      return;
     }
+    state.denied = false;
+    await loadData();
+    render();
+  });
+}
 
-    function resizeImage(file,maxW=1600){
-      return new Promise((resolve,reject)=>{
-        const reader=new FileReader();
-        reader.onload=ev=>{
-          const img=new Image();
-          img.onload=()=>{
-            const canvas=document.createElement("canvas");
-            let w=img.width,h=img.height;
-            if(w>maxW){h=h*(maxW/w);w=maxW;}
-            canvas.width=w;canvas.height=h;
-            canvas.getContext("2d").drawImage(img,0,0,w,h);
-            canvas.toBlob(blob=>{if(blob)resolve(blob);else reject("Blob failed");},"image/jpeg",0.82);
-          };
-          img.onerror=reject;
-          img.src=ev.target.result;
-        };
-        reader.onerror=reject;
-        reader.readAsDataURL(file);
-      });
-    }
+// ── Data loading ──
+async function loadData() {
+  // Fetch all profiles
+  const { data: profiles } = await sb.from('profiles').select('*');
 
-    // ── Themes ──
-    const THEMES={
-      forest:{name:"Skog",font:"'DM Sans', sans-serif",titleFont:"'Playfair Display', serif",bg:"linear-gradient(180deg,#f6f9f4,#eef2eb)",cardBg:"#fff",cardBorder:"#e8ede6",primary:"#1a5c3a",primaryLight:"#eef7f0",accent:"#2d7a4f",text:"#1a3a2a",textSec:"#5a7a5c",textMuted:"#8a9e8b",inputBg:"#fff",inputBorder:"#d4ddd4",chipBg:"#f0f5ee",chipText:"#4a6a4c",filterBg:"#fff",danger:"#dc2626",released:"#16a34a",kept:"#b91c1c",shadow:"0 1px 3px rgba(0,0,0,.05)",btnShadow:"0 2px 8px rgba(26,92,58,.3)"},
-      dark:{name:"Mørk",font:"'Outfit', sans-serif",titleFont:"'Outfit', sans-serif",bg:"linear-gradient(180deg,#0f1a17,#162320)",cardBg:"#1c2e28",cardBorder:"#2a4038",primary:"#5ee6a0",primaryLight:"#1c3a2e",accent:"#5ee6a0",text:"#e8f0ec",textSec:"#9bb5a8",textMuted:"#5f7d6e",inputBg:"#1c2e28",inputBorder:"#2a4038",chipBg:"#243832",chipText:"#8fc4a5",filterBg:"#1c2e28",danger:"#f87171",released:"#5ee6a0",kept:"#f87171",shadow:"0 2px 6px rgba(0,0,0,.3)",btnShadow:"0 2px 12px rgba(94,230,160,.2)"},
-      coastal:{name:"Kyst",font:"'DM Sans', sans-serif",titleFont:"'Source Serif 4', serif",bg:"linear-gradient(180deg,#faf8f4,#f0ece4)",cardBg:"#fff",cardBorder:"#e6dfd5",primary:"#2563a8",primaryLight:"#e8f0fa",accent:"#1d4f7a",text:"#1a2a3a",textSec:"#5a6a7a",textMuted:"#8a96a2",inputBg:"#fff",inputBorder:"#d4d0c8",chipBg:"#eef2f7",chipText:"#3a5a7a",filterBg:"#fff",danger:"#dc2626",released:"#16a34a",kept:"#b91c1c",shadow:"0 1px 4px rgba(0,0,0,.06)",btnShadow:"0 2px 8px rgba(37,99,168,.25)"},
+  // Fetch all catches (admin bypass — we need a service role or RLS policy for this)
+  // Since we're using anon key + RLS, we can only see public catches + our own.
+  // For a proper admin, you'd use service_role key on a backend.
+  // Workaround: fetch all catches via the logged-in admin user
+  const { data: catches } = await sb.from('catches').select('*');
+
+  // Fetch auth users' last sign in (from profiles + catches join)
+  const usersMap = {};
+
+  (profiles || []).forEach(p => {
+    usersMap[p.id] = {
+      id: p.id,
+      name: p.display_name || p.username || '—',
+      email: '',  // we'll try to get this
+      username: p.username,
+      avatar_url: p.avatar_url,
+      joined: p.created_at,
+      catches: [],
     };
+  });
 
-    // ── Icons ──
-    const I={
-      fish:(s=20,c="currentColor")=>React.createElement("svg",{width:s,height:s,viewBox:"0 0 24 24",fill:"none",stroke:c,strokeWidth:"1.8",strokeLinecap:"round"},React.createElement("path",{d:"M6.5 12c3-6 11-6 14.5 0-3.5 6-11.5 6-14.5 0z"}),React.createElement("path",{d:"M2.5 12c0 0-1-3 .5-5s3-2.5 3-2.5"}),React.createElement("path",{d:"M2.5 12c0 0-1 3 .5 5s3 2.5 3 2.5"}),React.createElement("circle",{cx:"16",cy:"12",r:"1",fill:c})),
-      plus:()=><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>,
-      back:()=><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>,
-      trash:()=><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>,
-      cam:()=><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>,
-      chart:()=><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>,
-      edit:()=><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>,
-      rel:(r)=>r?<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>:<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
-      search:()=><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>,
-      x:()=><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
-      xLarge:()=><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
-      palette:()=><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="8" r="1.5" fill="currentColor"/><circle cx="8" cy="12" r="1.5" fill="currentColor"/><circle cx="15.5" cy="10.5" r="1.5" fill="currentColor"/><circle cx="9" cy="15.5" r="1.5" fill="currentColor"/></svg>,
-      imgPlus:()=><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/><line x1="14" y1="4" x2="14" y2="10"/><line x1="11" y1="7" x2="17" y2="7"/></svg>,
-      logout:()=><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>,
-      world:()=><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>,
-      lock:()=><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>,
-      list:()=><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>,
-      grid:()=><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="14" x2="21" y2="14"/></svg>,
-      expand:()=><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>,
-      share:()=><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>,
-    };
-
-    // ── Generate share image (original photo ratio, scaled to ~1080px wide) ──
-    async function generateShareImage(c,profileData){
-      const loadImg=async(url)=>{
-        const res=await fetch(url,{mode:"cors"});
-        const blob=await res.blob();
-        const objUrl=URL.createObjectURL(blob);
-        return new Promise((resolve,reject)=>{
-          const img=new Image();
-          img.onload=()=>{URL.revokeObjectURL(objUrl);resolve(img);};
-          img.onerror=reject;
-          img.src=objUrl;
-        });
-      };
-
-      // Determine canvas size from photo's natural ratio
-      let W=1080,H=1350; // fallback if no photo
-      let bgImg=null;
-      const photoUrl=(c.photos||[])[0];
-      if(photoUrl){
-        try{
-          bgImg=await loadImg(photoUrl);
-          // Scale to max 1080 on longest side, keep ratio
-          const ratio=bgImg.width/bgImg.height;
-          if(ratio>=1){
-            W=1080;
-            H=Math.round(1080/ratio);
-          }else{
-            H=1080;
-            W=Math.round(1080*ratio);
-          }
-        }catch(e){
-          // fallback to default
-        }
-      }
-
-      const canvas=document.createElement("canvas");
-      canvas.width=W;canvas.height=H;
-      const ctx=canvas.getContext("2d");
-
-      const drawCover=(img,x,y,w,h)=>{
-        const iw=img.width,ih=img.height;
-        const scale=Math.max(w/iw,h/ih);
-        const sw=w/scale,sh=h/scale;
-        const sx=(iw-sw)/2,sy=(ih-sh)/2;
-        ctx.drawImage(img,sx,sy,sw,sh,x,y,w,h);
-      };
-
-      const roundRect=(x,y,w,h,r)=>{
-        ctx.beginPath();
-        ctx.moveTo(x+r,y);
-        ctx.arcTo(x+w,y,x+w,y+h,r);
-        ctx.arcTo(x+w,y+h,x,y+h,r);
-        ctx.arcTo(x,y+h,x,y,r);
-        ctx.arcTo(x,y,x+w,y,r);
-        ctx.closePath();
-      };
-
-      if(bgImg){
-        // Draw at natural ratio (no cropping)
-        ctx.drawImage(bgImg,0,0,W,H);
-      }else{
-        ctx.fillStyle="#1a5c3a";
-        ctx.fillRect(0,0,W,H);
-      }
-
-      // Top gradient — height scales with canvas (≈19% of height)
-      const topGradH=Math.round(H*0.19);
-      const topGrad=ctx.createLinearGradient(0,0,0,topGradH);
-      topGrad.addColorStop(0,"rgba(0,0,0,.6)");
-      topGrad.addColorStop(1,"rgba(0,0,0,0)");
-      ctx.fillStyle=topGrad;
-      ctx.fillRect(0,0,W,topGradH);
-
-      // Bottom gradient — height scales with canvas (≈37% of height)
-      const botGradH=Math.round(H*0.37);
-      const botGrad=ctx.createLinearGradient(0,H-botGradH,0,H);
-      botGrad.addColorStop(0,"rgba(0,0,0,0)");
-      botGrad.addColorStop(0.5,"rgba(0,0,0,.5)");
-      botGrad.addColorStop(1,"rgba(0,0,0,.85)");
-      ctx.fillStyle=botGrad;
-      ctx.fillRect(0,H-botGradH,W,botGradH);
-
-      // Scale text/elements based on canvas width (1080 = baseline)
-      const sc=W/1080; // scale factor
-
-      const topY=Math.round(90*sc);
-      const avatarSize=Math.round(80*sc);
-      const avatarX=Math.round(50*sc);
-      let nameX=avatarX+avatarSize+Math.round(24*sc);
-      const ownerName=profileData?.display_name||profileData?.username||"";
-      const avatarUrl=profileData?.avatar_url;
-
-      ctx.save();
-      ctx.beginPath();
-      ctx.arc(avatarX+avatarSize/2,topY+avatarSize/2,avatarSize/2,0,Math.PI*2);
-      ctx.closePath();
-      ctx.clip();
-      if(avatarUrl){
-        try{
-          const aImg=await loadImg(avatarUrl);
-          drawCover(aImg,avatarX,topY,avatarSize,avatarSize);
-        }catch(e){
-          ctx.fillStyle=avatarColor(profileData?.username||ownerName||"?");
-          ctx.fillRect(avatarX,topY,avatarSize,avatarSize);
-          ctx.fillStyle="#fff";
-          ctx.font=`bold ${Math.round(40*sc)}px -apple-system, system-ui, sans-serif`;
-          ctx.textAlign="center";
-          ctx.textBaseline="middle";
-          ctx.fillText((ownerName||"?").charAt(0).toUpperCase(),avatarX+avatarSize/2,topY+avatarSize/2);
-        }
-      }else{
-        ctx.fillStyle=avatarColor(profileData?.username||ownerName||"?");
-        ctx.fillRect(avatarX,topY,avatarSize,avatarSize);
-        ctx.fillStyle="#fff";
-        ctx.font=`bold ${Math.round(40*sc)}px -apple-system, system-ui, sans-serif`;
-        ctx.textAlign="center";
-        ctx.textBaseline="middle";
-        ctx.fillText((ownerName||"?").charAt(0).toUpperCase(),avatarX+avatarSize/2,topY+avatarSize/2);
-      }
-      ctx.restore();
-
-      ctx.fillStyle="#fff";
-      ctx.font=`600 ${Math.round(38*sc)}px -apple-system, system-ui, sans-serif`;
-      ctx.textAlign="left";
-      ctx.textBaseline="alphabetic";
-      ctx.shadowColor="rgba(0,0,0,.6)";
-      ctx.shadowBlur=8;
-      ctx.fillText(ownerName,nameX,topY+Math.round(44*sc));
-
-      ctx.font=`500 ${Math.round(30*sc)}px -apple-system, system-ui, sans-serif`;
-      ctx.textAlign="right";
-      ctx.fillText(fmtDate(c.date),W-Math.round(50*sc),topY+Math.round(44*sc));
-      ctx.shadowBlur=0;
-
-      const titleY=H-Math.round(180*sc);
-      ctx.fillStyle="#fff";
-      ctx.font=`700 ${Math.round(56*sc)}px -apple-system, system-ui, sans-serif`;
-      ctx.textAlign="left";
-      ctx.shadowColor="rgba(0,0,0,.7)";
-      ctx.shadowBlur=10;
-      const title=`${c.species} · ${c.river}${c.beat?" · "+c.beat:""}`;
-      let displayTitle=title;
-      const maxTitleW=W-Math.round(100*sc);
-      if(ctx.measureText(displayTitle).width>maxTitleW){
-        while(ctx.measureText(displayTitle+"…").width>maxTitleW&&displayTitle.length>10){
-          displayTitle=displayTitle.slice(0,-1);
-        }
-        displayTitle+="…";
-      }
-      ctx.fillText(displayTitle,Math.round(50*sc),titleY);
-      ctx.shadowBlur=0;
-
-      const chips=[];
-      if(c.weight!=null)chips.push({text:`${c.weight} kg`,color:"#fff"});
-      if(c.length!=null)chips.push({text:`${c.length} cm`,color:"#fff"});
-      chips.push({text:c.equipment,color:"#fff"});
-      chips.push({text:c.released?"C&R":"Avlivet",color:c.released?"#a7f3d0":"#fecaca"});
-
-      const chipY=H-Math.round(100*sc);
-      const chipH=Math.round(54*sc);
-      const chipPadding=Math.round(22*sc);
-      const chipGap=Math.round(10*sc);
-      ctx.font=`600 ${Math.round(26*sc)}px -apple-system, system-ui, sans-serif`;
-      let chipX=Math.round(50*sc);
-      chips.forEach(chip=>{
-        const tw=ctx.measureText(chip.text).width;
-        const cw=tw+chipPadding*2;
-        ctx.fillStyle="rgba(255,255,255,.22)";
-        roundRect(chipX,chipY,cw,chipH,Math.round(12*sc));
-        ctx.fill();
-        ctx.fillStyle=chip.color;
-        ctx.textBaseline="middle";
-        ctx.fillText(chip.text,chipX+chipPadding,chipY+chipH/2+2);
-        chipX+=cw+chipGap;
-      });
-
-      return new Promise(resolve=>canvas.toBlob(b=>resolve(b),"image/jpeg",0.92));
+  (catches || []).forEach(c => {
+    if (usersMap[c.user_id]) {
+      usersMap[c.user_id].catches.push(c);
     }
+  });
 
-    async function shareCatch(c,profileData){
-      try{
-        const blob=await generateShareImage(c,profileData);
-        if(!blob)throw new Error("Kunne ikke generere bilde");
-        const file=new File([blob],`fangst-${c.id}.jpg`,{type:"image/jpeg"});
-        const shareData={
-          title:`${c.species} · ${c.river}`,
-          text:`${c.species} · ${c.river}${c.beat?" · "+c.beat:""}`,
-          files:[file],
-        };
-        if(navigator.canShare&&navigator.canShare(shareData)){
-          await navigator.share(shareData);
-        }else{
-          const url=URL.createObjectURL(blob);
-          const a=document.createElement("a");
-          a.href=url;
-          a.download=`fangst-${c.id}.jpg`;
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-          setTimeout(()=>URL.revokeObjectURL(url),1000);
-        }
-      }catch(e){
-        if(e.name!=="AbortError"){
-          alert("Kunne ikke dele: "+(e.message||"ukjent feil"));
-        }
-      }
-    }
+  // Sort catches by date desc within each user
+  Object.values(usersMap).forEach(u => {
+    u.catches.sort((a, b) => new Date(b.date) - new Date(a.date));
+    u.totalWeight = u.catches.reduce((s, c) => s + (parseFloat(c.weight) || 0), 0);
+    u.lastCatch = u.catches.length > 0 ? u.catches[0].date : null;
+  });
 
-    // ── Avatar ──
-    function Avatar({url,name,seed,size=32,t,onClick}){
-      const initials=(name||"?").trim().charAt(0).toUpperCase()||"?";
-      const bg=avatarColor(seed||name||"?");
-      const style={width:size,height:size,borderRadius:size/2,flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",background:bg,color:"#fff",fontSize:Math.round(size*0.42),fontWeight:600,fontFamily:t.font,overflow:"hidden",border:`1px solid ${t.cardBorder}`,cursor:onClick?"pointer":"default"};
-      const inner=url?<img src={url} alt="" loading="lazy" style={{width:"100%",height:"100%",objectFit:"cover"}}/>:initials;
-      if(onClick)return <button onClick={onClick} style={{...style,padding:0}}>{inner}</button>;
-      return <div style={style}>{inner}</div>;
-    }
+  state.users = Object.values(usersMap);
+}
 
-    // ── LazyImage: only loads when near viewport, instant-show if cached ──
-    function LazyImage({src,alt,style,onLoad}){
-      const ref=useRef();
-      const imgRef=useRef();
-      const[shouldLoad,setShouldLoad]=useState(false);
-      const[loaded,setLoaded]=useState(false);
-      const[fromCache,setFromCache]=useState(false);
-      useEffect(()=>{
-        if(!ref.current||shouldLoad)return;
-        // Synchronous viewport check first — if element is already visible (or close),
-        // load immediately without waiting for IntersectionObserver tick.
-        const rect=ref.current.getBoundingClientRect();
-        const vh=window.innerHeight||document.documentElement.clientHeight;
-        const margin=600;
-        if(rect.top<vh+margin&&rect.bottom>-margin){
-          setShouldLoad(true);
-          return;
-        }
-        const obs=new IntersectionObserver((entries)=>{
-          entries.forEach(e=>{if(e.isIntersecting){setShouldLoad(true);obs.disconnect();}});
-        },{rootMargin:"600px"});
-        obs.observe(ref.current);
-        return()=>obs.disconnect();
-      },[shouldLoad]);
-      // When shouldLoad becomes true, check if the image is already in cache (img.complete is true synchronously)
-      useEffect(()=>{
-        if(shouldLoad&&imgRef.current&&imgRef.current.complete&&imgRef.current.naturalWidth>0){
-          setFromCache(true);
-          setLoaded(true);
-          onLoad&&onLoad();
-        }
-      },[shouldLoad]);
-      return <div ref={ref} style={{...style,position:"relative",overflow:"hidden"}}>
-        {shouldLoad&&<img ref={imgRef} src={src} alt={alt||""} loading="lazy" onLoad={()=>{setLoaded(true);onLoad&&onLoad();}} style={{width:"100%",height:"100%",objectFit:"cover",opacity:loaded?1:0,transition:fromCache?"none":"opacity .2s"}}/>}
-      </div>;
-    }
+// ── Render ──
+function render() {
+  if (state.loading) {
+    app.innerHTML = `<div class="loading"><div class="spinner"></div>Laster...</div>`;
+    return;
+  }
 
-    // ── SwipeableImages ──
-    function SwipeableImages({photos,onExpand,t,style}){
-      const scrollRef=useRef();
-      const[idx,setIdx]=useState(0);
-      const handleScroll=()=>{
-        if(!scrollRef.current)return;
-        const w=scrollRef.current.offsetWidth;
-        const i=Math.round(scrollRef.current.scrollLeft/w);
-        if(i!==idx)setIdx(i);
-      };
-      return(<div style={{...style,overflow:"hidden"}}>
-        <div ref={scrollRef} onScroll={handleScroll} style={{display:"flex",overflowX:"auto",overflowY:"hidden",scrollSnapType:"x mandatory",WebkitOverflowScrolling:"touch",width:"100%",height:"100%",scrollbarWidth:"none"}}>
-          {photos.map((p,i)=>(
-            <div key={i} style={{width:"100%",height:"100%",scrollSnapAlign:"start",flexShrink:0,position:"relative"}}>
-              <LazyImage src={p} style={{position:"absolute",inset:0}}/>
+  if (state.denied) {
+    app.innerHTML = `
+      <div class="auth-screen">
+        <div class="auth-box">
+          <h1>🚫</h1>
+          <p class="sub" style="margin-top: 12px;">Denne siden er kun for administratorer.</p>
+          <div class="msg msg-deny">Du har ikke tilgang til admin-panelet.</div>
+          <button style="margin-top: 16px;" onclick="sb.auth.signOut().then(() => { window.location.href = '/'; })">Tilbake til appen</button>
+        </div>
+      </div>`;
+    return;
+  }
+
+  if (state.selectedUserId) {
+    renderDetail();
+  } else {
+    renderList();
+  }
+}
+
+function renderList() {
+  const q = state.search.toLowerCase();
+  let filtered = state.users.filter(u => {
+    if (!q) return true;
+    return (u.name || '').toLowerCase().includes(q) || (u.username || '').toLowerCase().includes(q);
+  });
+
+  // Sort
+  filtered.sort((a, b) => {
+    let av, bv;
+    if (state.sortCol === 'catches') { av = a.catches.length; bv = b.catches.length; }
+    else if (state.sortCol === 'weight') { av = a.totalWeight; bv = b.totalWeight; }
+    else if (state.sortCol === 'lastCatch') { av = a.lastCatch || ''; bv = b.lastCatch || ''; }
+    else { av = a.name || ''; bv = b.name || ''; }
+    const cmp = typeof av === 'string' ? av.localeCompare(bv) : av - bv;
+    return state.sortAsc ? cmp : -cmp;
+  });
+
+  const totalCatches = state.users.reduce((s, u) => s + u.catches.length, 0);
+  const totalWeight = state.users.reduce((s, u) => s + u.totalWeight, 0);
+  const usersWithCatches = state.users.filter(u => u.catches.length > 0).length;
+  const arrow = col => state.sortCol === col ? (state.sortAsc ? ' ↑' : ' ↓') : '';
+
+  app.innerHTML = `
+    <div class="header">
+      <div>
+        <h1>Fangstlogg</h1>
+        <div class="sub">Admin · Brukeradministrasjon</div>
+      </div>
+      <div class="dot-live"></div>
+    </div>
+    <div class="container fade-in">
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="accent" style="background: var(--primary)"></div>
+          <div class="label">Brukere</div>
+          <div class="value">${state.users.length}</div>
+        </div>
+        <div class="stat-card">
+          <div class="accent" style="background: var(--blue)"></div>
+          <div class="label">Aktive fiskere</div>
+          <div class="value">${usersWithCatches}</div>
+        </div>
+        <div class="stat-card">
+          <div class="accent" style="background: var(--yellow)"></div>
+          <div class="label">Fangster totalt</div>
+          <div class="value">${totalCatches}</div>
+        </div>
+        <div class="stat-card">
+          <div class="accent" style="background: var(--pink)"></div>
+          <div class="label">Total vekt</div>
+          <div class="value">${totalWeight.toFixed(0)} kg</div>
+        </div>
+      </div>
+
+      <div class="filters">
+        <div class="search-wrap">
+          <span class="icon">⌕</span>
+          <input class="search-input" placeholder="Søk etter navn..." value="${state.search}" oninput="state.search = this.value; render();" />
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <div class="table-header">
+          <span onclick="toggleSort('name')">Bruker${arrow('name')}</span>
+          <span class="col-role">Brukernavn</span>
+          <span>Siste fangst</span>
+          <span onclick="toggleSort('catches')">Fangster${arrow('catches')}</span>
+          <span class="col-weight" onclick="toggleSort('weight')">Totalvekt${arrow('weight')}</span>
+          <span onclick="toggleSort('lastCatch')">Ble med${arrow('lastCatch')}</span>
+        </div>
+        ${filtered.length === 0 ? `<div class="empty-state">Ingen brukere funnet</div>` :
+          filtered.map(u => `
+            <div class="table-row" onclick="state.selectedUserId = '${u.id}'; render();">
+              <div class="user-cell">
+                ${u.avatar_url
+                  ? `<img src="${u.avatar_url}" class="avatar" style="object-fit: cover;" onerror="this.outerHTML='<div class=\\'avatar\\' style=\\'background: ${avatarColor(u.name)}\\'>${initials(u.name)}</div>'" />`
+                  : `<div class="avatar" style="background: ${avatarColor(u.name)}">${initials(u.name)}</div>`
+                }
+                <div>
+                  <div class="name">${u.name}</div>
+                  <div class="email">${u.username || ''}</div>
+                </div>
+              </div>
+              <span class="col-role"><span class="chip chip-role">${u.username || '—'}</span></span>
+              <span class="date-val">${u.lastCatch ? fmtDate(u.lastCatch) : '—'}</span>
+              <span class="count-big ${u.catches.length === 0 ? 'count-muted' : ''}">${u.catches.length}</span>
+              <span class="col-weight weight-val">${u.totalWeight > 0 ? u.totalWeight.toFixed(1) + ' kg' : '—'}</span>
+              <span class="date-val">${fmtDate(u.joined)}</span>
             </div>
-          ))}
-        </div>
-        {photos.length>1&&(
-          <div style={{position:"absolute",bottom:110,left:"50%",transform:"translateX(-50%)",display:"flex",gap:6,zIndex:4,pointerEvents:"none"}}>
-            {photos.map((_,i)=>(
-              <div key={i} style={{width:6,height:6,borderRadius:3,background:i===idx?"#fff":"rgba(255,255,255,.45)",boxShadow:"0 1px 2px rgba(0,0,0,.4)",transition:"background .2s"}}/>
-            ))}
-          </div>
-        )}
-        {onExpand&&(
-          <button onClick={(e)=>{e.stopPropagation();onExpand(idx);}} style={{position:"absolute",top:"50%",right:12,transform:"translateY(-50%)",width:38,height:38,borderRadius:19,background:"rgba(0,0,0,.45)",border:"none",color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",backdropFilter:"blur(8px)",zIndex:4,opacity:.85}}>
-            {I.expand()}
-          </button>
-        )}
-      </div>);
-    }
-
-    // ── Styles ──
-    function makeStyles(t){
-      return{
-        app:{maxWidth:480,margin:"0 auto",minHeight:"100vh",background:t.bg,fontFamily:t.font,color:t.text},
-        center:{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",minHeight:"100vh",background:t.bg,padding:20},
-        page:{paddingLeft:16,paddingRight:16,paddingBottom:24},
-        topBar:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10},
-        backBtn:{display:"flex",alignItems:"center",justifyContent:"center",background:"none",border:"none",color:t.primary,cursor:"pointer",padding:8,marginLeft:-8},
-        smBtn:{width:34,height:34,borderRadius:17,background:t.cardBg,color:t.primary,border:`1px solid ${t.cardBorder}`,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"},
-        circPri:{width:44,height:44,borderRadius:22,background:t.primary,color:t.name==="Mørk"?"#0f1a17":"#fff",border:"none",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",boxShadow:t.btnShadow},
-        circBtn:{width:44,height:44,borderRadius:22,background:t.cardBg,color:t.primary,border:`1px solid ${t.cardBorder}`,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"},
-        sel:{flex:1,minWidth:90,padding:"8px 10px",borderRadius:10,border:`1px solid ${t.inputBorder}`,background:t.filterBg,fontSize:14,fontFamily:t.font,color:t.text},
-        card:{display:"flex",gap:10,background:t.cardBg,borderRadius:14,padding:10,boxShadow:t.shadow,cursor:"pointer",border:`1px solid ${t.cardBorder}`},
-        thumb:{width:68,height:68,borderRadius:10,overflow:"hidden",flexShrink:0},
-        thumbNone:{width:68,height:68,borderRadius:10,background:t.chipBg,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0},
-        chip:{fontSize:12,padding:"3px 7px",borderRadius:5,background:t.chipBg,color:t.chipText,fontWeight:500},
-        sec:{background:t.cardBg,borderRadius:14,padding:14,marginBottom:12,border:`1px solid ${t.cardBorder}`},
-        secT:{fontSize:14,fontWeight:600,color:t.text,marginTop:0,marginBottom:10},
-        inp:{width:"100%",padding:"11px 12px",borderRadius:11,border:`1px solid ${t.inputBorder}`,fontSize:16,fontFamily:t.font,background:t.inputBg,color:t.text,boxSizing:"border-box",outline:"none"},
-        togOff:{padding:"10px 24px",borderRadius:10,border:`1px solid ${t.inputBorder}`,background:t.cardBg,fontSize:15,fontFamily:t.font,cursor:"pointer",color:t.textMuted},
-        togOn:{padding:"10px 24px",borderRadius:10,border:`2px solid ${t.primary}`,background:t.primaryLight,fontSize:15,fontFamily:t.font,cursor:"pointer",color:t.primary,fontWeight:600},
-        btnPriFull:{width:"100%",padding:"14px 20px",borderRadius:12,background:t.primary,color:t.name==="Mørk"?"#0f1a17":"#fff",border:"none",fontSize:16,fontWeight:600,fontFamily:t.font,cursor:"pointer",boxShadow:t.btnShadow},
-        btnPri:{padding:"11px 18px",borderRadius:11,background:t.primary,color:t.name==="Mørk"?"#0f1a17":"#fff",border:"none",fontSize:15,fontWeight:600,fontFamily:t.font,cursor:"pointer",boxShadow:t.btnShadow},
-        btnSec:{padding:"11px 18px",borderRadius:11,background:t.cardBg,color:t.primary,border:`1px solid ${t.cardBorder}`,fontSize:15,fontWeight:500,fontFamily:t.font,cursor:"pointer"},
-        btnDng:{padding:"11px 18px",borderRadius:11,background:t.danger,color:"#fff",border:"none",fontSize:15,fontWeight:600,fontFamily:t.font,cursor:"pointer"},
-        overlay:{position:"fixed",inset:0,background:"rgba(0,0,0,.5)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:100,padding:20},
-        modal:{background:t.cardBg,borderRadius:16,padding:"22px 18px",maxWidth:300,width:"100%",boxShadow:"0 10px 40px rgba(0,0,0,.2)"},
-        dropdown:{position:"absolute",top:"100%",left:0,right:0,background:t.cardBg,borderRadius:12,border:`1px solid ${t.cardBorder}`,boxShadow:"0 8px 24px rgba(0,0,0,.15)",zIndex:50,marginTop:4,overflow:"hidden"},
-        dropItem:{padding:"10px 14px",fontSize:15,cursor:"pointer",fontFamily:t.font,color:t.text,borderBottom:`1px solid ${t.cardBorder}`},
-        tabBar:{display:"flex",gap:6,marginBottom:14,padding:4,background:t.chipBg,borderRadius:11},
-        tab:{flex:1,padding:"10px 14px",borderRadius:8,fontSize:14,fontWeight:600,fontFamily:t.font,cursor:"pointer",border:"none",background:"transparent",color:t.textMuted},
-        tabActive:{flex:1,padding:"10px 14px",borderRadius:8,fontSize:14,fontWeight:600,fontFamily:t.font,cursor:"pointer",border:"none",background:t.cardBg,color:t.primary,boxShadow:t.shadow},
-      };
-    }
-
-    // ══════════════════════════════════════
-    // App Root
-    // ══════════════════════════════════════
-    function App(){
-      const[session,setSession]=useState(null);
-      const[loading,setLoading]=useState(true);
-      const[themeKey,setThemeKey]=useState(lsGet("fl_theme")||"dark");
-      const t=THEMES[themeKey];
-      const S=makeStyles(t);
-
-      useEffect(()=>{
-        const bgColor=themeKey==="dark"?"#0f1a17":themeKey==="coastal"?"#faf8f4":"#f6f9f4";
-        document.body.style.background=bgColor;
-        document.documentElement.style.background=bgColor;
-        const meta=document.querySelector('meta[name="theme-color"]');
-        if(meta)meta.setAttribute("content",bgColor);
-      },[themeKey]);
-
-      useEffect(()=>{
-        sb.auth.getSession().then(({data})=>{setSession(data.session);setLoading(false);});
-        const {data:listener}=sb.auth.onAuthStateChange((_e,session)=>{setSession(session);});
-        return()=>listener.subscription.unsubscribe();
-      },[]);
-
-      const switchTheme=(k)=>{setThemeKey(k);lsSet("fl_theme",k);};
-
-      if(loading)return <div style={S.center}><div className="spinner"/></div>;
-      if(!session)return <AuthView S={S} t={t}/>;
-      return <MainApp session={session} S={S} t={t} themeKey={themeKey} switchTheme={switchTheme}/>;
-    }
-
-    // ══════════════════════════════════════
-    // Auth View — OTP Code (works in PWA)
-    // ══════════════════════════════════════
-    function AuthView({S,t}){
-      const[email,setEmail]=useState("");
-      const[displayName,setDisplayName]=useState("");
-      const[code,setCode]=useState("");
-      const[err,setErr]=useState("");
-      const[busy,setBusy]=useState(false);
-      const[step,setStep]=useState("email");
-
-      const sendCode=async()=>{
-        setErr("");setBusy(true);
-        try{
-          const {error}=await sb.auth.signInWithOtp({
-            email,
-            options:{
-              data:displayName?{display_name:displayName}:undefined,
-              shouldCreateUser:true,
-            }
-          });
-          if(error)throw error;
-          setStep("code");
-        }catch(e){setErr(e.message||"Noe gikk galt");}
-        setBusy(false);
-      };
-
-      const verifyCode=async()=>{
-        setErr("");setBusy(true);
-        try{
-          const {error}=await sb.auth.verifyOtp({
-            email,
-            token:code.trim(),
-            type:"email",
-          });
-          if(error)throw error;
-        }catch(e){setErr(e.message||"Feil kode. Prøv igjen.");}
-        setBusy(false);
-      };
-
-      if(step==="code"){
-        return (
-          <div className="safe-top safe-bottom" style={{...S.app,...S.center,minHeight:"100vh"}}>
-            <div style={{textAlign:"center",marginBottom:30}}>
-              <img src="/icons/icon-192x192.png" alt="Fangstlogg" style={{width:80,height:80,borderRadius:18,boxShadow:t.btnShadow}}/>
-              <h1 style={{fontFamily:t.titleFont,fontSize:28,fontWeight:700,color:t.text,margin:"14px 0 4px"}}>Skriv inn koden</h1>
-            </div>
-            <div style={{...S.sec,width:"100%",maxWidth:340}}>
-              <p style={{fontSize:15,color:t.textSec,margin:"0 0 4px",textAlign:"center",lineHeight:1.5}}>Vi har sendt en kode til</p>
-              <p style={{fontSize:15,color:t.primary,fontWeight:600,margin:"0 0 16px",textAlign:"center"}}>{email}</p>
-              <input
-                style={{...S.inp,fontSize:24,textAlign:"center",letterSpacing:6,fontWeight:600,marginBottom:14}}
-                inputMode="numeric"
-                autoComplete="one-time-code"
-                pattern="[0-9]*"
-                maxLength={8}
-                placeholder="00000000"
-                value={code}
-                onChange={e=>setCode(e.target.value.replace(/\D/g,""))}
-                autoFocus
-              />
-              {err&&<p style={{color:t.danger,fontSize:14,marginBottom:10}}>{err}</p>}
-              <button style={{...S.btnPriFull,opacity:(busy||code.length<6)?.6:1,marginBottom:8}} disabled={busy||code.length<6} onClick={verifyCode}>
-                {busy?"Sjekker..." : "Logg inn"}
-              </button>
-              <button style={{...S.btnSec,fontSize:14,width:"100%"}} onClick={()=>{setStep("email");setCode("");setErr("");}}>Bruk en annen e-post</button>
-            </div>
-          </div>
-        );
-      }
-
-      return (
-        <div className="safe-top safe-bottom" style={{...S.app,...S.center,minHeight:"100vh"}}>
-          <div style={{textAlign:"center",marginBottom:30}}>
-            <img src="/icons/icon-192x192.png" alt="Fangstlogg" style={{width:96,height:96,borderRadius:22,boxShadow:t.btnShadow}}/>
-            <h1 style={{fontFamily:t.titleFont,fontSize:32,fontWeight:700,color:t.text,margin:"14px 0 4px"}}>Fangstlogg</h1>
-            <p style={{fontSize:15,color:t.textMuted,margin:0}}>Personlig fangstlogg for laksefiske</p>
-            <p style={{fontSize:11,color:t.textMuted,margin:"6px 0 0",opacity:.6}}>v41</p>
-          </div>
-          <div style={{...S.sec,width:"100%",maxWidth:340}}>
-            <p style={{fontSize:15,color:t.textSec,margin:"0 0 16px",textAlign:"center",lineHeight:1.5}}>Skriv inn e-posten din, så sender vi deg en innloggingskode.</p>
-            <label style={{fontSize:13,fontWeight:600,color:t.textSec}}>Navn (kun ny bruker)</label>
-            <input style={{...S.inp,marginTop:4,marginBottom:10}} placeholder="Magnus" value={displayName} onChange={e=>setDisplayName(e.target.value)}/>
-            <label style={{fontSize:13,fontWeight:600,color:t.textSec}}>E-post</label>
-            <input style={{...S.inp,marginTop:4,marginBottom:14}} type="email" inputMode="email" autoComplete="email" placeholder="navn@example.com" value={email} onChange={e=>setEmail(e.target.value)}/>
-            {err&&<p style={{color:t.danger,fontSize:14,marginBottom:10}}>{err}</p>}
-            <button style={{...S.btnPriFull,opacity:busy?.6:1}} disabled={busy||!email} onClick={sendCode}>
-              {busy?"Sender..." : "Send kode"}
-            </button>
-          </div>
-        </div>
-      );
-    }
-
-    // ══════════════════════════════════════
-    // Main App (authenticated)
-    // ══════════════════════════════════════
-    function MainApp({session,S,t,themeKey,switchTheme}){
-      const[catches,setCatches]=useState([]);
-      const[publicFeed,setPublicFeed]=useState([]);
-      const[profile,setProfile]=useState(null);
-      const[customRivers,setCustomRivers]=useState(lsGet("fl_rivers")||[]);
-      const[prefs,setPrefs]=useState(lsGet("fl_prefs")||{lastRiver:"",lastEquipment:"Flue"});
-      const[view,setView]=useState("list");
-      const[tab,setTab]=useState("mine");
-      const[viewMode,setViewMode]=useState(lsGet("fl_viewMode")||"compact");
-      const[selected,setSelected]=useState(null);
-      const[editing,setEditing]=useState(null);
-      const[loading,setLoading]=useState(true);
-      const[fR,setFR]=useState("Alle");
-      const[fS,setFS]=useState("Alle");
-      const[fY,setFY]=useState("Alle");
-      const[delModal,setDelModal]=useState(null);
-      const[lightbox,setLightbox]=useState(null);
-      const allRivers=[...new Set([...DEFAULT_RIVERS,...customRivers])].sort((a,b)=>a.localeCompare(b,"nb"));
-
-      const loadCatches=async()=>{
-        const {data:mine}=await sb.from("catches").select("*").eq("user_id",session.user.id).order("date",{ascending:false});
-        setCatches(mine||[]);
-        const {data:pub}=await sb.from("catches").select("*, profiles(display_name, username, avatar_url)").eq("is_public",true).order("date",{ascending:false}).limit(100);
-        setPublicFeed(pub||[]);
-        const {data:prof}=await sb.from("profiles").select("*").eq("id",session.user.id).single();
-        setProfile(prof||null);
-        setLoading(false);
-      };
-
-      useEffect(()=>{loadCatches();},[]);
-
-      const savePrefs=(p)=>{setPrefs(p);lsSet("fl_prefs",p);};
-      const switchViewMode=(m)=>{setViewMode(m);lsSet("fl_viewMode",m);};
-      const addCustomRiver=(name)=>{if(!customRivers.includes(name)){const next=[...customRivers,name];setCustomRivers(next);lsSet("fl_rivers",next);}};
-
-      const uploadPhotos=async(photoFiles)=>{
-        const urls=[];
-        for(const file of photoFiles){
-          const ext="jpg";
-          const filename=`${session.user.id}/${Date.now()}_${Math.random().toString(36).slice(2,7)}.${ext}`;
-          const {error}=await sb.storage.from("catch-photos").upload(filename,file,UPLOAD_OPTS);
-          if(error){console.error(error);continue;}
-          const {data}=sb.storage.from("catch-photos").getPublicUrl(filename);
-          urls.push(data.publicUrl);
+          `).join('')
         }
-        return urls;
-      };
+      </div>
+      <div class="footer-bar">
+        <span>Viser ${filtered.length} av ${state.users.length} brukere</span>
+        <span>Klikk på en bruker for detaljer</span>
+      </div>
+    </div>`;
+}
 
-      const addCatch=async(form,newPhotoFiles)=>{
-        let photoUrls=form.photos||[];
-        if(newPhotoFiles.length>0){
-          const uploaded=await uploadPhotos(newPhotoFiles);
-          photoUrls=[...photoUrls,...uploaded];
+function renderDetail() {
+  const user = state.users.find(u => u.id === state.selectedUserId);
+  if (!user) { state.selectedUserId = null; render(); return; }
+
+  const catches = user.catches;
+  const totalWeight = user.totalWeight;
+  const releasedCount = catches.filter(c => c.released).length;
+  const biggest = catches.length ? catches.reduce((a, b) => (parseFloat(a.weight)||0) > (parseFloat(b.weight)||0) ? a : b) : null;
+  const rivers = [...new Set(catches.map(c => c.river).filter(Boolean))];
+  const methods = [...new Set(catches.map(c => c.equipment).filter(Boolean))];
+
+  app.innerHTML = `
+    <div class="header">
+      <div>
+        <h1>Fangstlogg</h1>
+        <div class="sub">Admin · Brukerdetaljer</div>
+      </div>
+      <div class="dot-live"></div>
+    </div>
+    <div class="container fade-in">
+      <button class="back-btn" onclick="state.selectedUserId = null; render();">← Tilbake til brukere</button>
+
+      <div class="profile-card">
+        ${user.avatar_url
+          ? `<img src="${user.avatar_url}" class="avatar lg" style="object-fit: cover;" onerror="this.outerHTML='<div class=\\'avatar lg\\' style=\\'background: ${avatarColor(user.name)}\\'>${initials(user.name)}</div>'" />`
+          : `<div class="avatar lg" style="background: ${avatarColor(user.name)}">${initials(user.name)}</div>`
         }
-        const row={
-          user_id:session.user.id,
-          is_public:form.is_public,
-          date:form.date,
-          time:form.time||null,
-          river:form.river,
-          beat:form.beat||null,
-          species:form.species,
-          length:parseNum(form.length),
-          weight:parseNum(form.weight),
-          equipment:form.equipment,
-          released:form.released,
-          description:form.description||null,
-          photos:photoUrls,
-        };
-        const {data,error}=await sb.from("catches").insert(row).select().single();
-        if(error){alert("Feil: "+error.message);return;}
-        setCatches(prev=>[data,...prev]);
-        savePrefs({lastRiver:form.river,lastEquipment:form.equipment});
-        if(!DEFAULT_RIVERS.includes(form.river))addCustomRiver(form.river);
-        setView("list");
-      };
+        <div class="info">
+          <h2>${user.name}</h2>
+          <div class="email-line">@${user.username || '—'}</div>
+          <div class="meta">
+            <span class="meta-text">Ble med ${fmtDate(user.joined)}</span>
+          </div>
+        </div>
+      </div>
 
-      const updateCatch=async(form,newPhotoFiles)=>{
-        let photoUrls=form.photos||[];
-        if(newPhotoFiles.length>0){
-          const uploaded=await uploadPhotos(newPhotoFiles);
-          photoUrls=[...photoUrls,...uploaded];
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="accent" style="background: var(--primary)"></div>
+          <div class="label">Fangster</div>
+          <div class="value">${catches.length}</div>
+        </div>
+        <div class="stat-card">
+          <div class="accent" style="background: var(--blue)"></div>
+          <div class="label">Totalvekt</div>
+          <div class="value">${totalWeight.toFixed(1)} kg</div>
+        </div>
+        <div class="stat-card">
+          <div class="accent" style="background: var(--yellow)"></div>
+          <div class="label">Gjenutsatt</div>
+          <div class="value">${catches.length ? Math.round(releasedCount / catches.length * 100) + '%' : '—'}</div>
+        </div>
+        <div class="stat-card">
+          <div class="accent" style="background: var(--pink)"></div>
+          <div class="label">Største</div>
+          <div class="value">${biggest ? parseFloat(biggest.weight).toFixed(1) + ' kg' : '—'}</div>
+          ${biggest ? `<div class="sub-val">${biggest.length ? biggest.length + ' cm · ' : ''}${biggest.river || ''}</div>` : ''}
+        </div>
+      </div>
+
+      ${rivers.length > 0 || methods.length > 0 ? `
+        <div class="tags">
+          ${rivers.map(r => `<span class="tag">🏞 ${r}</span>`).join('')}
+          ${methods.map(m => `<span class="tag tag-outline">🎣 ${m}</span>`).join('')}
+        </div>
+      ` : ''}
+
+      <div class="catch-table">
+        <div class="catch-table-header">
+          <h3>Fangstlogg</h3>
+          <span class="count">${catches.length} registreringer</span>
+        </div>
+        <div class="catch-cols">
+          <span class="c-date">Dato</span>
+          <span class="c-river">Elv / Beat</span>
+          <span class="c-species">Art</span>
+          <span class="c-length">Lengde</span>
+          <span class="c-weight">Vekt</span>
+          <span style="width: 52px"></span>
+        </div>
+        ${catches.length === 0 ? `<div class="empty-state">Ingen fangster registrert ennå</div>` :
+          catches.map(c => `
+            <div class="catch-row">
+              <span class="c-date">${c.date || '—'}</span>
+              <span class="c-river">${c.river || '—'}${c.beat ? ' · ' + c.beat : ''}</span>
+              <span class="c-species">${c.species || '—'}</span>
+              <span class="c-length">${c.length ? c.length + ' cm' : '—'}</span>
+              <span class="c-weight">${c.weight ? parseFloat(c.weight).toFixed(1) + ' kg' : '—'}</span>
+              <span class="c-status ${c.released ? 'c-released' : 'c-kept'}">${c.released ? 'C&R' : 'Avlivet'}</span>
+            </div>
+          `).join('')
         }
-        const row={
-          is_public:form.is_public,
-          date:form.date,
-          time:form.time||null,
-          river:form.river,
-          beat:form.beat||null,
-          species:form.species,
-          length:parseNum(form.length),
-          weight:parseNum(form.weight),
-          equipment:form.equipment,
-          released:form.released,
-          description:form.description||null,
-          photos:photoUrls,
-        };
-        const {data,error}=await sb.from("catches").update(row).eq("id",form.id).select().single();
-        if(error){alert("Feil: "+error.message);return;}
-        setCatches(prev=>prev.map(x=>x.id===data.id?data:x));
-        if(!DEFAULT_RIVERS.includes(form.river))addCustomRiver(form.river);
-        setSelected(data);setView("detail");
-      };
+      </div>
+    </div>`;
+}
 
-      const deleteCatch=async(id)=>{
-        const {error}=await sb.from("catches").delete().eq("id",id);
-        if(error){alert("Feil: "+error.message);return;}
-        setCatches(prev=>prev.filter(x=>x.id!==id));
-        setDelModal(null);setView("list");
-      };
+function toggleSort(col) {
+  if (state.sortCol === col) state.sortAsc = !state.sortAsc;
+  else { state.sortCol = col; state.sortAsc = true; }
+  render();
+}
 
-      const signOut=async()=>{await sb.auth.signOut();};
-
-      const years=[...new Set(catches.map(c=>new Date(c.date).getFullYear()))].sort((a,b)=>b-a);
-      const usedRivers=[...new Set(catches.map(c=>c.river))].sort();
-      const sourceList=tab==="mine"?catches:publicFeed;
-      const filtered=sourceList.filter(c=>{
-        if(fR!=="Alle"&&c.river!==fR)return false;
-        if(fS!=="Alle"&&c.species!==fS)return false;
-        if(fY!=="Alle"&&new Date(c.date).getFullYear()!==+fY)return false;
-        return true;
-      });
-
-      if(loading)return <div style={S.center}><div className="spinner"/></div>;
-
-      const fp={fR,setFR,fS,setFS,fY,setFY,years,rivers:usedRivers};
-
-      return (
-        <div style={S.app}>
-          {view==="list"&&<ListView catches={filtered} total={catches.length} fp={fp} S={S} t={t} tab={tab} setTab={setTab} viewMode={viewMode} switchViewMode={switchViewMode} session={session} profile={profile} onSelect={c=>{setSelected(c);setView("detail")}} onAdd={()=>setView("add")} onStats={()=>setView("stats")} onProfile={()=>setView("profile")} onRefresh={loadCatches} onExpandPhotos={(c,startIdx)=>setLightbox({photos:c.photos,index:startIdx||0})}/>}
-          {view==="stats"&&<StatsView catches={catches} fp={fp} S={S} t={t} onBack={()=>setView("list")}/>}
-          {view==="profile"&&<ProfileView session={session} profile={profile} catches={catches} S={S} t={t} themeKey={themeKey} switchTheme={switchTheme} onBack={()=>setView("list")} onUpdate={(p)=>setProfile(p)} onSignOut={signOut}/>}
-          {view==="add"&&<FormView allRivers={allRivers} prefs={prefs} profile={profile} S={S} t={t} onSave={addCatch} onCancel={()=>setView("list")}/>}
-          {view==="detail"&&selected&&<DetailView c={selected} session={session} profile={profile} S={S} t={t} onBack={()=>setView("list")} onEdit={()=>{setEditing({...selected});setView("edit")}} onDelete={()=>setDelModal(selected.id)}/>}
-          {view==="edit"&&editing&&<FormView allRivers={allRivers} initial={editing} profile={profile} S={S} t={t} onSave={updateCatch} onCancel={()=>setView("detail")} isEdit/>}
-          {delModal&&<div style={S.overlay}><div style={S.modal}>
-            <p style={{fontSize:17,fontWeight:600,margin:"0 0 6px",color:t.text}}>Slette fangst?</p>
-            <p style={{fontSize:14,color:t.textMuted,margin:"0 0 20px"}}>Kan ikke angres.</p>
-            <div style={{display:"flex",gap:10}}>
-              <button style={{...S.btnSec,flex:1}} onClick={()=>setDelModal(null)}>Avbryt</button>
-              <button style={{...S.btnDng,flex:1}} onClick={()=>deleteCatch(delModal)}>Slett</button>
-            </div>
-          </div></div>}
-
-          {lightbox&&<Lightbox photos={lightbox.photos} startIndex={lightbox.index} onClose={()=>setLightbox(null)}/>}
-        </div>
-      );
-    }
-
-    // ── Lightbox ──
-    function Lightbox({photos,startIndex,onClose}){
-      const[idx,setIdx]=useState(startIndex||0);
-      useEffect(()=>{
-        const onKey=(e)=>{
-          if(e.key==="Escape")onClose();
-          if(e.key==="ArrowLeft"&&idx>0)setIdx(idx-1);
-          if(e.key==="ArrowRight"&&idx<photos.length-1)setIdx(idx+1);
-        };
-        document.addEventListener("keydown",onKey);
-        return()=>document.removeEventListener("keydown",onKey);
-      },[idx,photos.length,onClose]);
-      return <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.94)",zIndex:200,display:"flex",alignItems:"center",justifyContent:"center"}} onClick={onClose}>
-        <button onClick={onClose} style={{position:"absolute",top:"calc(12px + env(safe-area-inset-top))",right:16,background:"rgba(255,255,255,.15)",border:"none",borderRadius:20,width:40,height:40,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",color:"#fff",zIndex:201}}>{I.x()}</button>
-        {photos.length>1&&<div style={{position:"absolute",bottom:"calc(20px + env(safe-area-inset-bottom))",color:"#fff",fontSize:14,opacity:.7}}>{idx+1} / {photos.length}</div>}
-        {photos.length>1&&idx>0&&<button onClick={e=>{e.stopPropagation();setIdx(idx-1);}} style={{position:"absolute",left:12,top:"50%",transform:"translateY(-50%)",background:"rgba(255,255,255,.15)",border:"none",borderRadius:20,width:40,height:40,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",color:"#fff"}}>{I.back()}</button>}
-        {photos.length>1&&idx<photos.length-1&&<button onClick={e=>{e.stopPropagation();setIdx(idx+1);}} style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%) rotate(180deg)",background:"rgba(255,255,255,.15)",border:"none",borderRadius:20,width:40,height:40,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",color:"#fff"}}>{I.back()}</button>}
-        <img src={photos[idx]} alt="" style={{maxWidth:"100%",maxHeight:"90vh",objectFit:"contain"}} onClick={e=>e.stopPropagation()}/>
-      </div>;
-    }
-
-    // ── Components ──
-    function Filters({fp,S,t}){
-      return(<div style={{display:"flex",gap:6,marginBottom:14,flexWrap:"wrap"}}>
-        <select style={S.sel} value={fp.fR} onChange={e=>fp.setFR(e.target.value)}><option value="Alle">Alle elver</option>{fp.rivers.map(r=><option key={r}>{r}</option>)}</select>
-        <select style={S.sel} value={fp.fY} onChange={e=>fp.setFY(e.target.value)}><option value="Alle">Alle år</option>{fp.years.map(y=><option key={y}>{y}</option>)}</select>
-        <select style={S.sel} value={fp.fS} onChange={e=>fp.setFS(e.target.value)}><option value="Alle">Alle arter</option>{SPECIES.map(s=><option key={s}>{s}</option>)}</select>
-      </div>);
-    }
-
-    function RiverInput({value,onChange,allRivers,S,t}){
-      const[query,setQuery]=useState(value||"");const[open,setOpen]=useState(false);const wrapRef=useRef();
-      useEffect(()=>{setQuery(value||"");},[value]);
-      useEffect(()=>{const h=e=>{if(wrapRef.current&&!wrapRef.current.contains(e.target))setOpen(false);};document.addEventListener("mousedown",h);document.addEventListener("touchstart",h);return()=>{document.removeEventListener("mousedown",h);document.removeEventListener("touchstart",h);};},[]);
-      const q=query.toLowerCase().trim();const filtered=q?allRivers.filter(r=>r.toLowerCase().includes(q)):allRivers;const exactMatch=allRivers.some(r=>r.toLowerCase()===q);const showAdd=q&&!exactMatch&&q.length>=2;
-      const select=r=>{setQuery(r);onChange(r);setOpen(false);};
-      return(<div ref={wrapRef} style={{position:"relative"}}><div style={{position:"relative"}}><div style={{position:"absolute",left:12,top:"50%",transform:"translateY(-50%)",color:t.textMuted,pointerEvents:"none"}}>{I.search()}</div><input style={{...S.inp,paddingLeft:34,paddingRight:query?34:12}} placeholder="Søk eller skriv elvenavn..." value={query} onChange={e=>{setQuery(e.target.value);onChange(e.target.value);setOpen(true);}} onFocus={()=>setOpen(true)}/>{query&&<button style={{position:"absolute",right:8,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",color:t.textMuted,padding:4}} onClick={()=>{setQuery("");onChange("");setOpen(false);}}>{I.x()}</button>}</div>
-        {open&&(filtered.length>0||showAdd)&&(<div style={S.dropdown}><div style={{maxHeight:200,overflowY:"auto",WebkitOverflowScrolling:"touch"}}>{filtered.map(r=><div key={r} style={S.dropItem} onMouseDown={()=>select(r)} onTouchEnd={e=>{e.preventDefault();select(r);}}>{r}</div>)}{showAdd&&<div style={{...S.dropItem,color:t.primary,fontWeight:600}} onMouseDown={()=>select(query.trim())} onTouchEnd={e=>{e.preventDefault();select(query.trim());}}>+ Legg til «{query.trim()}»</div>}</div></div>)}
-      </div>);
-    }
-
-    function NumInput({value,onChange,placeholder,S}){
-      const[display,setDisplay]=useState(value!=null&&value!==""?String(value):"");const skip=useRef(false);
-      useEffect(()=>{if(skip.current){skip.current=false;return;}setDisplay(value!=null&&value!==undefined&&value!==""?String(value):"");},[value]);
-      const handleChange=e=>{let v=e.target.value.replace(/[^0-9.,]/g,"");const parts=v.split(/[.,]/);if(parts.length>2)v=parts[0]+"."+parts.slice(1).join("");setDisplay(v);skip.current=true;onChange(parseNum(v));};
-      return <input style={S.inp} inputMode="decimal" placeholder={placeholder} value={display} onChange={handleChange}/>;
-    }
-
-    function Lbl({t:text,th}){return <label style={{display:"block",fontSize:13,fontWeight:600,color:th.textSec,marginBottom:2,marginTop:10}}>{text}</label>;}
-
-    // ── ListView ──
-    function ListView({catches,total,fp,S,t,tab,setTab,viewMode,switchViewMode,session,profile,onSelect,onAdd,onStats,onProfile,onRefresh,onExpandPhotos}){
-      const sorted=[...catches].sort((a,b)=>new Date(b.date)-new Date(a.date));
-      const[pullY,setPullY]=useState(0);
-      const[refreshing,setRefreshing]=useState(false);
-      const startY=useRef(0);
-      const isPulling=useRef(false);
-      const PULL_THRESHOLD=70;
-      const MAX_PULL=120;
-
-      const handleTouchStart=(e)=>{
-        if(window.scrollY<=0&&!refreshing){
-          startY.current=e.touches[0].clientY;
-          isPulling.current=true;
-        }
-      };
-      const handleTouchMove=(e)=>{
-        if(!isPulling.current||refreshing)return;
-        const diff=e.touches[0].clientY-startY.current;
-        if(diff>0&&window.scrollY<=0){
-          setPullY(Math.min(diff*0.5,MAX_PULL));
-        }else{
-          isPulling.current=false;
-          setPullY(0);
-        }
-      };
-      const handleTouchEnd=async()=>{
-        if(!isPulling.current)return;
-        isPulling.current=false;
-        if(pullY>=PULL_THRESHOLD){
-          setRefreshing(true);
-          setPullY(50);
-          try{await onRefresh();}catch(e){console.error(e);}
-          setRefreshing(false);
-          setPullY(0);
-        }else{
-          setPullY(0);
-        }
-      };
-
-      const pullProgress=Math.min(pullY/PULL_THRESHOLD,1);
-
-      return(<div className="safe-top safe-bottom" style={S.page} onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}>
-        {(pullY>0||refreshing)&&(
-          <div style={{position:"absolute",top:0,left:0,right:0,display:"flex",justifyContent:"center",alignItems:"center",height:pullY,pointerEvents:"none",zIndex:10}}>
-            <div style={{width:32,height:32,borderRadius:16,border:`3px solid ${t.cardBorder}`,borderTopColor:t.primary,opacity:refreshing?1:pullProgress,transform:refreshing?"none":`rotate(${pullProgress*360}deg)`,animation:refreshing?"spin 0.8s linear infinite":"none"}}/>
-          </div>
-        )}
-        <div style={{transform:`translateY(${pullY}px)`,transition:isPulling.current?"none":"transform 0.2s"}}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
-          <div><h1 style={{fontFamily:t.titleFont,fontSize:28,fontWeight:700,color:t.text,margin:0}}>Fangstlogg</h1><p style={{fontSize:14,color:t.textMuted,margin:"2px 0 0"}}>{tab==="mine"?`${total} fangst${total!==1?"er":""}`:"Felles feed"}</p></div>
-          <div style={{display:"flex",gap:8,alignItems:"center"}}>
-            <button style={S.circBtn} onClick={onStats}>{I.chart()}</button>
-            <button style={S.circPri} onClick={onAdd}>{I.plus()}</button>
-            <Avatar url={profile?.avatar_url} name={profile?.display_name||profile?.username} seed={profile?.username||session.user.id} size={44} t={t} onClick={onProfile}/>
-          </div>
-        </div>
-        <div style={{display:"flex",gap:8,marginBottom:14,alignItems:"center"}}>
-          <div style={{...S.tabBar,marginBottom:0,flex:1}}>
-            <button style={tab==="mine"?S.tabActive:S.tab} onClick={()=>setTab("mine")}>Mine fangster</button>
-            <button style={tab==="feed"?S.tabActive:S.tab} onClick={()=>setTab("feed")}>Felles feed</button>
-          </div>
-          <button onClick={()=>switchViewMode(viewMode==="compact"?"large":"compact")} style={{width:42,height:42,borderRadius:11,background:t.cardBg,color:t.primary,border:`1px solid ${t.cardBorder}`,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",flexShrink:0}}>
-            {viewMode==="compact"?I.grid():I.list()}
-          </button>
-        </div>
-        <Filters fp={fp} S={S} t={t}/>
-        {sorted.length===0?(<div style={{textAlign:"center",padding:"50px 20px"}}>{I.fish(44,t.textMuted)}<p style={{marginTop:10,color:t.textMuted,fontSize:15}}>{tab==="mine"?(total===0?"Ingen fangster ennå.":"Ingen treff."):"Ingen offentlige fangster ennå."}</p></div>):(
-          <div style={{display:"flex",flexDirection:"column",gap:viewMode==="large"?14:8}}>
-            {sorted.map(c=>viewMode==="large"
-              ? <CatchCardLarge key={c.id} c={c} S={S} t={t} showOwner={tab==="feed"} currentUserId={session.user.id} onClick={()=>onSelect(c)} onExpandPhotos={(idx)=>onExpandPhotos(c,idx)}/>
-              : <CatchCard key={c.id} c={c} S={S} t={t} showOwner={tab==="feed"} currentUserId={session.user.id} onClick={()=>onSelect(c)}/>
-            )}
-          </div>
-        )}
-        <div style={{marginTop:30,textAlign:"center"}}>
-          <p style={{fontSize:11,color:t.textMuted,opacity:.5,margin:0}}>v41</p>
-        </div>
-        </div>
-      </div>);
-    }
-
-    function CatchCard({c,S,t,showOwner,currentUserId,onClick}){
-      const photos=c.photos||[];
-      const thumb=photos.length>0?photos[0]:null;
-      const isOwn=c.user_id===currentUserId;
-      const ownerName=c.profiles?.display_name||c.profiles?.username||"";
-      const avatarUrl=c.profiles?.avatar_url;
-      const seed=c.profiles?.username||c.user_id;
-      const displayedName=isOwn?(ownerName?`${ownerName} (deg)`:"Du"):ownerName;
-      return(<div style={S.card} onClick={onClick}>
-        {thumb?<LazyImage src={thumb} style={S.thumb}/>:<div style={S.thumbNone}>{I.fish(24,t.textMuted)}</div>}
-        <div style={{flex:1,minWidth:0}}>
-          {showOwner?(
-            <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:3}}>
-              <Avatar url={avatarUrl} name={ownerName} seed={seed} size={26} t={t}/>
-              <span style={{fontSize:14,fontWeight:600,color:t.text,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",flex:1}}>{displayedName}</span>
-              <span style={{fontSize:12,color:t.textMuted,flexShrink:0}}>{fmtDate(c.date)}</span>
-            </div>
-          ):(
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:3}}>
-              <span style={{fontSize:12,color:t.textMuted}}>{fmtDate(c.date)}</span>
-              {c.is_public&&<span style={{fontSize:11,color:t.primary,display:"inline-flex",alignItems:"center",gap:3}}>{I.world()} Delt</span>}
-            </div>
-          )}
-          <div style={{fontSize:14,color:t.textSec,marginBottom:6,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{c.species} · {c.river}{c.beat?` · ${c.beat}`:""}</div>
-          <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
-            {c.weight!=null&&<span style={S.chip}>{c.weight} kg</span>}
-            {c.length!=null&&<span style={S.chip}>{c.length} cm</span>}
-            <span style={S.chip}>{c.equipment}</span>
-            <span style={{...S.chip,display:"inline-flex",alignItems:"center",gap:3,color:c.released?t.released:t.kept}}>{I.rel(c.released)}{c.released?"C&R":"Avlivet"}</span>
-            {photos.length>1&&<span style={S.chip}>{photos.length} bilder</span>}
-          </div>
-        </div>
-      </div>);
-    }
-
-    function CatchCardLarge({c,S,t,showOwner,currentUserId,onClick,onExpandPhotos}){
-      const photos=c.photos||[];
-      const isOwn=c.user_id===currentUserId;
-      const ownerName=c.profiles?.display_name||c.profiles?.username||"";
-      const avatarUrl=c.profiles?.avatar_url;
-      const seed=c.profiles?.username||c.user_id;
-      const displayedName=isOwn?(ownerName?`${ownerName} (deg)`:"Du"):ownerName;
-      const hasPhotos=photos.length>0;
-
-      const chips=(
-        <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
-          {c.weight!=null&&<span style={{...S.chip,background:"rgba(255,255,255,.22)",color:"#fff",backdropFilter:"blur(8px)",fontWeight:600}}>{c.weight} kg</span>}
-          {c.length!=null&&<span style={{...S.chip,background:"rgba(255,255,255,.22)",color:"#fff",backdropFilter:"blur(8px)",fontWeight:600}}>{c.length} cm</span>}
-          <span style={{...S.chip,background:"rgba(255,255,255,.22)",color:"#fff",backdropFilter:"blur(8px)",fontWeight:600}}>{c.equipment}</span>
-          <span style={{...S.chip,display:"inline-flex",alignItems:"center",gap:3,background:"rgba(255,255,255,.22)",color:c.released?"#a7f3d0":"#fecaca",backdropFilter:"blur(8px)",fontWeight:600}}>{I.rel(c.released)}{c.released?"C&R":"Avlivet"}</span>
-        </div>
-      );
-
-      return(<div onClick={onClick} style={{position:"relative",borderRadius:16,overflow:"hidden",cursor:"pointer",aspectRatio:"3/4",background:t.cardBg,border:`1px solid ${t.cardBorder}`,boxShadow:t.shadow}}>
-        {hasPhotos?(
-          <SwipeableImages photos={photos} onExpand={onExpandPhotos} t={t} style={{position:"absolute",inset:0}}/>
-        ):(
-          <div style={{width:"100%",height:"100%",display:"flex",alignItems:"center",justifyContent:"center",background:t.chipBg}}>{I.fish(80,t.textMuted)}</div>
-        )}
-        <div style={{position:"absolute",top:0,left:0,right:0,padding:"12px 14px",background:hasPhotos?"linear-gradient(180deg,rgba(0,0,0,.55),rgba(0,0,0,0))":"transparent",display:"flex",justifyContent:"space-between",alignItems:"center",gap:8,pointerEvents:"none",zIndex:2}}>
-          {showOwner?(
-            <div style={{display:"flex",alignItems:"center",gap:8,minWidth:0,flex:1}}>
-              <Avatar url={avatarUrl} name={ownerName} seed={seed} size={32} t={t}/>
-              <span style={{fontSize:15,fontWeight:600,color:hasPhotos?"#fff":t.text,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",textShadow:hasPhotos?"0 1px 2px rgba(0,0,0,.5)":"none"}}>{displayedName}</span>
-            </div>
-          ):(
-            c.is_public?<span style={{fontSize:12,color:"#fff",display:"inline-flex",alignItems:"center",gap:4,background:"rgba(0,0,0,.45)",padding:"4px 10px",borderRadius:12,backdropFilter:"blur(8px)",fontWeight:500}}>{I.world()} Delt</span>:<div/>
-          )}
-          <span style={{fontSize:13,color:hasPhotos?"#fff":t.textMuted,fontWeight:500,textShadow:hasPhotos?"0 1px 2px rgba(0,0,0,.5)":"none",flexShrink:0,marginLeft:"auto"}}>{fmtDate(c.date)}</span>
-        </div>
-        <div style={{position:"absolute",bottom:0,left:0,right:0,padding:"50px 14px 14px",background:hasPhotos?"linear-gradient(0deg,rgba(0,0,0,.78),rgba(0,0,0,.45) 60%,rgba(0,0,0,0))":"transparent",pointerEvents:"none",zIndex:2}}>
-          <p style={{fontSize:17,fontWeight:700,color:hasPhotos?"#fff":t.text,margin:"0 0 8px",textShadow:hasPhotos?"0 1px 3px rgba(0,0,0,.6)":"none"}}>{c.species} · {c.river}{c.beat?` · ${c.beat}`:""}</p>
-          {chips}
-        </div>
-      </div>);
-    }
-
-    // ── ProfileView ──
-    function ProfileView({session,profile,catches,S,t,themeKey,switchTheme,onBack,onUpdate,onSignOut}){
-      const fileRef=useRef();
-      const[displayName,setDisplayName]=useState(profile?.display_name||"");
-      const[defaultPublic,setDefaultPublic]=useState(profile?.default_public||false);
-      const[avatarUrl,setAvatarUrl]=useState(profile?.avatar_url||null);
-      const[saving,setSaving]=useState(false);
-      const[uploading,setUploading]=useState(false);
-      const[msg,setMsg]=useState("");
-
-      const stats={
-        total:catches.length,
-        shared:catches.filter(c=>c.is_public).length,
-        biggest:catches.reduce((max,c)=>(c.weight!=null&&c.weight>max?c.weight:max),0),
-      };
-
-      const showMsg=(m,isErr)=>{setMsg(m);setTimeout(()=>setMsg(""),isErr?4000:2000);};
-
-      const saveName=async()=>{
-        const name=displayName.trim();
-        if(!name)return;
-        setSaving(true);setMsg("");
-        const {data,error}=await sb.from("profiles").update({display_name:name}).eq("id",session.user.id).select().single();
-        setSaving(false);
-        if(error){showMsg("Feil: "+error.message,true);return;}
-        onUpdate(data);
-        showMsg("Navn lagret");
-      };
-
-      const saveDefaultPublic=async(val)=>{
-        setDefaultPublic(val);
-        const {data,error}=await sb.from("profiles").update({default_public:val}).eq("id",session.user.id).select().single();
-        if(error){showMsg("Feil: "+error.message,true);setDefaultPublic(!val);return;}
-        if(data)onUpdate(data);
-      };
-
-      const handleAvatar=async(e)=>{
-        const file=e.target.files?.[0];
-        if(!file)return;
-        setUploading(true);setMsg("");
-        try{
-          const blob=await resizeImage(file,400);
-          const filename=`${session.user.id}/${Date.now()}.jpg`;
-          const {error:upErr}=await sb.storage.from("avatars").upload(filename,blob,{...UPLOAD_OPTS,upsert:false});
-          if(upErr)throw upErr;
-          const {data:urlData}=sb.storage.from("avatars").getPublicUrl(filename);
-          const newUrl=urlData.publicUrl;
-          if(profile?.avatar_url){
-            const m=profile.avatar_url.match(/\/avatars\/(.+)$/);
-            if(m&&m[1])await sb.storage.from("avatars").remove([m[1]]);
-          }
-          const {data,error}=await sb.from("profiles").update({avatar_url:newUrl}).eq("id",session.user.id).select().single();
-          if(error)throw error;
-          setAvatarUrl(newUrl);
-          onUpdate(data);
-          showMsg("Bilde oppdatert");
-        }catch(err){
-          showMsg("Feil: "+(err.message||"ukjent"),true);
-        }
-        setUploading(false);
-        e.target.value="";
-      };
-
-      const nameUnchanged=displayName.trim()===(profile?.display_name||"");
-
-      return(<div className="safe-top safe-bottom" style={S.page}>
-        <div style={S.topBar}>
-          <button style={S.backBtn} onClick={onBack}>{I.back()}</button>
-        </div>
-        <h2 style={{fontFamily:t.titleFont,fontSize:26,fontWeight:700,color:t.text,margin:"0 0 18px"}}>Profil</h2>
-
-        <div style={{display:"flex",flexDirection:"column",alignItems:"center",marginBottom:22}}>
-          <div style={{position:"relative"}}>
-            <Avatar url={avatarUrl} name={profile?.display_name||profile?.username} seed={profile?.username||session.user.id} size={96} t={t}/>
-            <button onClick={()=>fileRef.current?.click()} disabled={uploading} style={{position:"absolute",bottom:-2,right:-2,width:34,height:34,borderRadius:17,border:`2px solid ${t.cardBg}`,background:t.primary,color:t.name==="Mørk"?"#0f1a17":"#fff",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",padding:0,boxShadow:t.btnShadow}}>
-              {uploading?<div className="spinner" style={{width:14,height:14,borderWidth:2}}/>:I.edit()}
-            </button>
-            <input ref={fileRef} type="file" accept="image/*" onChange={handleAvatar} style={{display:"none"}}/>
-          </div>
-          <p style={{fontSize:20,fontWeight:600,color:t.text,margin:"12px 0 0"}}>{profile?.display_name||profile?.username||"—"}</p>
-          <p style={{fontSize:14,color:t.textMuted,margin:"2px 0 0"}}>{session.user.email}</p>
-        </div>
-
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:18}}>
-          <div style={{background:t.cardBg,borderRadius:14,padding:"14px 8px",textAlign:"center",border:`1px solid ${t.cardBorder}`}}>
-            <p style={{fontSize:24,fontWeight:700,color:t.primary,margin:0,fontFamily:t.titleFont}}>{stats.total}</p>
-            <p style={{fontSize:12,color:t.textMuted,margin:"2px 0 0"}}>Fangster</p>
-          </div>
-          <div style={{background:t.cardBg,borderRadius:14,padding:"14px 8px",textAlign:"center",border:`1px solid ${t.cardBorder}`}}>
-            <p style={{fontSize:24,fontWeight:700,color:t.primary,margin:0,fontFamily:t.titleFont}}>{stats.shared}</p>
-            <p style={{fontSize:12,color:t.textMuted,margin:"2px 0 0"}}>Delt</p>
-          </div>
-          <div style={{background:t.cardBg,borderRadius:14,padding:"14px 8px",textAlign:"center",border:`1px solid ${t.cardBorder}`}}>
-            <p style={{fontSize:24,fontWeight:700,color:t.primary,margin:0,fontFamily:t.titleFont}}>{stats.biggest||"—"}</p>
-            <p style={{fontSize:12,color:t.textMuted,margin:"2px 0 0"}}>Største (kg)</p>
-          </div>
-        </div>
-
-        <div style={S.sec}>
-          <p style={S.secT}>Visningsnavn</p>
-          <input value={displayName} onChange={e=>setDisplayName(e.target.value)} style={S.inp}/>
-          <button onClick={saveName} disabled={saving||!displayName.trim()||nameUnchanged} style={{...S.btnPriFull,marginTop:10,opacity:(saving||!displayName.trim()||nameUnchanged)?.45:1}}>
-            {saving?"Lagrer...":"Lagre navn"}
-          </button>
-          {profile?.username&&<p style={{fontSize:13,color:t.textMuted,margin:"10px 0 0"}}>Brukernavn: {profile.username}</p>}
-        </div>
-
-        <div style={{...S.sec,display:"flex",alignItems:"center",gap:12}}>
-          <div style={{flex:1,minWidth:0}}>
-            <p style={{fontSize:15,fontWeight:600,color:t.text,margin:0}}>Del nye fangster som default</p>
-            <p style={{fontSize:12,color:t.textMuted,margin:"3px 0 0",lineHeight:1.4}}>Nye fangster blir automatisk synlig i felles feed. Du kan fortsatt overstyre på hver enkelt fangst.</p>
-          </div>
-          <button onClick={()=>saveDefaultPublic(!defaultPublic)} style={{width:46,height:26,borderRadius:13,border:"none",background:defaultPublic?t.primary:t.inputBorder,position:"relative",cursor:"pointer",flexShrink:0,transition:"background .2s"}}>
-            <div style={{position:"absolute",top:3,left:defaultPublic?23:3,width:20,height:20,borderRadius:10,background:"#fff",transition:"left .2s",boxShadow:"0 1px 3px rgba(0,0,0,.2)"}}/>
-          </button>
-        </div>
-
-        <div style={S.sec}>
-          <p style={S.secT}>Tema</p>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
-            {Object.entries(THEMES).map(([k,th])=>(
-              <button key={k} onClick={()=>switchTheme(k)} style={{padding:"10px 8px",borderRadius:10,border:k===themeKey?`2px solid ${t.primary}`:`1px solid ${t.inputBorder}`,background:k===themeKey?t.primaryLight:t.cardBg,fontSize:14,fontWeight:k===themeKey?600:500,color:k===themeKey?t.primary:t.textSec,fontFamily:t.font,cursor:"pointer"}}>{th.name}</button>
-            ))}
-          </div>
-        </div>
-
-        {msg&&<p style={{fontSize:14,color:msg.startsWith("Feil")?t.danger:t.primary,textAlign:"center",margin:"0 0 14px",fontWeight:500}}>{msg}</p>}
-
-        <button onClick={onSignOut} style={{...S.btnSec,width:"100%",display:"flex",alignItems:"center",justifyContent:"center",gap:8,marginTop:6}}>{I.logout()} Logg ut</button>
-        <div style={{height:30}}/>
-      </div>);
-    }
-
-    // ── DetailView ──
-    function DetailView({c,session,profile,S,t,onBack,onEdit,onDelete}){
-      const[lightbox,setLightbox]=useState(null);
-      const[sharing,setSharing]=useState(false);
-      const photos=c.photos||[];
-      const isOwn=c.user_id===session.user.id;
-      const ownerName=c.profiles?.display_name||c.profiles?.username||"";
-      const avatarUrl=c.profiles?.avatar_url;
-      const seed=c.profiles?.username||c.user_id;
-      const profileForShare=isOwn?profile:(c.profiles||null);
-      const handleShare=async()=>{
-        if(sharing)return;
-        if(!photos||photos.length===0){alert("Fangsten må ha minst ett bilde for å kunne deles.");return;}
-        setSharing(true);
-        try{await shareCatch(c,profileForShare);}finally{setSharing(false);}
-      };
-      return(<div className="safe-top safe-bottom" style={S.page}>
-        <div style={S.topBar}>
-          <button style={S.backBtn} onClick={onBack}>{I.back()}</button>
-          <div style={{display:"flex",gap:8}}>
-            {photos.length>0&&<button style={S.smBtn} onClick={handleShare} disabled={sharing}>{sharing?<div className="spinner" style={{width:14,height:14,borderWidth:2}}/>:I.share()}</button>}
-            {isOwn&&<><button style={S.smBtn} onClick={onEdit}>{I.edit()}</button><button style={{...S.smBtn,color:t.danger}} onClick={onDelete}>{I.trash()}</button></>}
-          </div>
-        </div>
-        {photos.length===1&&<div style={{borderRadius:14,overflow:"hidden",marginBottom:14,aspectRatio:"3/4",cursor:"pointer"}} onClick={()=>setLightbox(0)}><img src={photos[0]} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/></div>}
-        {photos.length>1&&<div className="photo-scroll" style={{marginBottom:14}}>{photos.map((p,i)=>(<div key={i} style={{width:"80%",aspectRatio:"3/4",borderRadius:14,overflow:"hidden",cursor:"pointer"}} onClick={()=>setLightbox(i)}><img src={p} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/></div>))}</div>}
-        {!isOwn&&ownerName&&<div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
-          <Avatar url={avatarUrl} name={ownerName} seed={seed} size={36} t={t}/>
-          <span style={{fontSize:15,fontWeight:600,color:t.text}}>{ownerName}</span>
-        </div>}
-        <h2 style={{fontFamily:t.titleFont,fontSize:24,fontWeight:700,color:t.text,margin:"0 0 4px"}}>{c.species}</h2>
-        <p style={{fontSize:16,color:t.textSec,margin:"0 0 2px",fontWeight:500}}>{c.river}{c.beat?` — ${c.beat}`:""}</p>
-        <p style={{fontSize:14,color:t.textMuted,margin:"0 0 16px"}}>{fmtDate(c.date)}{c.time?` kl. ${c.time.slice(0,5)}`:""}{isOwn&&" · "}{isOwn&&(c.is_public?<span style={{color:t.primary}}>● Delt i feed</span>:<span>● Privat</span>)}</p>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:20}}>
-          {c.weight!=null&&<SBox v={c.weight} l="kg" t={t}/>}{c.length!=null&&<SBox v={c.length} l="cm" t={t}/>}
-          <SBox v={c.equipment} l="Redskap" t={t}/><SBox v={c.released?"Ja":"Nei"} l="Gjenutsatt" t={t} color={c.released?t.released:t.kept}/>
-        </div>
-        {c.description&&<div style={{background:t.cardBg,borderRadius:12,padding:14,border:`1px solid ${t.cardBorder}`}}><p style={{fontSize:14,fontWeight:600,color:t.text,margin:"0 0 6px"}}>Notat</p><p style={{fontSize:15,color:t.textSec,lineHeight:1.6,margin:0}}>{c.description}</p></div>}
-        {lightbox!==null&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.94)",zIndex:200,display:"flex",alignItems:"center",justifyContent:"center"}} onClick={()=>setLightbox(null)}>
-          <button onClick={()=>setLightbox(null)} style={{position:"absolute",top:"calc(12px + env(safe-area-inset-top))",right:16,background:"rgba(255,255,255,.15)",border:"none",borderRadius:20,width:40,height:40,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",color:"#fff",zIndex:201}}>{I.x()}</button>
-          {photos.length>1&&<div style={{position:"absolute",bottom:"calc(20px + env(safe-area-inset-bottom))",color:"#fff",fontSize:14,opacity:.7}}>{lightbox+1} / {photos.length}</div>}
-          {photos.length>1&&lightbox>0&&<button onClick={e=>{e.stopPropagation();setLightbox(lightbox-1);}} style={{position:"absolute",left:12,top:"50%",transform:"translateY(-50%)",background:"rgba(255,255,255,.15)",border:"none",borderRadius:20,width:40,height:40,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",color:"#fff"}}>{I.back()}</button>}
-          {photos.length>1&&lightbox<photos.length-1&&<button onClick={e=>{e.stopPropagation();setLightbox(lightbox+1);}} style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%) rotate(180deg)",background:"rgba(255,255,255,.15)",border:"none",borderRadius:20,width:40,height:40,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",color:"#fff"}}>{I.back()}</button>}
-          <img src={photos[lightbox]} alt="" style={{maxWidth:"100%",maxHeight:"90vh",objectFit:"contain"}} onClick={e=>e.stopPropagation()}/>
-        </div>}
-      </div>);
-    }
-
-    function SBox({v,l,t,color}){return <div style={{background:t.cardBg,borderRadius:12,padding:"14px 10px",textAlign:"center",border:`1px solid ${t.cardBorder}`}}><span style={{display:"block",fontSize:20,fontWeight:700,color:color||t.primary}}>{v}</span><span style={{display:"block",fontSize:12,color:t.textMuted,marginTop:2}}>{l}</span></div>;}
-
-    // ── StatsView ──
-    function StatsView({catches,fp,S,t,onBack}){
-      const filtered=catches.filter(c=>{
-        if(fp.fR!=="Alle"&&c.river!==fp.fR)return false;
-        if(fp.fS!=="Alle"&&c.species!==fp.fS)return false;
-        if(fp.fY!=="Alle"&&new Date(c.date).getFullYear()!==+fp.fY)return false;
-        return true;
-      });
-      const n=filtered.length;const big=filtered.reduce((m,c)=>Math.max(m,c.weight||0),0);const avg=n>0?(filtered.reduce((s,c)=>s+(c.weight||0),0)/n).toFixed(1):0;const cr=n>0?((filtered.filter(c=>c.released).length/n)*100).toFixed(0):0;
-      const specC={},eqC={},rivC={},moC={};const moN=["Jan","Feb","Mar","Apr","Mai","Jun","Jul","Aug","Sep","Okt","Nov","Des"];
-      filtered.forEach(c=>{specC[c.species]=(specC[c.species]||0)+1;eqC[c.equipment]=(eqC[c.equipment]||0)+1;rivC[c.river]=(rivC[c.river]||0)+1;moC[new Date(c.date).getMonth()]=(moC[new Date(c.date).getMonth()]||0)+1;});
-      const maxMo=Math.max(...Object.values(moC),1);
-      return(<div className="safe-top safe-bottom" style={S.page}>
-        <div style={S.topBar}><button style={S.backBtn} onClick={onBack}>{I.back()}</button></div>
-        <h2 style={{fontFamily:t.titleFont,fontSize:26,fontWeight:700,color:t.text,margin:"0 0 4px"}}>Statistikk</h2>
-        <Filters fp={fp} S={S} t={t}/>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:16}}><BStat v={n} l="Fangster" t={t}/><BStat v={big||"—"} l="Største (kg)" t={t}/><BStat v={avg>0?avg:"—"} l="Snitt (kg)" t={t}/><BStat v={`${cr}%`} l="Gjenutsatt" t={t}/></div>
-        {n>0&&<div style={S.sec}><p style={S.secT}>Per måned</p><div style={{display:"flex",gap:3,alignItems:"flex-end",height:100}}>{moN.map((m,i)=>(<div key={i} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center"}}><div style={{width:"100%",minHeight:2,height:`${((moC[i]||0)/maxMo)*100}%`,background:`linear-gradient(${t.primary},${t.accent})`,borderRadius:"3px 3px 0 0",display:"flex",alignItems:"flex-start",justifyContent:"center"}}>{moC[i]>0&&<span style={{fontSize:9,color:t.name==="Mørk"?"#0f1a17":"#fff",fontWeight:700,marginTop:2}}>{moC[i]}</span>}</div><span style={{fontSize:10,color:t.textMuted,marginTop:3}}>{m}</span></div>))}</div></div>}
-        {Object.keys(specC).length>0&&<BDSec title="Art" d={specC} n={n} t={t} S={S}/>}
-        {Object.keys(eqC).length>0&&<BDSec title="Redskap" d={eqC} n={n} t={t} S={S}/>}
-        {Object.keys(rivC).length>0&&<BDSec title="Elv" d={rivC} n={n} t={t} S={S}/>}
-        <div style={{height:30}}/>
-      </div>);
-    }
-    function BStat({v,l,t}){return <div style={{background:t.cardBg,borderRadius:14,padding:"16px 10px",textAlign:"center",border:`1px solid ${t.cardBorder}`}}><span style={{display:"block",fontSize:24,fontWeight:700,color:t.primary,fontFamily:t.titleFont}}>{v}</span><span style={{display:"block",fontSize:12,color:t.textMuted,marginTop:3}}>{l}</span></div>;}
-    function BDSec({title,d,n,t,S}){const sorted=Object.entries(d).sort((a,b)=>b[1]-a[1]);return <div style={S.sec}><p style={S.secT}>{title}</p>{sorted.map(([k,v],i)=>{const pct=((v/n)*100).toFixed(0);return(<div key={k} style={{marginBottom:8}}><div style={{display:"flex",justifyContent:"space-between",fontSize:14,marginBottom:3}}><span style={{color:t.text}}>{k}</span><span style={{color:t.textMuted}}>{v} ({pct}%)</span></div><div style={{height:7,background:t.chipBg,borderRadius:4,overflow:"hidden"}}><div style={{height:"100%",width:`${pct}%`,background:t.primary,borderRadius:4,transition:"width .4s"}}/></div></div>);})}</div>;}
-
-    // ── FormView ──
-    function FormView({onSave,onCancel,initial,isEdit,prefs,profile,allRivers,S,t}){
-      const fileRef=useRef();
-      const[form,setForm]=useState(()=>{
-        if(initial)return{...initial,photos:initial.photos||[],is_public:initial.is_public||false};
-        return{river:prefs?.lastRiver||"",beat:"",date:new Date().toISOString().split("T")[0],time:"",length:"",weight:"",equipment:prefs?.lastEquipment||"Flue",species:"Laks",released:true,photos:[],description:"",is_public:profile?.default_public||false};
-      });
-      const[newPhotoFiles,setNewPhotoFiles]=useState([]);
-      const[newPhotoPreviews,setNewPhotoPreviews]=useState([]);
-      const[weightManual,setWeightManual]=useState(false);
-      const[estimatedWt,setEstimatedWt]=useState(null);
-      const[saving,setSaving]=useState(false);
-
-      const set=(k,v)=>setForm(f=>({...f,[k]:v}));
-      const handleLength=val=>{set("length",val);if(val&&!weightManual){const est=estimateWeight(val);setEstimatedWt(est);if(est)set("weight",est);}if(!val&&val!==0){setEstimatedWt(null);if(!weightManual)set("weight",null);}};
-      const handleWeight=val=>{set("weight",val);setWeightManual(true);};
-
-      const handlePhotos=async(e)=>{
-        const files=Array.from(e.target.files||[]);
-        const blobs=await Promise.all(files.map(f=>resizeImage(f)));
-        const previews=blobs.map(b=>URL.createObjectURL(b));
-        setNewPhotoFiles(prev=>[...prev,...blobs]);
-        setNewPhotoPreviews(prev=>[...prev,...previews]);
-        e.target.value="";
-      };
-
-      const removeExistingPhoto=idx=>set("photos",form.photos.filter((_,i)=>i!==idx));
-      const removeNewPhoto=idx=>{
-        URL.revokeObjectURL(newPhotoPreviews[idx]);
-        setNewPhotoFiles(prev=>prev.filter((_,i)=>i!==idx));
-        setNewPhotoPreviews(prev=>prev.filter((_,i)=>i!==idx));
-      };
-
-      const valid=form.river&&form.date&&form.species;
-      const submit=async()=>{setSaving(true);await onSave(form,newPhotoFiles);setSaving(false);};
-
-      return(<div className="safe-top safe-bottom" style={S.page}>
-        <div style={S.topBar}><button style={S.backBtn} onClick={onCancel}>{I.xLarge()}</button></div>
-        <h2 style={{fontFamily:t.titleFont,fontSize:24,fontWeight:700,color:t.text,margin:"0 0 14px"}}>{isEdit?"Rediger fangst":"Ny fangst"}</h2>
-
-        <div style={{marginBottom:10}}>
-          {(form.photos.length>0||newPhotoPreviews.length>0)&&(
-            <div className="photo-scroll" style={{marginBottom:8}}>
-              {form.photos.map((p,i)=>(<div key={"e"+i} style={{position:"relative",width:140,height:105,borderRadius:12,overflow:"hidden",flexShrink:0}}><img src={p} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/><button onClick={()=>removeExistingPhoto(i)} style={{position:"absolute",top:4,right:4,background:"rgba(0,0,0,.6)",border:"none",borderRadius:12,width:24,height:24,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",color:"#fff"}}>{I.x()}</button></div>))}
-              {newPhotoPreviews.map((p,i)=>(<div key={"n"+i} style={{position:"relative",width:140,height:105,borderRadius:12,overflow:"hidden",flexShrink:0}}><img src={p} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/><button onClick={()=>removeNewPhoto(i)} style={{position:"absolute",top:4,right:4,background:"rgba(0,0,0,.6)",border:"none",borderRadius:12,width:24,height:24,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",color:"#fff"}}>{I.x()}</button></div>))}
-            </div>
-          )}
-          <button onClick={()=>fileRef.current?.click()} style={{display:"flex",alignItems:"center",gap:8,padding:"12px 16px",borderRadius:12,border:`2px dashed ${t.inputBorder}`,background:t.primaryLight,cursor:"pointer",color:t.textSec,fontSize:15,fontFamily:t.font,width:"100%",justifyContent:"center"}}>
-            {I.imgPlus()} {(form.photos.length+newPhotoPreviews.length)===0?"Legg til bilder":"Legg til flere bilder"}
-          </button>
-          <input ref={fileRef} type="file" accept="image/*" multiple style={{display:"none"}} onChange={handlePhotos}/>
-        </div>
-
-        <Lbl t="Elv *" th={t}/><RiverInput value={form.river} onChange={v=>set("river",v)} allRivers={allRivers} S={S} t={t}/>
-        <Lbl t="Beat / Sone" th={t}/><input style={S.inp} placeholder="f.eks. Orton Estate" value={form.beat||""} onChange={e=>set("beat",e.target.value)}/>
-        <div style={{display:"grid",gridTemplateColumns:"3fr 2fr",gap:8}}><div><Lbl t="Dato *" th={t}/><input style={{...S.inp,fontSize:15}} type="date" value={form.date} onChange={e=>set("date",e.target.value)}/></div><div><Lbl t="Klokkeslett" th={t}/><input style={{...S.inp,fontSize:15}} type="time" value={form.time||""} onChange={e=>set("time",e.target.value)}/></div></div>
-        <div style={{height:1,background:t.cardBorder,margin:"12px 0"}}/>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}><div><Lbl t="Lengde (cm)" th={t}/><NumInput placeholder="70" value={form.length} onChange={handleLength} S={S}/></div><div><Lbl t="Vekt (kg)" th={t}/><NumInput placeholder="3,3" value={form.weight} onChange={handleWeight} S={S}/></div></div>
-        {estimatedWt&&!weightManual&&<p style={{fontSize:13,color:t.textSec,margin:"4px 0 0",fontStyle:"italic"}}>Estimert vekt: {estimatedWt} kg</p>}
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-          <div><Lbl t="Art *" th={t}/><select style={S.inp} value={form.species} onChange={e=>set("species",e.target.value)}>{SPECIES.map(s=><option key={s}>{s}</option>)}</select></div>
-          <div><Lbl t="Redskap" th={t}/><select style={S.inp} value={form.equipment} onChange={e=>set("equipment",e.target.value)}>{EQUIPMENT.map(eq=><option key={eq}>{eq}</option>)}</select></div>
-        </div>
-        <Lbl t="Gjenutsatt?" th={t}/><div style={{display:"flex",gap:8}}><button style={form.released?S.togOn:S.togOff} onClick={()=>set("released",true)}>Ja</button><button style={!form.released?S.togOn:S.togOff} onClick={()=>set("released",false)}>Nei</button></div>
-
-        <div style={{height:1,background:t.cardBorder,margin:"12px 0"}}/>
-
-        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 12px",background:t.primaryLight,borderRadius:11,marginTop:6}}>
-          <div style={{display:"flex",alignItems:"center",gap:8,flex:1,minWidth:0}}>
-            {form.is_public?I.world():I.lock()}
-            <div style={{minWidth:0}}>
-              <p style={{fontSize:14,fontWeight:600,color:t.text,margin:0}}>{form.is_public?"Delt i felles feed":"Privat fangst"}</p>
-              <p style={{fontSize:12,color:t.textMuted,margin:"2px 0 0"}}>{form.is_public?"Andre kan se denne fangsten":"Bare du ser denne fangsten"}</p>
-            </div>
-          </div>
-          <button onClick={()=>set("is_public",!form.is_public)} style={{width:46,height:26,borderRadius:13,border:"none",background:form.is_public?t.primary:t.inputBorder,position:"relative",cursor:"pointer",flexShrink:0,transition:"background .2s"}}>
-            <div style={{position:"absolute",top:3,left:form.is_public?23:3,width:20,height:20,borderRadius:10,background:"#fff",transition:"left .2s",boxShadow:"0 1px 3px rgba(0,0,0,.2)"}}/>
-          </button>
-        </div>
-
-        <Lbl t="Notat" th={t}/><textarea style={{...S.inp,minHeight:70,resize:"vertical"}} placeholder="f.eks. Junction pool, tung strøm..." value={form.description||""} onChange={e=>set("description",e.target.value)}/>
-        <button style={{...S.btnPriFull,opacity:(valid&&!saving)?1:.45,marginTop:20}} disabled={!valid||saving} onClick={submit}>
-          {saving?"Lagrer...":(isEdit?"Lagre endringer":"Registrer fangst")}
-        </button>
-        <div style={{height:30}}/>
-      </div>);
-    }
-
-    // ── Mount ──
-    ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App));
-  </script>
-  <script>if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('/sw.js').catch(e=>console.log('SW:',e));});}</script>
+// ── Start ──
+init();
+</script>
 </body>
 </html>

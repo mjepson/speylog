@@ -352,6 +352,15 @@
       const[fromCache,setFromCache]=useState(false);
       useEffect(()=>{
         if(!ref.current||shouldLoad)return;
+        // Synchronous viewport check first — if element is already visible (or close),
+        // load immediately without waiting for IntersectionObserver tick.
+        const rect=ref.current.getBoundingClientRect();
+        const vh=window.innerHeight||document.documentElement.clientHeight;
+        const margin=600;
+        if(rect.top<vh+margin&&rect.bottom>-margin){
+          setShouldLoad(true);
+          return;
+        }
         const obs=new IntersectionObserver((entries)=>{
           entries.forEach(e=>{if(e.isIntersecting){setShouldLoad(true);obs.disconnect();}});
         },{rootMargin:"600px"});
@@ -547,7 +556,7 @@
             <img src="/icons/icon-192x192.png" alt="Fangstlogg" style={{width:96,height:96,borderRadius:22,boxShadow:t.btnShadow}}/>
             <h1 style={{fontFamily:t.titleFont,fontSize:32,fontWeight:700,color:t.text,margin:"14px 0 4px"}}>Fangstlogg</h1>
             <p style={{fontSize:15,color:t.textMuted,margin:0}}>Personlig fangstlogg for laksefiske</p>
-            <p style={{fontSize:11,color:t.textMuted,margin:"6px 0 0",opacity:.6}}>v40</p>
+            <p style={{fontSize:11,color:t.textMuted,margin:"6px 0 0",opacity:.6}}>v41</p>
           </div>
           <div style={{...S.sec,width:"100%",maxWidth:340}}>
             <p style={{fontSize:15,color:t.textSec,margin:"0 0 16px",textAlign:"center",lineHeight:1.5}}>Skriv inn e-posten din, så sender vi deg en innloggingskode.</p>
@@ -842,7 +851,7 @@
           </div>
         )}
         <div style={{marginTop:30,textAlign:"center"}}>
-          <p style={{fontSize:11,color:t.textMuted,opacity:.5,margin:0}}>v40</p>
+          <p style={{fontSize:11,color:t.textMuted,opacity:.5,margin:0}}>v41</p>
         </div>
         </div>
       </div>);
