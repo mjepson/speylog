@@ -49,6 +49,10 @@
       auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
     });
 
+    // ── Storage upload options ──
+    // cacheControl: 30 days — bilder lagres lenge i nettleser-cache
+    const UPLOAD_OPTS = { contentType: "image/jpeg", cacheControl: "2592000" };
+
     // ── Config ──
     const DEFAULT_RIVERS=["Altaelva","Bjerkreimselva","Bøelva","Dirdalselva","Driva","Etneelva","Figgjo","Flåmselva","Gaula","Håelva","Lærdalselva","Mandalselva","Namsen","Nidelva (Arendal)","Numedalslågen","Ogna","Orkla","Otra","Suldalslågen","Surna","Tovdalselva","Vikedalselva","River Dee","River Spey","River Tay","River Tweed"];
     const SPECIES=["Laks","Sjøørret","Brunørret","Regnbueørret","Annet"];
@@ -121,14 +125,8 @@
       share:()=><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>,
     };
 
-    // ── Generate share image (1080x1350, Instagram 4:5) ──
+    // ── Generate share image (original photo ratio, scaled to ~1080px wide) ──
     async function generateShareImage(c,profileData){
-      const W=1080,H=1350;
-      const canvas=document.createElement("canvas");
-      canvas.width=W;canvas.height=H;
-      const ctx=canvas.getContext("2d");
-
-      // Helper: load image via fetch to avoid CORS-tainted canvas
       const loadImg=async(url)=>{
         const res=await fetch(url,{mode:"cors"});
         const blob=await res.blob();
@@ -141,7 +139,31 @@
         });
       };
 
-      // Helper: cover-fit image into rect
+      // Determine canvas size from photo's natural ratio
+      let W=1080,H=1350; // fallback if no photo
+      let bgImg=null;
+      const photoUrl=(c.photos||[])[0];
+      if(photoUrl){
+        try{
+          bgImg=await loadImg(photoUrl);
+          // Scale to max 1080 on longest side, keep ratio
+          const ratio=bgImg.width/bgImg.height;
+          if(ratio>=1){
+            W=1080;
+            H=Math.round(1080/ratio);
+          }else{
+            H=1080;
+            W=Math.round(1080*ratio);
+          }
+        }catch(e){
+          // fallback to default
+        }
+      }
+
+      const canvas=document.createElement("canvas");
+      canvas.width=W;canvas.height=H;
+      const ctx=canvas.getContext("2d");
+
       const drawCover=(img,x,y,w,h)=>{
         const iw=img.width,ih=img.height;
         const scale=Math.max(w/iw,h/ih);
@@ -150,7 +172,6 @@
         ctx.drawImage(img,sx,sy,sw,sh,x,y,w,h);
       };
 
-      // Helper: rounded rect
       const roundRect=(x,y,w,h,r)=>{
         ctx.beginPath();
         ctx.moveTo(x+r,y);
@@ -161,46 +182,41 @@
         ctx.closePath();
       };
 
-      // 1. Draw main photo
-      const photoUrl=(c.photos||[])[0];
-      if(photoUrl){
-        try{
-          const img=await loadImg(photoUrl);
-          drawCover(img,0,0,W,H);
-        }catch(e){
-          // Fallback: green background
-          ctx.fillStyle="#1a5c3a";
-          ctx.fillRect(0,0,W,H);
-        }
+      if(bgImg){
+        // Draw at natural ratio (no cropping)
+        ctx.drawImage(bgImg,0,0,W,H);
       }else{
         ctx.fillStyle="#1a5c3a";
         ctx.fillRect(0,0,W,H);
       }
 
-      // 2. Top gradient
-      const topGrad=ctx.createLinearGradient(0,0,0,260);
+      // Top gradient — height scales with canvas (≈19% of height)
+      const topGradH=Math.round(H*0.19);
+      const topGrad=ctx.createLinearGradient(0,0,0,topGradH);
       topGrad.addColorStop(0,"rgba(0,0,0,.6)");
       topGrad.addColorStop(1,"rgba(0,0,0,0)");
       ctx.fillStyle=topGrad;
-      ctx.fillRect(0,0,W,260);
+      ctx.fillRect(0,0,W,topGradH);
 
-      // 3. Bottom gradient
-      const botGrad=ctx.createLinearGradient(0,H-500,0,H);
+      // Bottom gradient — height scales with canvas (≈37% of height)
+      const botGradH=Math.round(H*0.37);
+      const botGrad=ctx.createLinearGradient(0,H-botGradH,0,H);
       botGrad.addColorStop(0,"rgba(0,0,0,0)");
       botGrad.addColorStop(0.5,"rgba(0,0,0,.5)");
       botGrad.addColorStop(1,"rgba(0,0,0,.85)");
       ctx.fillStyle=botGrad;
-      ctx.fillRect(0,H-500,W,500);
+      ctx.fillRect(0,H-botGradH,W,botGradH);
 
-      // 4. Top: avatar + name + date
-      const topY=90;
-      const avatarSize=80;
-      const avatarX=50;
-      let nameX=avatarX+avatarSize+24;
+      // Scale text/elements based on canvas width (1080 = baseline)
+      const sc=W/1080; // scale factor
+
+      const topY=Math.round(90*sc);
+      const avatarSize=Math.round(80*sc);
+      const avatarX=Math.round(50*sc);
+      let nameX=avatarX+avatarSize+Math.round(24*sc);
       const ownerName=profileData?.display_name||profileData?.username||"";
       const avatarUrl=profileData?.avatar_url;
 
-      // Draw avatar (image or initials)
       ctx.save();
       ctx.beginPath();
       ctx.arc(avatarX+avatarSize/2,topY+avatarSize/2,avatarSize/2,0,Math.PI*2);
@@ -214,7 +230,7 @@
           ctx.fillStyle=avatarColor(profileData?.username||ownerName||"?");
           ctx.fillRect(avatarX,topY,avatarSize,avatarSize);
           ctx.fillStyle="#fff";
-          ctx.font="bold 40px -apple-system, system-ui, sans-serif";
+          ctx.font=`bold ${Math.round(40*sc)}px -apple-system, system-ui, sans-serif`;
           ctx.textAlign="center";
           ctx.textBaseline="middle";
           ctx.fillText((ownerName||"?").charAt(0).toUpperCase(),avatarX+avatarSize/2,topY+avatarSize/2);
@@ -223,65 +239,61 @@
         ctx.fillStyle=avatarColor(profileData?.username||ownerName||"?");
         ctx.fillRect(avatarX,topY,avatarSize,avatarSize);
         ctx.fillStyle="#fff";
-        ctx.font="bold 40px -apple-system, system-ui, sans-serif";
+        ctx.font=`bold ${Math.round(40*sc)}px -apple-system, system-ui, sans-serif`;
         ctx.textAlign="center";
         ctx.textBaseline="middle";
         ctx.fillText((ownerName||"?").charAt(0).toUpperCase(),avatarX+avatarSize/2,topY+avatarSize/2);
       }
       ctx.restore();
 
-      // Name
       ctx.fillStyle="#fff";
-      ctx.font="600 38px -apple-system, system-ui, sans-serif";
+      ctx.font=`600 ${Math.round(38*sc)}px -apple-system, system-ui, sans-serif`;
       ctx.textAlign="left";
       ctx.textBaseline="alphabetic";
       ctx.shadowColor="rgba(0,0,0,.6)";
       ctx.shadowBlur=8;
-      ctx.fillText(ownerName,nameX,topY+44);
+      ctx.fillText(ownerName,nameX,topY+Math.round(44*sc));
 
-      // Date (right side)
-      ctx.font="500 30px -apple-system, system-ui, sans-serif";
+      ctx.font=`500 ${Math.round(30*sc)}px -apple-system, system-ui, sans-serif`;
       ctx.textAlign="right";
-      ctx.fillText(fmtDate(c.date),W-50,topY+44);
+      ctx.fillText(fmtDate(c.date),W-Math.round(50*sc),topY+Math.round(44*sc));
       ctx.shadowBlur=0;
 
-      // 5. Bottom: title + chips
-      const titleY=H-180;
+      const titleY=H-Math.round(180*sc);
       ctx.fillStyle="#fff";
-      ctx.font="700 56px -apple-system, system-ui, sans-serif";
+      ctx.font=`700 ${Math.round(56*sc)}px -apple-system, system-ui, sans-serif`;
       ctx.textAlign="left";
       ctx.shadowColor="rgba(0,0,0,.7)";
       ctx.shadowBlur=10;
       const title=`${c.species} · ${c.river}${c.beat?" · "+c.beat:""}`;
-      // Truncate if too long
       let displayTitle=title;
-      if(ctx.measureText(displayTitle).width>W-100){
-        while(ctx.measureText(displayTitle+"…").width>W-100&&displayTitle.length>10){
+      const maxTitleW=W-Math.round(100*sc);
+      if(ctx.measureText(displayTitle).width>maxTitleW){
+        while(ctx.measureText(displayTitle+"…").width>maxTitleW&&displayTitle.length>10){
           displayTitle=displayTitle.slice(0,-1);
         }
         displayTitle+="…";
       }
-      ctx.fillText(displayTitle,50,titleY);
+      ctx.fillText(displayTitle,Math.round(50*sc),titleY);
       ctx.shadowBlur=0;
 
-      // Chips
       const chips=[];
       if(c.weight!=null)chips.push({text:`${c.weight} kg`,color:"#fff"});
       if(c.length!=null)chips.push({text:`${c.length} cm`,color:"#fff"});
       chips.push({text:c.equipment,color:"#fff"});
       chips.push({text:c.released?"C&R":"Avlivet",color:c.released?"#a7f3d0":"#fecaca"});
 
-      const chipY=H-100;
-      const chipH=54;
-      const chipPadding=22;
-      const chipGap=10;
-      ctx.font="600 26px -apple-system, system-ui, sans-serif";
-      let chipX=50;
+      const chipY=H-Math.round(100*sc);
+      const chipH=Math.round(54*sc);
+      const chipPadding=Math.round(22*sc);
+      const chipGap=Math.round(10*sc);
+      ctx.font=`600 ${Math.round(26*sc)}px -apple-system, system-ui, sans-serif`;
+      let chipX=Math.round(50*sc);
       chips.forEach(chip=>{
         const tw=ctx.measureText(chip.text).width;
         const cw=tw+chipPadding*2;
         ctx.fillStyle="rgba(255,255,255,.22)";
-        roundRect(chipX,chipY,cw,chipH,12);
+        roundRect(chipX,chipY,cw,chipH,Math.round(12*sc));
         ctx.fill();
         ctx.fillStyle=chip.color;
         ctx.textBaseline="middle";
@@ -305,7 +317,6 @@
         if(navigator.canShare&&navigator.canShare(shareData)){
           await navigator.share(shareData);
         }else{
-          // Fallback: download
           const url=URL.createObjectURL(blob);
           const a=document.createElement("a");
           a.href=url;
@@ -332,25 +343,35 @@
       return <div style={style}>{inner}</div>;
     }
 
-    // ── LazyImage: only loads when near viewport ──
+    // ── LazyImage: only loads when near viewport, instant-show if cached ──
     function LazyImage({src,alt,style,onLoad}){
       const ref=useRef();
+      const imgRef=useRef();
       const[shouldLoad,setShouldLoad]=useState(false);
       const[loaded,setLoaded]=useState(false);
+      const[fromCache,setFromCache]=useState(false);
       useEffect(()=>{
         if(!ref.current||shouldLoad)return;
         const obs=new IntersectionObserver((entries)=>{
           entries.forEach(e=>{if(e.isIntersecting){setShouldLoad(true);obs.disconnect();}});
-        },{rootMargin:"200px"});
+        },{rootMargin:"600px"});
         obs.observe(ref.current);
         return()=>obs.disconnect();
       },[shouldLoad]);
+      // When shouldLoad becomes true, check if the image is already in cache (img.complete is true synchronously)
+      useEffect(()=>{
+        if(shouldLoad&&imgRef.current&&imgRef.current.complete&&imgRef.current.naturalWidth>0){
+          setFromCache(true);
+          setLoaded(true);
+          onLoad&&onLoad();
+        }
+      },[shouldLoad]);
       return <div ref={ref} style={{...style,position:"relative",overflow:"hidden"}}>
-        {shouldLoad&&<img src={src} alt={alt||""} loading="lazy" onLoad={()=>{setLoaded(true);onLoad&&onLoad();}} style={{width:"100%",height:"100%",objectFit:"cover",opacity:loaded?1:0,transition:"opacity .2s"}}/>}
+        {shouldLoad&&<img ref={imgRef} src={src} alt={alt||""} loading="lazy" onLoad={()=>{setLoaded(true);onLoad&&onLoad();}} style={{width:"100%",height:"100%",objectFit:"cover",opacity:loaded?1:0,transition:fromCache?"none":"opacity .2s"}}/>}
       </div>;
     }
 
-    // ── SwipeableImages: scroll-snap horizontal carousel with dot indicators ──
+    // ── SwipeableImages ──
     function SwipeableImages({photos,onExpand,t,style}){
       const scrollRef=useRef();
       const[idx,setIdx]=useState(0);
@@ -429,11 +450,9 @@
       const S=makeStyles(t);
 
       useEffect(()=>{
-        // Body-bakgrunn matches temaet (synes på sidene utenfor 480px-containeren)
         const bgColor=themeKey==="dark"?"#0f1a17":themeKey==="coastal"?"#faf8f4":"#f6f9f4";
         document.body.style.background=bgColor;
         document.documentElement.style.background=bgColor;
-        // theme-color meta for browser-chrome
         const meta=document.querySelector('meta[name="theme-color"]');
         if(meta)meta.setAttribute("content",bgColor);
       },[themeKey]);
@@ -528,7 +547,7 @@
             <img src="/icons/icon-192x192.png" alt="Fangstlogg" style={{width:96,height:96,borderRadius:22,boxShadow:t.btnShadow}}/>
             <h1 style={{fontFamily:t.titleFont,fontSize:32,fontWeight:700,color:t.text,margin:"14px 0 4px"}}>Fangstlogg</h1>
             <p style={{fontSize:15,color:t.textMuted,margin:0}}>Personlig fangstlogg for laksefiske</p>
-            <p style={{fontSize:11,color:t.textMuted,margin:"6px 0 0",opacity:.6}}>v38</p>
+            <p style={{fontSize:11,color:t.textMuted,margin:"6px 0 0",opacity:.6}}>v40</p>
           </div>
           <div style={{...S.sec,width:"100%",maxWidth:340}}>
             <p style={{fontSize:15,color:t.textSec,margin:"0 0 16px",textAlign:"center",lineHeight:1.5}}>Skriv inn e-posten din, så sender vi deg en innloggingskode.</p>
@@ -588,7 +607,7 @@
         for(const file of photoFiles){
           const ext="jpg";
           const filename=`${session.user.id}/${Date.now()}_${Math.random().toString(36).slice(2,7)}.${ext}`;
-          const {error}=await sb.storage.from("catch-photos").upload(filename,file,{contentType:"image/jpeg"});
+          const {error}=await sb.storage.from("catch-photos").upload(filename,file,UPLOAD_OPTS);
           if(error){console.error(error);continue;}
           const {data}=sb.storage.from("catch-photos").getPublicUrl(filename);
           urls.push(data.publicUrl);
@@ -823,7 +842,7 @@
           </div>
         )}
         <div style={{marginTop:30,textAlign:"center"}}>
-          <p style={{fontSize:11,color:t.textMuted,opacity:.5,margin:0}}>v38</p>
+          <p style={{fontSize:11,color:t.textMuted,opacity:.5,margin:0}}>v40</p>
         </div>
         </div>
       </div>);
@@ -888,7 +907,6 @@
         ):(
           <div style={{width:"100%",height:"100%",display:"flex",alignItems:"center",justifyContent:"center",background:t.chipBg}}>{I.fish(80,t.textMuted)}</div>
         )}
-        {/* Top overlay: avatar/owner OR delt-badge + date */}
         <div style={{position:"absolute",top:0,left:0,right:0,padding:"12px 14px",background:hasPhotos?"linear-gradient(180deg,rgba(0,0,0,.55),rgba(0,0,0,0))":"transparent",display:"flex",justifyContent:"space-between",alignItems:"center",gap:8,pointerEvents:"none",zIndex:2}}>
           {showOwner?(
             <div style={{display:"flex",alignItems:"center",gap:8,minWidth:0,flex:1}}>
@@ -900,7 +918,6 @@
           )}
           <span style={{fontSize:13,color:hasPhotos?"#fff":t.textMuted,fontWeight:500,textShadow:hasPhotos?"0 1px 2px rgba(0,0,0,.5)":"none",flexShrink:0,marginLeft:"auto"}}>{fmtDate(c.date)}</span>
         </div>
-        {/* Bottom overlay */}
         <div style={{position:"absolute",bottom:0,left:0,right:0,padding:"50px 14px 14px",background:hasPhotos?"linear-gradient(0deg,rgba(0,0,0,.78),rgba(0,0,0,.45) 60%,rgba(0,0,0,0))":"transparent",pointerEvents:"none",zIndex:2}}>
           <p style={{fontSize:17,fontWeight:700,color:hasPhotos?"#fff":t.text,margin:"0 0 8px",textShadow:hasPhotos?"0 1px 3px rgba(0,0,0,.6)":"none"}}>{c.species} · {c.river}{c.beat?` · ${c.beat}`:""}</p>
           {chips}
@@ -951,7 +968,7 @@
         try{
           const blob=await resizeImage(file,400);
           const filename=`${session.user.id}/${Date.now()}.jpg`;
-          const {error:upErr}=await sb.storage.from("avatars").upload(filename,blob,{contentType:"image/jpeg",upsert:false});
+          const {error:upErr}=await sb.storage.from("avatars").upload(filename,blob,{...UPLOAD_OPTS,upsert:false});
           if(upErr)throw upErr;
           const {data:urlData}=sb.storage.from("avatars").getPublicUrl(filename);
           const newUrl=urlData.publicUrl;
@@ -1088,9 +1105,6 @@
         </div>}
       </div>);
     }
-
-    // For Supabase Storage CORS — the avatar/photo bucket needs to allow CORS for the canvas to work.
-    // If we hit a tainted-canvas error, the photos must be served with appropriate CORS headers.
 
     function SBox({v,l,t,color}){return <div style={{background:t.cardBg,borderRadius:12,padding:"14px 10px",textAlign:"center",border:`1px solid ${t.cardBorder}`}}><span style={{display:"block",fontSize:20,fontWeight:700,color:color||t.primary}}>{v}</span><span style={{display:"block",fontSize:12,color:t.textMuted,marginTop:2}}>{l}</span></div>;}
 
