@@ -446,39 +446,38 @@ async function init() {
   state.session = data.session;
   state.loading = false;
 
-  if (state.session) {
-    const email = state.session.user.email;
+  if (!state.session) {
+    // Not logged in — send to main app to log in there
+    window.location.href = '/';
+    return;
+  }
+
+  const email = state.session.user.email;
+  if (!ADMIN_EMAILS.includes(email)) {
+    state.denied = true;
+    render();
+    return;
+  }
+
+  await loadData();
+  render();
+
+  sb.auth.onAuthStateChange(async (_, session) => {
+    if (!session) {
+      window.location.href = '/';
+      return;
+    }
+    state.session = session;
+    const email = session.user.email;
     if (!ADMIN_EMAILS.includes(email)) {
       state.denied = true;
       render();
       return;
     }
+    state.denied = false;
     await loadData();
-  }
-  render();
-
-  sb.auth.onAuthStateChange(async (_, session) => {
-    state.session = session;
-    if (session) {
-      const email = session.user.email;
-      if (!ADMIN_EMAILS.includes(email)) {
-        state.denied = true;
-        render();
-        return;
-      }
-      state.denied = false;
-      await loadData();
-    }
     render();
   });
-}
-
-async function login(email) {
-  const { error } = await sb.auth.signInWithOtp({
-    email,
-    options: { shouldCreateUser: false }
-  });
-  return error;
 }
 
 // ── Data loading ──
@@ -530,11 +529,6 @@ function render() {
     return;
   }
 
-  if (!state.session) {
-    renderAuth();
-    return;
-  }
-
   if (state.denied) {
     app.innerHTML = `
       <div class="auth-screen">
@@ -542,7 +536,7 @@ function render() {
           <h1>🚫</h1>
           <p class="sub" style="margin-top: 12px;">Denne siden er kun for administratorer.</p>
           <div class="msg msg-deny">Du har ikke tilgang til admin-panelet.</div>
-          <button style="margin-top: 16px;" onclick="sb.auth.signOut().then(() => { state.session = null; state.denied = false; render(); })">Logg ut</button>
+          <button style="margin-top: 16px;" onclick="sb.auth.signOut().then(() => { window.location.href = '/'; })">Tilbake til appen</button>
         </div>
       </div>`;
     return;
@@ -552,40 +546,6 @@ function render() {
     renderDetail();
   } else {
     renderList();
-  }
-}
-
-function renderAuth() {
-  app.innerHTML = `
-    <div class="auth-screen">
-      <div class="auth-box">
-        <h1>Fangstlogg</h1>
-        <p class="sub">Admin · Logg inn med e-post</p>
-        <input id="auth-email" type="email" placeholder="din@epost.no" />
-        <button id="auth-btn" onclick="handleLogin()">Send innloggingskode</button>
-        <div id="auth-msg"></div>
-      </div>
-    </div>`;
-}
-
-async function handleLogin() {
-  const email = document.getElementById('auth-email').value.trim();
-  const btn = document.getElementById('auth-btn');
-  const msg = document.getElementById('auth-msg');
-  if (!email) return;
-
-  btn.disabled = true;
-  btn.textContent = 'Sender...';
-
-  const error = await login(email);
-  if (error) {
-    msg.className = 'msg msg-err';
-    msg.textContent = error.message;
-    btn.disabled = false;
-    btn.textContent = 'Send innloggingskode';
-  } else {
-    msg.className = 'msg msg-ok';
-    msg.textContent = 'Sjekk e-posten din for innloggingskode!';
   }
 }
 
@@ -665,7 +625,7 @@ function renderList() {
             <div class="table-row" onclick="state.selectedUserId = '${u.id}'; render();">
               <div class="user-cell">
                 ${u.avatar_url
-                  ? `<img src="${SUPABASE_URL}/storage/v1/object/public/avatars/${u.avatar_url}" class="avatar" style="object-fit: cover;" />`
+                  ? `<img src="${u.avatar_url}" class="avatar" style="object-fit: cover;" onerror="this.outerHTML='<div class=\\'avatar\\' style=\\'background: ${avatarColor(u.name)}\\'>${initials(u.name)}</div>'" />`
                   : `<div class="avatar" style="background: ${avatarColor(u.name)}">${initials(u.name)}</div>`
                 }
                 <div>
@@ -713,7 +673,7 @@ function renderDetail() {
 
       <div class="profile-card">
         ${user.avatar_url
-          ? `<img src="${SUPABASE_URL}/storage/v1/object/public/avatars/${user.avatar_url}" class="avatar lg" style="object-fit: cover;" />`
+          ? `<img src="${user.avatar_url}" class="avatar lg" style="object-fit: cover;" onerror="this.outerHTML='<div class=\\'avatar lg\\' style=\\'background: ${avatarColor(user.name)}\\'>${initials(user.name)}</div>'" />`
           : `<div class="avatar lg" style="background: ${avatarColor(user.name)}">${initials(user.name)}</div>`
         }
         <div class="info">
