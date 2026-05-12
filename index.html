@@ -333,6 +333,43 @@
       }
     }
 
+    // ── AppLogo: themed SVG logo (fly fishing lure) ──
+    function AppLogo({size=96,t}){
+      const isDark=t.name==="Mørk";
+      const bg=isDark
+        ?"radial-gradient(circle at 30% 25%, #1f3530 0%, #0f1a17 70%, #050a08 100%)"
+        :t.name==="Kyst"
+          ?"radial-gradient(circle at 30% 25%, #ffffff 0%, #f0ece4 70%, #d8d2c4 100%)"
+          :"radial-gradient(circle at 30% 25%, #ffffff 0%, #eef2eb 70%, #d4e0d0 100%)";
+      const fg=t.primary;
+      const radius=Math.round(size*0.22);
+      const glow=isDark?`0 0 ${Math.round(size*0.25)}px ${fg}33, ${t.btnShadow}`:t.btnShadow;
+      return (
+        <div style={{width:size,height:size,borderRadius:radius,background:bg,boxShadow:glow,display:"inline-flex",alignItems:"center",justifyContent:"center",border:`1px solid ${t.cardBorder}`}}>
+          <svg width={size*0.7} height={size*0.7} viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <g transform="rotate(-20 50 50)">
+            {/* Eye/loop at top */}
+            <circle cx="50" cy="12" r="5" stroke={fg} strokeWidth="3" fill="none"/>
+            {/* Shaft going down from eye */}
+            <line x1="50" y1="17" x2="50" y2="62" stroke={fg} strokeWidth="3" strokeLinecap="round"/>
+            {/* Left wing feathers */}
+            <path d="M 50 25 Q 28 28 18 42 Q 28 42 38 38" stroke={fg} strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M 50 32 Q 32 36 22 50 Q 34 48 42 44" stroke={fg} strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M 50 40 Q 36 44 28 56 Q 38 54 44 50" stroke={fg} strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+            {/* Right wing feathers */}
+            <path d="M 50 25 Q 72 28 82 42 Q 72 42 62 38" stroke={fg} strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M 50 32 Q 68 36 78 50 Q 66 48 58 44" stroke={fg} strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M 50 40 Q 64 44 72 56 Q 62 54 56 50" stroke={fg} strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+            {/* Hook: smooth J-curve going down and around to the left */}
+            <path d="M 50 62 L 50 78 Q 50 90 38 90 Q 26 90 26 78" stroke={fg} strokeWidth="3.5" fill="none" strokeLinecap="round"/>
+            {/* Hook point: sharp tip pointing straight up */}
+            <path d="M 26 78 L 26 72" stroke={fg} strokeWidth="3.5" fill="none" strokeLinecap="round"/>
+            </g>
+          </svg>
+        </div>
+      );
+    }
+
     // ── Avatar ──
     function Avatar({url,name,seed,size=32,t,onClick}){
       const initials=(name||"?").trim().charAt(0).toUpperCase()||"?";
@@ -523,7 +560,7 @@
         return (
           <div className="safe-top safe-bottom" style={{...S.app,...S.center,minHeight:"100vh"}}>
             <div style={{textAlign:"center",marginBottom:30}}>
-              <img src="/icons/icon-192x192.png" alt="Fangstlogg" style={{width:80,height:80,borderRadius:18,boxShadow:t.btnShadow}}/>
+              <AppLogo size={80} t={t}/>
               <h1 style={{fontFamily:t.titleFont,fontSize:28,fontWeight:700,color:t.text,margin:"14px 0 4px"}}>Skriv inn koden</h1>
             </div>
             <div style={{...S.sec,width:"100%",maxWidth:340}}>
@@ -553,10 +590,10 @@
       return (
         <div className="safe-top safe-bottom" style={{...S.app,...S.center,minHeight:"100vh"}}>
           <div style={{textAlign:"center",marginBottom:30}}>
-            <img src="/icons/icon-192x192.png" alt="Fangstlogg" style={{width:96,height:96,borderRadius:22,boxShadow:t.btnShadow}}/>
+            <AppLogo size={96} t={t}/>
             <h1 style={{fontFamily:t.titleFont,fontSize:32,fontWeight:700,color:t.text,margin:"14px 0 4px"}}>Fangstlogg</h1>
             <p style={{fontSize:15,color:t.textMuted,margin:0}}>Personlig fangstlogg for laksefiske</p>
-            <p style={{fontSize:11,color:t.textMuted,margin:"6px 0 0",opacity:.6}}>v41</p>
+            <p style={{fontSize:11,color:t.textMuted,margin:"6px 0 0",opacity:.6}}>v47</p>
           </div>
           <div style={{...S.sec,width:"100%",maxWidth:340}}>
             <p style={{fontSize:15,color:t.textSec,margin:"0 0 16px",textAlign:"center",lineHeight:1.5}}>Skriv inn e-posten din, så sender vi deg en innloggingskode.</p>
@@ -851,7 +888,7 @@
           </div>
         )}
         <div style={{marginTop:30,textAlign:"center"}}>
-          <p style={{fontSize:11,color:t.textMuted,opacity:.5,margin:0}}>v41</p>
+          <p style={{fontSize:11,color:t.textMuted,opacity:.5,margin:0}}>v47</p>
         </div>
         </div>
       </div>);
