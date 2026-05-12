@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="nb">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#0f1a17">
+  <title>Fangstlogg · Admin</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f1a17;
+      --bg2: #162320;
+      --card: #1c2e28;
+      --border: #2a4038;
+      --primary: #5ee6a0;
+      --primary-light: #1c3a2e;
+      --text: #e8f0ec;
+      --text-sec: #9bb5a8;
+      --text-muted: #5f7d6e;
+      --chip-bg: #243832;
+      --chip-text: #8fc4a5;
+      --danger: #f87171;
+      --released: #5ee6a0;
+      --kept: #f87171;
+      --yellow: #fbbf24;
+      --blue: #60a5fa;
+      --pink: #f472b6;
+      --radius: 12px;
+      --radius-lg: 14px;
+    }
+
+    body {
+      font-family: 'Outfit', sans-serif;
+      background: linear-gradient(180deg, var(--bg), var(--bg2));
+      color: var(--text);
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Header ── */
+    .header {
+      padding: 20px 28px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      background: var(--bg);
+      z-index: 50;
+    }
+    .header h1 { font-size: 22px; font-weight: 700; }
+    .header .sub { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
+    .dot-live {
+      width: 10px; height: 10px; border-radius: 50%;
+      background: var(--primary);
+      box-shadow: 0 0 10px var(--primary);
+    }
+
+    .container { padding: 24px 28px; max-width: 1200px; margin: 0 auto; }
+
+    /* ── Stats ── */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      margin-bottom: 24px;
+    }
+    .stat-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      position: relative;
+      overflow: hidden;
+    }
+    .stat-card .accent {
+      position: absolute; top: 0; left: 0;
+      width: 3px; height: 100%;
+      border-radius: 0 2px 2px 0;
+    }
+    .stat-card .label { font-size: 12px; color: var(--text-muted); font-weight: 500; }
+    .stat-card .value { font-size: 28px; font-weight: 700; line-height: 1; margin-top: 4px; }
+    .stat-card .sub-val { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+
+    /* ── Filters ── */
+    .filters {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .search-wrap {
+      position: relative;
+      flex: 1 1 220px;
+    }
+    .search-wrap .icon {
+      position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+      color: var(--text-muted); font-size: 15px; pointer-events: none;
+    }
+    .search-input, .filter-select {
+      background: var(--card);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-family: 'Outfit', sans-serif;
+      font-size: 14px;
+      border-radius: 10px;
+      outline: none;
+    }
+    .search-input {
+      width: 100%;
+      padding: 10px 12px 10px 34px;
+    }
+    .filter-select {
+      padding: 10px 14px;
+      font-size: 13px;
+      cursor: pointer;
+      color: var(--text-muted);
+    }
+    .filter-select.active { color: var(--text); }
+
+    /* ── Table ── */
+    .table-wrap {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+    }
+    .table-header, .table-row {
+      display: grid;
+      grid-template-columns: 2fr 1fr 100px 80px 80px 90px;
+      align-items: center;
+      padding: 12px 20px;
+    }
+    .table-header {
+      border-bottom: 1px solid var(--border);
+      font-size: 10px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+      font-weight: 600;
+    }
+    .table-header span { cursor: pointer; user-select: none; }
+    .table-row {
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+      transition: background 0.15s;
+      padding: 14px 20px;
+    }
+    .table-row:last-child { border-bottom: none; }
+    .table-row:hover { background: var(--primary-light); }
+
+    /* ── Avatar ── */
+    .avatar {
+      width: 36px; height: 36px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; color: #fff; flex-shrink: 0;
+      font-size: 14px; letter-spacing: 0.5px;
+    }
+    .avatar.lg { width: 56px; height: 56px; font-size: 21px; }
+
+    .user-cell {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+    .user-cell .name {
+      font-size: 14px; font-weight: 600;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .user-cell .email {
+      font-size: 12px; color: var(--text-muted);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+
+    /* ── Chips / Badges ── */
+    .chip {
+      font-size: 12px;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 6px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .chip .dot { width: 6px; height: 6px; border-radius: 50%; }
+    .chip-role {
+      background: var(--chip-bg);
+      color: var(--chip-text);
+    }
+    .chip-active { background: var(--primary-light); color: var(--primary); }
+    .chip-active .dot { background: var(--primary); }
+    .chip-inactive { background: #2a2a1c; color: var(--yellow); }
+    .chip-inactive .dot { background: var(--yellow); }
+    .chip-suspended { background: #2e1c1c; color: var(--danger); }
+    .chip-suspended .dot { background: var(--danger); }
+
+    .count-big { font-size: 16px; font-weight: 700; }
+    .count-muted { color: var(--text-muted); }
+    .weight-val { font-size: 13px; color: var(--text-sec); }
+    .date-val { font-size: 12px; color: var(--text-muted); }
+
+    .footer-bar {
+      display: flex;
+      justify-content: space-between;
+      padding: 14px 4px;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    /* ── Detail View ── */
+    .back-btn {
+      background: none; border: none;
+      color: var(--primary);
+      font-size: 15px; font-weight: 600;
+      cursor: pointer;
+      padding: 0 0 20px;
+      display: flex; align-items: center; gap: 6px;
+      font-family: 'Outfit', sans-serif;
+    }
+
+    .profile-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+    .profile-card .info { flex: 1; }
+    .profile-card .info h2 { font-size: 22px; font-weight: 700; }
+    .profile-card .info .email-line { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
+    .profile-card .meta {
+      display: flex; gap: 8px; margin-top: 10px;
+      align-items: center; flex-wrap: wrap;
+    }
+    .profile-card .meta-text { font-size: 12px; color: var(--text-muted); }
+
+    .tags { display: flex; gap: 6px; margin-bottom: 16px; flex-wrap: wrap; }
+    .tag {
+      font-size: 12px; color: var(--chip-text); background: var(--chip-bg);
+      padding: 4px 10px; border-radius: 6px; font-weight: 500;
+    }
+    .tag-outline {
+      background: var(--card);
+      color: var(--text-sec);
+      border: 1px solid var(--border);
+    }
+
+    .catch-table {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+    }
+    .catch-table-header {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .catch-table-header h3 { font-size: 15px; font-weight: 700; }
+    .catch-table-header .count { font-size: 12px; color: var(--text-muted); }
+
+    .catch-cols {
+      display: flex; align-items: center; gap: 12px;
+      padding: 8px 16px;
+      border-bottom: 1px solid var(--border);
+      font-size: 10px; color: var(--text-muted);
+      text-transform: uppercase; letter-spacing: 1.2px; font-weight: 600;
+    }
+    .catch-row {
+      display: flex; align-items: center; gap: 12px;
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border);
+      font-size: 13px;
+    }
+    .catch-row:last-child { border-bottom: none; }
+    .c-date { color: var(--text-muted); width: 90px; flex-shrink: 0; font-size: 12px; }
+    .c-river { color: var(--text); font-weight: 600; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .c-species { color: var(--text-sec); width: 70px; text-align: center; flex-shrink: 0; }
+    .c-length { color: var(--text); font-weight: 600; width: 55px; text-align: right; flex-shrink: 0; }
+    .c-weight { color: var(--text-sec); width: 55px; text-align: right; flex-shrink: 0; }
+    .c-status {
+      font-size: 11px; font-weight: 600;
+      padding: 2px 8px; border-radius: 4px; flex-shrink: 0;
+    }
+    .c-released { background: var(--primary-light); color: var(--released); }
+    .c-kept { background: #2e1c1c; color: var(--kept); }
+
+    .empty-state {
+      padding: 40px;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+
+    /* ── Auth ── */
+    .auth-screen {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .auth-box {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 32px;
+      width: 360px;
+      max-width: 100%;
+      text-align: center;
+    }
+    .auth-box h1 { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+    .auth-box .sub { font-size: 13px; color: var(--text-muted); margin-bottom: 24px; }
+    .auth-box input {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 12px 14px;
+      font-size: 15px;
+      border-radius: 10px;
+      outline: none;
+      font-family: 'Outfit', sans-serif;
+      margin-bottom: 12px;
+    }
+    .auth-box button {
+      width: 100%;
+      background: var(--primary);
+      color: var(--bg);
+      border: none;
+      padding: 12px;
+      font-size: 15px;
+      font-weight: 700;
+      border-radius: 10px;
+      cursor: pointer;
+      font-family: 'Outfit', sans-serif;
+    }
+    .auth-box button:disabled { opacity: 0.45; cursor: default; }
+    .auth-box .msg {
+      margin-top: 14px;
+      font-size: 13px;
+      padding: 10px;
+      border-radius: 8px;
+    }
+    .msg-ok { background: var(--primary-light); color: var(--primary); }
+    .msg-err { background: #2e1c1c; color: var(--danger); }
+    .msg-deny { background: #2e1c1c; color: var(--danger); }
+
+    /* ── Loading ── */
+    .loading {
+      min-height: 100vh;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 15px; color: var(--text-muted);
+    }
+    .spinner {
+      width: 24px; height: 24px;
+      border: 3px solid var(--border);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      margin-right: 12px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    .fade-in { animation: fadeIn .3s ease; }
+
+    /* ── Responsive ── */
+    @media (max-width: 768px) {
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+      .table-header, .table-row {
+        grid-template-columns: 2fr 80px 70px 50px;
+      }
+      .table-header .col-role,
+      .table-header .col-weight,
+      .table-row .col-role,
+      .table-row .col-weight { display: none; }
+      .container { padding: 16px; }
+      .header { padding: 16px; }
+    }
+
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  </style>
+</head>
+<body>
+
+<div id="app"></div>
+
+<script>
+// ── Supabase ──
+const SUPABASE_URL = 'https://sygxotiqbljukaekiipc.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_wJX40u1dWNyz5xS3NTle7A_TI52gsrJ';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// ── Admin emails — add more as needed ──
+const ADMIN_EMAILS = ['magnus@jepson.no'];
+
+const app = document.getElementById('app');
+
+// ── Avatar color from seed ──
+function avatarColor(seed) {
+  const colors = ["#1a5c3a","#2d6a4f","#52796f","#386641","#6a994e","#8b5cf6","#7c3aed","#0891b2","#0e7490","#b45309","#a16207","#be123c","#9f1239","#9333ea","#1e40af"];
+  let h = 0;
+  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0;
+  return colors[h % colors.length];
+}
+
+function initials(name) {
+  return (name || '?').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+}
+
+function fmtDate(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  const m = ['jan','feb','mar','apr','mai','jun','jul','aug','sep','okt','nov','des'];
+  return `${d.getDate()}. ${m[d.getMonth()]} ${d.getFullYear()}`;
+}
+
+// ── State ──
+let state = {
+  loading: true,
+  session: null,
+  denied: false,
+  users: [],
+  selectedUserId: null,
+  search: '',
+  sortCol: 'name',
+  sortAsc: true,
+};
+
+// ── Auth ──
+async function init() {
+  const { data } = await sb.auth.getSession();
+  state.session = data.session;
+  state.loading = false;
+
+  if (state.session) {
+    const email = state.session.user.email;
+    if (!ADMIN_EMAILS.includes(email)) {
+      state.denied = true;
+      render();
+      return;
+    }
+    await loadData();
+  }
+  render();
+
+  sb.auth.onAuthStateChange(async (_, session) => {
+    state.session = session;
+    if (session) {
+      const email = session.user.email;
+      if (!ADMIN_EMAILS.includes(email)) {
+        state.denied = true;
+        render();
+        return;
+      }
+      state.denied = false;
+      await loadData();
+    }
+    render();
+  });
+}
+
+async function login(email) {
+  const { error } = await sb.auth.signInWithOtp({
+    email,
+    options: { shouldCreateUser: false }
+  });
+  return error;
+}
+
+// ── Data loading ──
+async function loadData() {
+  // Fetch all profiles
+  const { data: profiles } = await sb.from('profiles').select('*');
+
+  // Fetch all catches (admin bypass — we need a service role or RLS policy for this)
+  // Since we're using anon key + RLS, we can only see public catches + our own.
+  // For a proper admin, you'd use service_role key on a backend.
+  // Workaround: fetch all catches via the logged-in admin user
+  const { data: catches } = await sb.from('catches').select('*');
+
+  // Fetch auth users' last sign in (from profiles + catches join)
+  const usersMap = {};
+
+  (profiles || []).forEach(p => {
+    usersMap[p.id] = {
+      id: p.id,
+      name: p.display_name || p.username || '—',
+      email: '',  // we'll try to get this
+      username: p.username,
+      avatar_url: p.avatar_url,
+      joined: p.created_at,
+      catches: [],
+    };
+  });
+
+  (catches || []).forEach(c => {
+    if (usersMap[c.user_id]) {
+      usersMap[c.user_id].catches.push(c);
+    }
+  });
+
+  // Sort catches by date desc within each user
+  Object.values(usersMap).forEach(u => {
+    u.catches.sort((a, b) => new Date(b.date) - new Date(a.date));
+    u.totalWeight = u.catches.reduce((s, c) => s + (parseFloat(c.weight) || 0), 0);
+    u.lastCatch = u.catches.length > 0 ? u.catches[0].date : null;
+  });
+
+  state.users = Object.values(usersMap);
+}
+
+// ── Render ──
+function render() {
+  if (state.loading) {
+    app.innerHTML = `<div class="loading"><div class="spinner"></div>Laster...</div>`;
+    return;
+  }
+
+  if (!state.session) {
+    renderAuth();
+    return;
+  }
+
+  if (state.denied) {
+    app.innerHTML = `
+      <div class="auth-screen">
+        <div class="auth-box">
+          <h1>🚫</h1>
+          <p class="sub" style="margin-top: 12px;">Denne siden er kun for administratorer.</p>
+          <div class="msg msg-deny">Du har ikke tilgang til admin-panelet.</div>
+          <button style="margin-top: 16px;" onclick="sb.auth.signOut().then(() => { state.session = null; state.denied = false; render(); })">Logg ut</button>
+        </div>
+      </div>`;
+    return;
+  }
+
+  if (state.selectedUserId) {
+    renderDetail();
+  } else {
+    renderList();
+  }
+}
+
+function renderAuth() {
+  app.innerHTML = `
+    <div class="auth-screen">
+      <div class="auth-box">
+        <h1>Fangstlogg</h1>
+        <p class="sub">Admin · Logg inn med e-post</p>
+        <input id="auth-email" type="email" placeholder="din@epost.no" />
+        <button id="auth-btn" onclick="handleLogin()">Send innloggingskode</button>
+        <div id="auth-msg"></div>
+      </div>
+    </div>`;
+}
+
+async function handleLogin() {
+  const email = document.getElementById('auth-email').value.trim();
+  const btn = document.getElementById('auth-btn');
+  const msg = document.getElementById('auth-msg');
+  if (!email) return;
+
+  btn.disabled = true;
+  btn.textContent = 'Sender...';
+
+  const error = await login(email);
+  if (error) {
+    msg.className = 'msg msg-err';
+    msg.textContent = error.message;
+    btn.disabled = false;
+    btn.textContent = 'Send innloggingskode';
+  } else {
+    msg.className = 'msg msg-ok';
+    msg.textContent = 'Sjekk e-posten din for innloggingskode!';
+  }
+}
+
+function renderList() {
+  const q = state.search.toLowerCase();
+  let filtered = state.users.filter(u => {
+    if (!q) return true;
+    return (u.name || '').toLowerCase().includes(q) || (u.username || '').toLowerCase().includes(q);
+  });
+
+  // Sort
+  filtered.sort((a, b) => {
+    let av, bv;
+    if (state.sortCol === 'catches') { av = a.catches.length; bv = b.catches.length; }
+    else if (state.sortCol === 'weight') { av = a.totalWeight; bv = b.totalWeight; }
+    else if (state.sortCol === 'lastCatch') { av = a.lastCatch || ''; bv = b.lastCatch || ''; }
+    else { av = a.name || ''; bv = b.name || ''; }
+    const cmp = typeof av === 'string' ? av.localeCompare(bv) : av - bv;
+    return state.sortAsc ? cmp : -cmp;
+  });
+
+  const totalCatches = state.users.reduce((s, u) => s + u.catches.length, 0);
+  const totalWeight = state.users.reduce((s, u) => s + u.totalWeight, 0);
+  const usersWithCatches = state.users.filter(u => u.catches.length > 0).length;
+  const arrow = col => state.sortCol === col ? (state.sortAsc ? ' ↑' : ' ↓') : '';
+
+  app.innerHTML = `
+    <div class="header">
+      <div>
+        <h1>Fangstlogg</h1>
+        <div class="sub">Admin · Brukeradministrasjon</div>
+      </div>
+      <div class="dot-live"></div>
+    </div>
+    <div class="container fade-in">
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="accent" style="background: var(--primary)"></div>
+          <div class="label">Brukere</div>
+          <div class="value">${state.users.length}</div>
+        </div>
+        <div class="stat-card">
+          <div class="accent" style="background: var(--blue)"></div>
+          <div class="label">Aktive fiskere</div>
+          <div class="value">${usersWithCatches}</div>
+        </div>
+        <div class="stat-card">
+          <div class="accent" style="background: var(--yellow)"></div>
+          <div class="label">Fangster totalt</div>
+          <div class="value">${totalCatches}</div>
+        </div>
+        <div class="stat-card">
+          <div class="accent" style="background: var(--pink)"></div>
+          <div class="label">Total vekt</div>
+          <div class="value">${totalWeight.toFixed(0)} kg</div>
+        </div>
+      </div>
+
+      <div class="filters">
+        <div class="search-wrap">
+          <span class="icon">⌕</span>
+          <input class="search-input" placeholder="Søk etter navn..." value="${state.search}" oninput="state.search = this.value; render();" />
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <div class="table-header">
+          <span onclick="toggleSort('name')">Bruker${arrow('name')}</span>
+          <span class="col-role">Brukernavn</span>
+          <span>Siste fangst</span>
+          <span onclick="toggleSort('catches')">Fangster${arrow('catches')}</span>
+          <span class="col-weight" onclick="toggleSort('weight')">Totalvekt${arrow('weight')}</span>
+          <span onclick="toggleSort('lastCatch')">Ble med${arrow('lastCatch')}</span>
+        </div>
+        ${filtered.length === 0 ? `<div class="empty-state">Ingen brukere funnet</div>` :
+          filtered.map(u => `
+            <div class="table-row" onclick="state.selectedUserId = '${u.id}'; render();">
+              <div class="user-cell">
+                ${u.avatar_url
+                  ? `<img src="${SUPABASE_URL}/storage/v1/object/public/avatars/${u.avatar_url}" class="avatar" style="object-fit: cover;" />`
+                  : `<div class="avatar" style="background: ${avatarColor(u.name)}">${initials(u.name)}</div>`
+                }
+                <div>
+                  <div class="name">${u.name}</div>
+                  <div class="email">${u.username || ''}</div>
+                </div>
+              </div>
+              <span class="col-role"><span class="chip chip-role">${u.username || '—'}</span></span>
+              <span class="date-val">${u.lastCatch ? fmtDate(u.lastCatch) : '—'}</span>
+              <span class="count-big ${u.catches.length === 0 ? 'count-muted' : ''}">${u.catches.length}</span>
+              <span class="col-weight weight-val">${u.totalWeight > 0 ? u.totalWeight.toFixed(1) + ' kg' : '—'}</span>
+              <span class="date-val">${fmtDate(u.joined)}</span>
+            </div>
+          `).join('')
+        }
+      </div>
+      <div class="footer-bar">
+        <span>Viser ${filtered.length} av ${state.users.length} brukere</span>
+        <span>Klikk på en bruker for detaljer</span>
+      </div>
+    </div>`;
+}
+
+function renderDetail() {
+  const user = state.users.find(u => u.id === state.selectedUserId);
+  if (!user) { state.selectedUserId = null; render(); return; }
+
+  const catches = user.catches;
+  const totalWeight = user.totalWeight;
+  const releasedCount = catches.filter(c => c.released).length;
+  const biggest = catches.length ? catches.reduce((a, b) => (parseFloat(a.weight)||0) > (parseFloat(b.weight)||0) ? a : b) : null;
+  const rivers = [...new Set(catches.map(c => c.river).filter(Boolean))];
+  const methods = [...new Set(catches.map(c => c.equipment).filter(Boolean))];
+
+  app.innerHTML = `
+    <div class="header">
+      <div>
+        <h1>Fangstlogg</h1>
+        <div class="sub">Admin · Brukerdetaljer</div>
+      </div>
+      <div class="dot-live"></div>
+    </div>
+    <div class="container fade-in">
+      <button class="back-btn" onclick="state.selectedUserId = null; render();">← Tilbake til brukere</button>
+
+      <div class="profile-card">
+        ${user.avatar_url
+          ? `<img src="${SUPABASE_URL}/storage/v1/object/public/avatars/${user.avatar_url}" class="avatar lg" style="object-fit: cover;" />`
+          : `<div class="avatar lg" style="background: ${avatarColor(user.name)}">${initials(user.name)}</div>`
+        }
+        <div class="info">
+          <h2>${user.name}</h2>
+          <div class="email-line">@${user.username || '—'}</div>
+          <div class="meta">
+            <span class="meta-text">Ble med ${fmtDate(user.joined)}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="accent" style="background: var(--primary)"></div>
+          <div class="label">Fangster</div>
+          <div class="value">${catches.length}</div>
+        </div>
+        <div class="stat-card">
+          <div class="accent" style="background: var(--blue)"></div>
+          <div class="label">Totalvekt</div>
+          <div class="value">${totalWeight.toFixed(1)} kg</div>
+        </div>
+        <div class="stat-card">
+          <div class="accent" style="background: var(--yellow)"></div>
+          <div class="label">Gjenutsatt</div>
+          <div class="value">${catches.length ? Math.round(releasedCount / catches.length * 100) + '%' : '—'}</div>
+        </div>
+        <div class="stat-card">
+          <div class="accent" style="background: var(--pink)"></div>
+          <div class="label">Største</div>
+          <div class="value">${biggest ? parseFloat(biggest.weight).toFixed(1) + ' kg' : '—'}</div>
+          ${biggest ? `<div class="sub-val">${biggest.length ? biggest.length + ' cm · ' : ''}${biggest.river || ''}</div>` : ''}
+        </div>
+      </div>
+
+      ${rivers.length > 0 || methods.length > 0 ? `
+        <div class="tags">
+          ${rivers.map(r => `<span class="tag">🏞 ${r}</span>`).join('')}
+          ${methods.map(m => `<span class="tag tag-outline">🎣 ${m}</span>`).join('')}
+        </div>
+      ` : ''}
+
+      <div class="catch-table">
+        <div class="catch-table-header">
+          <h3>Fangstlogg</h3>
+          <span class="count">${catches.length} registreringer</span>
+        </div>
+        <div class="catch-cols">
+          <span class="c-date">Dato</span>
+          <span class="c-river">Elv / Beat</span>
+          <span class="c-species">Art</span>
+          <span class="c-length">Lengde</span>
+          <span class="c-weight">Vekt</span>
+          <span style="width: 52px"></span>
+        </div>
+        ${catches.length === 0 ? `<div class="empty-state">Ingen fangster registrert ennå</div>` :
+          catches.map(c => `
+            <div class="catch-row">
+              <span class="c-date">${c.date || '—'}</span>
+              <span class="c-river">${c.river || '—'}${c.beat ? ' · ' + c.beat : ''}</span>
+              <span class="c-species">${c.species || '—'}</span>
+              <span class="c-length">${c.length ? c.length + ' cm' : '—'}</span>
+              <span class="c-weight">${c.weight ? parseFloat(c.weight).toFixed(1) + ' kg' : '—'}</span>
+              <span class="c-status ${c.released ? 'c-released' : 'c-kept'}">${c.released ? 'C&R' : 'Avlivet'}</span>
+            </div>
+          `).join('')
+        }
+      </div>
+    </div>`;
+}
+
+function toggleSort(col) {
+  if (state.sortCol === col) state.sortAsc = !state.sortAsc;
+  else { state.sortCol = col; state.sortAsc = true; }
+  render();
+}
+
+// ── Start ──
+init();
+</script>
+</body>
+</html>
