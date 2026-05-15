@@ -399,9 +399,9 @@
         if(i!==idx)setIdx(i);
       };
       return(<div style={{...style,overflow:"hidden"}}>
-        <div ref={scrollRef} onScroll={handleScroll} style={{display:"flex",overflowX:"auto",overflowY:"hidden",scrollSnapType:"x mandatory",WebkitOverflowScrolling:"touch",width:"100%",height:"100%",scrollbarWidth:"none"}}>
+        <div ref={scrollRef} onScroll={handleScroll} style={{display:"flex",alignItems:"stretch",overflowX:"auto",overflowY:"hidden",scrollSnapType:"x mandatory",WebkitOverflowScrolling:"touch",width:"100%",height:"100%",scrollbarWidth:"none"}}>
           {photos.map((p,i)=>(
-            <div key={i} style={{width:"100%",height:"100%",scrollSnapAlign:"start",flexShrink:0,position:"relative"}}>
+            <div key={i} style={{minWidth:"100%",width:"100%",scrollSnapAlign:"start",flexShrink:0,position:"relative"}}>
               <LazyImage src={p} style={{position:"absolute",inset:0}}/>
             </div>
           ))}
@@ -564,7 +564,7 @@
             <AppLogo size={96} t={t}/>
             <h1 style={{fontFamily:t.titleFont,fontSize:32,fontWeight:700,color:t.text,margin:"14px 0 4px"}}>Fangstlogg</h1>
             <p style={{fontSize:15,color:t.textMuted,margin:0}}>Personlig fangstlogg for laksefiske</p>
-            <p style={{fontSize:11,color:t.textMuted,margin:"6px 0 0",opacity:.6}}>v52</p>
+            <p style={{fontSize:11,color:t.textMuted,margin:"6px 0 0",opacity:.6}}>v55</p>
           </div>
           <div style={{...S.sec,width:"100%",maxWidth:340}}>
             <p style={{fontSize:15,color:t.textSec,margin:"0 0 16px",textAlign:"center",lineHeight:1.5}}>Skriv inn e-posten din, så sender vi deg en innloggingskode.</p>
@@ -596,6 +596,7 @@
       const[selected,setSelected]=useState(null);
       const[editing,setEditing]=useState(null);
       const[loading,setLoading]=useState(true);
+      const[listScrollY,setListScrollY]=useState(0);
       const[fR,setFR]=useState("Alle");
       const[fS,setFS]=useState("Alle");
       const[fY,setFY]=useState("Alle");
@@ -716,7 +717,7 @@
 
       return (
         <div style={S.app}>
-          {view==="list"&&<ListView catches={filtered} total={catches.length} fp={fp} S={S} t={t} tab={tab} setTab={setTab} viewMode={viewMode} switchViewMode={switchViewMode} hideOwnInFeed={hideOwnInFeed} toggleHideOwnInFeed={toggleHideOwnInFeed} session={session} profile={profile} onSelect={c=>{setSelected(c);setView("detail")}} onAdd={()=>setView("add")} onStats={()=>setView("stats")} onProfile={()=>setView("profile")} onRefresh={loadCatches} onExpandPhotos={(c,startIdx)=>setLightbox({photos:c.photos,index:startIdx||0})}/>}
+          {view==="list"&&<ListView catches={filtered} total={catches.length} fp={fp} S={S} t={t} tab={tab} setTab={setTab} viewMode={viewMode} switchViewMode={switchViewMode} hideOwnInFeed={hideOwnInFeed} toggleHideOwnInFeed={toggleHideOwnInFeed} session={session} profile={profile} initialScrollY={listScrollY} onSelect={c=>{setListScrollY(window.scrollY);setSelected(c);setView("detail")}} onAdd={()=>setView("add")} onStats={()=>setView("stats")} onProfile={()=>setView("profile")} onRefresh={loadCatches} onExpandPhotos={(c,startIdx)=>setLightbox({photos:c.photos,index:startIdx||0})}/>}
           {view==="stats"&&<StatsView catches={catches} fp={fp} S={S} t={t} onBack={()=>setView("list")}/>}
           {view==="profile"&&<ProfileView session={session} profile={profile} catches={catches} S={S} t={t} themeKey={themeKey} switchTheme={switchTheme} onBack={()=>setView("list")} onUpdate={(p)=>setProfile(p)} onSignOut={signOut}/>}
           {view==="add"&&<FormView allRivers={allRivers} prefs={prefs} profile={profile} S={S} t={t} onSave={addCatch} onCancel={()=>setView("list")}/>}
@@ -787,8 +788,14 @@
     function Lbl({t:text,th}){return <label style={{display:"block",fontSize:13,fontWeight:600,color:th.textSec,marginBottom:2,marginTop:10}}>{text}</label>;}
 
     // ── ListView ──
-    function ListView({catches,total,fp,S,t,tab,setTab,viewMode,switchViewMode,hideOwnInFeed,toggleHideOwnInFeed,session,profile,onSelect,onAdd,onStats,onProfile,onRefresh,onExpandPhotos}){
+    function ListView({catches,total,fp,S,t,tab,setTab,viewMode,switchViewMode,hideOwnInFeed,toggleHideOwnInFeed,session,profile,initialScrollY,onSelect,onAdd,onStats,onProfile,onRefresh,onExpandPhotos}){
       const sorted=[...catches].sort((a,b)=>new Date(b.date)-new Date(a.date));
+      useEffect(()=>{
+        if(initialScrollY>0){
+          // Bruker rAF for å sikre at DOM er rendret før vi scroller
+          requestAnimationFrame(()=>window.scrollTo(0,initialScrollY));
+        }
+      },[]);
       const[pullY,setPullY]=useState(0);
       const[refreshing,setRefreshing]=useState(false);
       const startY=useRef(0);
@@ -883,7 +890,7 @@
           </div>
         )}
         <div style={{marginTop:30,textAlign:"center"}}>
-          <p style={{fontSize:11,color:t.textMuted,opacity:.5,margin:0}}>v52</p>
+          <p style={{fontSize:11,color:t.textMuted,opacity:.5,margin:0}}>v55</p>
         </div>
         </div>
       </div>);
@@ -975,6 +982,7 @@
       const[saving,setSaving]=useState(false);
       const[uploading,setUploading]=useState(false);
       const[msg,setMsg]=useState("");
+      useEffect(()=>{window.scrollTo(0,0);},[]);
 
       const stats={
         total:catches.length,
@@ -1103,6 +1111,7 @@
     function DetailView({c,session,profile,S,t,onBack,onEdit,onDelete}){
       const[lightbox,setLightbox]=useState(null);
       const[sharing,setSharing]=useState(false);
+      useEffect(()=>{window.scrollTo(0,0);},[]);
       const photos=c.photos||[];
       const isOwn=c.user_id===session.user.id;
       const ownerName=c.profiles?.display_name||c.profiles?.username||"";
@@ -1151,6 +1160,7 @@
 
     // ── StatsView ──
     function StatsView({catches,fp,S,t,onBack}){
+      useEffect(()=>{window.scrollTo(0,0);},[]);
       const filtered=catches.filter(c=>{
         if(fp.fR!=="Alle"&&c.river!==fp.fR)return false;
         if(fp.fS!=="Alle"&&c.species!==fp.fS)return false;
@@ -1179,6 +1189,7 @@
     // ── FormView ──
     function FormView({onSave,onCancel,initial,isEdit,prefs,profile,allRivers,S,t}){
       const fileRef=useRef();
+      useEffect(()=>{window.scrollTo(0,0);},[]);
       const[form,setForm]=useState(()=>{
         if(initial)return{...initial,photos:initial.photos||[],is_public:initial.is_public||false};
         return{river:prefs?.lastRiver||"",beat:"",date:new Date().toISOString().split("T")[0],time:"",length:"",weight:"",equipment:prefs?.lastEquipment||"Flue",species:"Laks",released:true,photos:[],description:"",is_public:profile?.default_public||false};
