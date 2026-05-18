@@ -564,7 +564,7 @@
             <AppLogo size={96} t={t}/>
             <h1 style={{fontFamily:t.titleFont,fontSize:32,fontWeight:700,color:t.text,margin:"14px 0 4px"}}>Fangstlogg</h1>
             <p style={{fontSize:15,color:t.textMuted,margin:0}}>Personlig fangstlogg for laksefiske</p>
-            <p style={{fontSize:11,color:t.textMuted,margin:"6px 0 0",opacity:.6}}>v58</p>
+            <p style={{fontSize:11,color:t.textMuted,margin:"6px 0 0",opacity:.6}}>v59</p>
           </div>
           <div style={{...S.sec,width:"100%",maxWidth:340}}>
             <p style={{fontSize:15,color:t.textSec,margin:"0 0 16px",textAlign:"center",lineHeight:1.5}}>Skriv inn e-posten din, så sender vi deg en innloggingskode.</p>
@@ -591,6 +591,8 @@
       const[myGroups,setMyGroups]=useState([]);
       // groupMembersByGroup: { group_id: Set<user_id> } — for å filtrere feed lokalt
       const[groupMembersByGroup,setGroupMembersByGroup]=useState({});
+      // catchGroupsMap: { catch_id: [group_id, ...] } — hvilke grupper hver fangst er delt med
+      const[catchGroupsMap,setCatchGroupsMap]=useState({});
       const[customRivers,setCustomRivers]=useState(lsGet("fl_rivers")||[]);
       const[prefs,setPrefs]=useState(lsGet("fl_prefs")||{lastRiver:"",lastEquipment:"Flue"});
       const[view,setView]=useState("list");
@@ -616,6 +618,19 @@
         // RLS sørger for at jeg kun ser: mine egne + visibility=public + visibility=groups med felles gruppe.
         const {data:pub}=await sb.from("catches").select("*, profiles(display_name, username, avatar_url)").in("visibility",["public","groups"]).order("date",{ascending:false}).limit(200);
         setPublicFeed(pub||[]);
+        // Hent catch_groups for både egne og feed-fangster, så vi vet hvilke grupper hver fangst er delt med
+        const allCatchIds=[...(mine||[]),...(pub||[])].map(c=>c.id);
+        if(allCatchIds.length>0){
+          const {data:cgRows}=await sb.from("catch_groups").select("catch_id, group_id").in("catch_id",allCatchIds);
+          const map={};
+          (cgRows||[]).forEach(r=>{
+            if(!map[r.catch_id])map[r.catch_id]=[];
+            map[r.catch_id].push(r.group_id);
+          });
+          setCatchGroupsMap(map);
+        }else{
+          setCatchGroupsMap({});
+        }
         const {data:prof}=await sb.from("profiles").select("*").eq("id",session.user.id).single();
         setProfile(prof||null);
         await loadMyGroups();
@@ -728,6 +743,15 @@
         };
         const {data,error}=await sb.from("catches").insert(row).select().single();
         if(error){alert("Feil: "+error.message);return;}
+        // Lagre gruppe-koblinger hvis visibility=groups
+        if(form.visibility==="groups"&&form.selectedGroupIds&&form.selectedGroupIds.length>0){
+          const cgRows=form.selectedGroupIds.map(gid=>({catch_id:data.id,group_id:gid}));
+          const {error:cgErr}=await sb.from("catch_groups").insert(cgRows);
+          if(cgErr){console.error("catch_groups insert feilet",cgErr);alert("Fangst lagret, men gruppe-koblingene feilet: "+cgErr.message);}
+          else{
+            setCatchGroupsMap(prev=>({...prev,[data.id]:form.selectedGroupIds}));
+          }
+        }
         setCatches(prev=>[data,...prev]);
         savePrefs({lastRiver:form.river,lastEquipment:form.equipment});
         if(!DEFAULT_RIVERS.includes(form.river))addCustomRiver(form.river);
@@ -757,6 +781,19 @@
         };
         const {data,error}=await sb.from("catches").update(row).eq("id",form.id).select().single();
         if(error){alert("Feil: "+error.message);return;}
+        // Synkroniser catch_groups: slett alle gamle, sett inn nye hvis groups-mode
+        const {error:delErr}=await sb.from("catch_groups").delete().eq("catch_id",form.id);
+        if(delErr)console.error("catch_groups delete feilet",delErr);
+        if(form.visibility==="groups"&&form.selectedGroupIds&&form.selectedGroupIds.length>0){
+          const cgRows=form.selectedGroupIds.map(gid=>({catch_id:form.id,group_id:gid}));
+          const {error:cgErr}=await sb.from("catch_groups").insert(cgRows);
+          if(cgErr){console.error("catch_groups insert feilet",cgErr);alert("Fangst lagret, men gruppe-koblingene feilet: "+cgErr.message);}
+          else{
+            setCatchGroupsMap(prev=>({...prev,[form.id]:form.selectedGroupIds}));
+          }
+        }else{
+          setCatchGroupsMap(prev=>{const c={...prev};delete c[form.id];return c;});
+        }
         setCatches(prev=>prev.map(x=>x.id===data.id?data:x));
         if(!DEFAULT_RIVERS.includes(form.river))addCustomRiver(form.river);
         setSelected(data);setView("detail");
@@ -778,7 +815,7 @@
         if(tab==="feed"&&hideOwnInFeed&&c.user_id===session.user.id)return false;
         // Feed-filter: 'all' (default) = alt jeg har tilgang til
         //              'public' = bare visibility=public
-        //              <group_id> = visibility=groups OG forfatter er medlem av denne gruppen
+        //              <group_id> = visibility=groups OG fangsten er eksplisitt koblet til denne gruppen
         if(tab==="feed"){
           const vis=c.visibility||(c.is_public?"public":"private");
           if(feedFilter==="public"){
@@ -786,8 +823,8 @@
           }else if(feedFilter!=="all"){
             // En spesifikk gruppe
             if(vis!=="groups")return false;
-            const members=groupMembersByGroup[feedFilter];
-            if(!members||!members.has(c.user_id))return false;
+            const linkedGroups=catchGroupsMap[c.id]||[];
+            if(!linkedGroups.includes(feedFilter))return false;
           }
         }
         if(fR!=="Alle"&&c.river!==fR)return false;
@@ -806,8 +843,8 @@
           {view==="stats"&&<StatsView catches={catches} fp={fp} S={S} t={t} onBack={()=>setView("list")}/>}
           {view==="profile"&&<ProfileView session={session} profile={profile} catches={catches} myGroups={myGroups} onGroupsChange={loadMyGroups} S={S} t={t} themeKey={themeKey} switchTheme={switchTheme} onBack={()=>setView("list")} onUpdate={(p)=>setProfile(p)} onSignOut={signOut}/>}
           {view==="add"&&<FormView allRivers={allRivers} prefs={prefs} profile={profile} myGroups={myGroups} S={S} t={t} onSave={addCatch} onCancel={()=>setView("list")}/>}
-          {view==="detail"&&selected&&<DetailView c={selected} session={session} profile={profile} S={S} t={t} onBack={()=>setView("list")} onEdit={()=>{setEditing({...selected});setView("edit")}} onDelete={()=>setDelModal(selected.id)}/>}
-          {view==="edit"&&editing&&<FormView allRivers={allRivers} initial={editing} profile={profile} myGroups={myGroups} S={S} t={t} onSave={updateCatch} onCancel={()=>setView("detail")} isEdit/>}
+          {view==="detail"&&selected&&<DetailView c={selected} session={session} profile={profile} myGroups={myGroups} catchGroupIds={catchGroupsMap[selected.id]||[]} S={S} t={t} onBack={()=>setView("list")} onEdit={()=>{setEditing({...selected});setView("edit")}} onDelete={()=>setDelModal(selected.id)}/>}
+          {view==="edit"&&editing&&<FormView allRivers={allRivers} initial={editing} initialGroupIds={catchGroupsMap[editing.id]||[]} profile={profile} myGroups={myGroups} S={S} t={t} onSave={updateCatch} onCancel={()=>setView("detail")} isEdit/>}
           {delModal&&<div style={S.overlay}><div style={S.modal}>
             <p style={{fontSize:17,fontWeight:600,margin:"0 0 6px",color:t.text}}>Slette fangst?</p>
             <p style={{fontSize:14,color:t.textMuted,margin:"0 0 20px"}}>Kan ikke angres.</p>
@@ -1006,7 +1043,7 @@
           </div>
         )}
         <div style={{marginTop:30,textAlign:"center"}}>
-          <p style={{fontSize:11,color:t.textMuted,opacity:.5,margin:0}}>v58</p>
+          <p style={{fontSize:11,color:t.textMuted,opacity:.5,margin:0}}>v59</p>
         </div>
         </div>
       </div>);
@@ -1382,7 +1419,7 @@
     }
 
     // ── DetailView ──
-    function DetailView({c,session,profile,S,t,onBack,onEdit,onDelete}){
+    function DetailView({c,session,profile,myGroups,catchGroupIds,S,t,onBack,onEdit,onDelete}){
       const[lightbox,setLightbox]=useState(null);
       const[sharing,setSharing]=useState(false);
       useEffect(()=>{window.scrollTo(0,0);},[]);
@@ -1417,7 +1454,14 @@
         <p style={{fontSize:14,color:t.textMuted,margin:"0 0 16px"}}>{fmtDate(c.date)}{c.time?` kl. ${c.time.slice(0,5)}`:""}{isOwn&&" · "}{isOwn&&(()=>{
           const vis=c.visibility||(c.is_public?"public":"private");
           if(vis==="public")return <span style={{color:t.primary}}>● Offentlig</span>;
-          if(vis==="groups")return <span style={{color:t.primary}}>● Delt i grupper</span>;
+          if(vis==="groups"){
+            const names=(catchGroupIds||[]).map(gid=>{
+              const g=(myGroups||[]).find(x=>x.id===gid);
+              return g?g.name:null;
+            }).filter(Boolean);
+            const label=names.length>0?`Delt med ${names.join(", ")}`:"Delt i grupper";
+            return <span style={{color:t.primary}}>● {label}</span>;
+          }
           return <span>● Privat</span>;
         })()}</p>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:20}}>
@@ -1466,17 +1510,20 @@
     function BDSec({title,d,n,t,S}){const sorted=Object.entries(d).sort((a,b)=>b[1]-a[1]);return <div style={S.sec}><p style={S.secT}>{title}</p>{sorted.map(([k,v],i)=>{const pct=((v/n)*100).toFixed(0);return(<div key={k} style={{marginBottom:8}}><div style={{display:"flex",justifyContent:"space-between",fontSize:14,marginBottom:3}}><span style={{color:t.text}}>{k}</span><span style={{color:t.textMuted}}>{v} ({pct}%)</span></div><div style={{height:7,background:t.chipBg,borderRadius:4,overflow:"hidden"}}><div style={{height:"100%",width:`${pct}%`,background:t.primary,borderRadius:4,transition:"width .4s"}}/></div></div>);})}</div>;}
 
     // ── FormView ──
-    function FormView({onSave,onCancel,initial,isEdit,prefs,profile,myGroups,allRivers,S,t}){
+    function FormView({onSave,onCancel,initial,initialGroupIds,isEdit,prefs,profile,myGroups,allRivers,S,t}){
       const fileRef=useRef();
       useEffect(()=>{window.scrollTo(0,0);},[]);
       const[form,setForm]=useState(()=>{
+        const allGroupIds=(myGroups||[]).map(g=>g.id);
         if(initial){
           // Migrer gamle fangster uten visibility-felt
           const vis=initial.visibility||(initial.is_public?"public":"private");
-          return{...initial,photos:initial.photos||[],visibility:vis};
+          // Hvis vi får inn initialGroupIds (ved redigering), bruk dem; ellers default til alle grupper
+          const selected=initialGroupIds&&initialGroupIds.length>0?initialGroupIds:allGroupIds;
+          return{...initial,photos:initial.photos||[],visibility:vis,selectedGroupIds:selected};
         }
         const defaultVis=profile?.default_visibility||(profile?.default_public?"public":"private");
-        return{river:prefs?.lastRiver||"",beat:"",date:new Date().toISOString().split("T")[0],time:"",length:"",weight:"",equipment:prefs?.lastEquipment||"Flue",species:"Laks",released:true,photos:[],description:"",visibility:defaultVis};
+        return{river:prefs?.lastRiver||"",beat:"",date:new Date().toISOString().split("T")[0],time:"",length:"",weight:"",equipment:prefs?.lastEquipment||"Flue",species:"Laks",released:true,photos:[],description:"",visibility:defaultVis,selectedGroupIds:allGroupIds};
       });
       const[newPhotoFiles,setNewPhotoFiles]=useState([]);
       const[newPhotoPreviews,setNewPhotoPreviews]=useState([]);
@@ -1504,7 +1551,7 @@
         setNewPhotoPreviews(prev=>prev.filter((_,i)=>i!==idx));
       };
 
-      const valid=form.river&&form.date&&form.species;
+      const valid=form.river&&form.date&&form.species&&(form.visibility!=="groups"||(form.selectedGroupIds&&form.selectedGroupIds.length>0));
       const submit=async()=>{setSaving(true);await onSave(form,newPhotoFiles);setSaving(false);};
 
       return(<div className="safe-top safe-bottom" style={S.page}>
@@ -1565,6 +1612,43 @@
             );
           })}
         </div>
+
+        {form.visibility==="groups"&&myGroups&&myGroups.length>0&&(
+          <div style={{marginTop:8,padding:"10px 12px",background:t.chipBg,borderRadius:10,border:`1px solid ${t.cardBorder}`}}>
+            <p style={{fontSize:12,fontWeight:600,color:t.textSec,margin:"0 0 8px",textTransform:"uppercase",letterSpacing:0.4}}>Del med</p>
+            <div style={{display:"flex",flexDirection:"column",gap:4}}>
+              {myGroups.map(g=>{
+                const checked=(form.selectedGroupIds||[]).includes(g.id);
+                return (
+                  <button key={g.id} onClick={()=>{
+                    const cur=form.selectedGroupIds||[];
+                    const next=checked?cur.filter(x=>x!==g.id):[...cur,g.id];
+                    set("selectedGroupIds",next);
+                  }} style={{
+                    display:"flex",alignItems:"center",gap:10,
+                    padding:"8px 10px",borderRadius:8,
+                    background:"transparent",border:"none",cursor:"pointer",
+                    fontFamily:t.font,textAlign:"left",width:"100%"
+                  }}>
+                    <div style={{
+                      width:20,height:20,borderRadius:5,flexShrink:0,
+                      border:`2px solid ${checked?t.primary:t.inputBorder}`,
+                      background:checked?t.primary:"transparent",
+                      display:"flex",alignItems:"center",justifyContent:"center"
+                    }}>
+                      {checked&&<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={t.name==="Mørk"?"#0f1a17":"#fff"} strokeWidth="3" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>}
+                    </div>
+                    <span style={{fontSize:14,color:t.text,flex:1}}>{g.name}</span>
+                    <span style={{fontSize:12,color:t.textMuted}}>{g.member_count} medlem{g.member_count!==1?"mer":""}</span>
+                  </button>
+                );
+              })}
+            </div>
+            {(form.selectedGroupIds||[]).length===0&&(
+              <p style={{fontSize:12,color:t.danger,margin:"8px 0 0"}}>Velg minst én gruppe</p>
+            )}
+          </div>
+        )}
 
         <Lbl t="Notat" th={t}/><textarea style={{...S.inp,minHeight:70,resize:"vertical"}} placeholder="f.eks. Junction pool, tung strøm..." value={form.description||""} onChange={e=>set("description",e.target.value)}/>
         <button style={{...S.btnPriFull,opacity:(valid&&!saving)?1:.45,marginTop:20}} disabled={!valid||saving} onClick={submit}>
