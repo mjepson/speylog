@@ -434,7 +434,10 @@ let state = {
   session: null,
   denied: false,
   users: [],
+  groups: [],
+  groupsByUser: {},
   selectedUserId: null,
+  selectedGroupId: null,
   search: '',
   sortCol: 'name',
   sortAsc: true,
@@ -491,6 +494,26 @@ async function loadData() {
   // Workaround: fetch all catches via the logged-in admin user
   const { data: catches } = await sb.from('catches').select('*');
 
+  // Fetch all groups and members (requires admin RLS policy on these tables)
+  const { data: groups } = await sb.from('groups').select('*');
+  const { data: members } = await sb.from('group_members').select('*');
+
+  // Build memberships lookups
+  const membersByGroup = {};
+  const groupsByUser = {};
+  (members || []).forEach(m => {
+    if (!membersByGroup[m.group_id]) membersByGroup[m.group_id] = [];
+    membersByGroup[m.group_id].push(m.user_id);
+    if (!groupsByUser[m.user_id]) groupsByUser[m.user_id] = [];
+    groupsByUser[m.user_id].push(m.group_id);
+  });
+
+  state.groups = (groups || []).map(g => ({
+    ...g,
+    members: membersByGroup[g.id] || [],
+  }));
+  state.groupsByUser = groupsByUser;
+
   // Fetch auth users' last sign in (from profiles + catches join)
   const usersMap = {};
 
@@ -542,7 +565,9 @@ function render() {
     return;
   }
 
-  if (state.selectedUserId) {
+  if (state.selectedGroupId) {
+    renderGroupDetail();
+  } else if (state.selectedUserId) {
     renderDetail();
   } else {
     renderList();
@@ -571,6 +596,17 @@ function renderList() {
   const totalWeight = state.users.reduce((s, u) => s + u.totalWeight, 0);
   const usersWithCatches = state.users.filter(u => u.catches.length > 0).length;
   const arrow = col => state.sortCol === col ? (state.sortAsc ? ' ↑' : ' ↓') : '';
+
+  // Visibility breakdown
+  const allCatches = state.users.flatMap(u => u.catches);
+  const visCount = { private: 0, groups: 0, public: 0 };
+  allCatches.forEach(c => {
+    const v = c.visibility || (c.is_public ? 'public' : 'private');
+    visCount[v] = (visCount[v] || 0) + 1;
+  });
+
+  // Sorted groups list (by member count desc)
+  const sortedGroups = [...state.groups].sort((a, b) => b.members.length - a.members.length);
 
   app.innerHTML = `
     <div class="header">
@@ -602,7 +638,50 @@ function renderList() {
           <div class="label">Total vekt</div>
           <div class="value">${totalWeight.toFixed(0)} kg</div>
         </div>
+        <div class="stat-card">
+          <div class="accent" style="background: var(--blue)"></div>
+          <div class="label">Grupper</div>
+          <div class="value">${state.groups.length}</div>
+        </div>
+        <div class="stat-card">
+          <div class="accent" style="background: var(--primary)"></div>
+          <div class="label">Synlighet</div>
+          <div class="value" style="font-size: 18px; line-height: 1.4;">
+            <span style="color: var(--text-muted)">🔒 ${visCount.private}</span> ·
+            <span style="color: var(--primary)">👥 ${visCount.groups}</span> ·
+            <span style="color: var(--yellow)">🌍 ${visCount.public}</span>
+          </div>
+        </div>
       </div>
+
+      ${state.groups.length > 0 ? `
+      <div class="table-wrap" style="margin-bottom: 24px;">
+        <div class="table-header" style="grid-template-columns: 2fr 1fr 1fr 1fr;">
+          <span>Gruppe</span>
+          <span>Oppretter</span>
+          <span>Medlemmer</span>
+          <span>Opprettet</span>
+        </div>
+        ${sortedGroups.map(g => {
+          const creator = state.users.find(u => u.id === g.created_by);
+          const creatorName = creator ? creator.name : '—';
+          return `
+            <div class="table-row" style="grid-template-columns: 2fr 1fr 1fr 1fr;" onclick="state.selectedGroupId = '${g.id}'; render();">
+              <div class="user-cell">
+                <div class="avatar" style="background: ${avatarColor(g.name)}">${initials(g.name)}</div>
+                <div>
+                  <div class="name">${g.name}</div>
+                  <div class="email">${g.invite_code ? g.invite_code.slice(0, 12) + '…' : ''}</div>
+                </div>
+              </div>
+              <span class="date-val">${creatorName}</span>
+              <span class="count-big">${g.members.length}</span>
+              <span class="date-val">${fmtDate(g.created_at)}</span>
+            </div>
+          `;
+        }).join('')}
+      </div>
+      ` : ''}
 
       <div class="filters">
         <div class="search-wrap">
@@ -716,6 +795,17 @@ function renderDetail() {
         </div>
       ` : ''}
 
+      ${(() => {
+        const userGroupIds = state.groupsByUser[user.id] || [];
+        const userGroups = state.groups.filter(g => userGroupIds.includes(g.id));
+        if (userGroups.length === 0) return '';
+        return `
+          <div class="tags" style="margin-top: 4px;">
+            ${userGroups.map(g => `<span class="tag tag-outline" style="cursor: pointer;" onclick="state.selectedGroupId='${g.id}'; state.selectedUserId=null; render();">👥 ${g.name} (${g.members.length})</span>`).join('')}
+          </div>
+        `;
+      })()}
+
       <div class="catch-table">
         <div class="catch-table-header">
           <h3>Fangstlogg</h3>
@@ -730,17 +820,125 @@ function renderDetail() {
           <span style="width: 52px"></span>
         </div>
         ${catches.length === 0 ? `<div class="empty-state">Ingen fangster registrert ennå</div>` :
-          catches.map(c => `
+          catches.map(c => {
+            const vis = c.visibility || (c.is_public ? 'public' : 'private');
+            const visIcon = vis === 'public' ? '🌍' : vis === 'groups' ? '👥' : '🔒';
+            const visLabel = vis === 'public' ? 'Offentlig' : vis === 'groups' ? 'Grupper' : 'Privat';
+            return `
             <div class="catch-row">
               <span class="c-date">${c.date || '—'}</span>
               <span class="c-river">${c.river || '—'}${c.beat ? ' · ' + c.beat : ''}</span>
-              <span class="c-species">${c.species || '—'}</span>
+              <span class="c-species">${c.species || '—'} <span title="${visLabel}" style="opacity: .6; margin-left: 4px;">${visIcon}</span></span>
               <span class="c-length">${c.length ? c.length + ' cm' : '—'}</span>
               <span class="c-weight">${c.weight ? parseFloat(c.weight).toFixed(1) + ' kg' : '—'}</span>
               <span class="c-status ${c.released ? 'c-released' : 'c-kept'}">${c.released ? 'C&R' : 'Avlivet'}</span>
             </div>
+          `;}).join('')
+        }
+      </div>
+    </div>`;
+}
+
+function renderGroupDetail() {
+  const group = state.groups.find(g => g.id === state.selectedGroupId);
+  if (!group) { state.selectedGroupId = null; render(); return; }
+
+  const memberUsers = group.members
+    .map(uid => state.users.find(u => u.id === uid))
+    .filter(Boolean);
+
+  const creator = state.users.find(u => u.id === group.created_by);
+
+  // Catches shared to this group
+  const groupCatches = state.users
+    .flatMap(u => u.catches)
+    .filter(c => {
+      const vis = c.visibility || (c.is_public ? 'public' : 'private');
+      return vis === 'groups' && group.members.includes(c.user_id);
+    })
+    .sort((a, b) => new Date(b.date) - new Date(a.date));
+
+  app.innerHTML = `
+    <div class="header">
+      <div>
+        <h1>Fangstlogg</h1>
+        <div class="sub">Admin · Gruppedetaljer</div>
+      </div>
+      <div class="dot-live"></div>
+    </div>
+    <div class="container fade-in">
+      <button class="back-btn" onclick="state.selectedGroupId = null; render();">← Tilbake til oversikt</button>
+
+      <div class="profile-card">
+        <div class="avatar lg" style="background: ${avatarColor(group.name)}">${initials(group.name)}</div>
+        <div class="info">
+          <h2>${group.name}</h2>
+          <div class="email-line">Opprettet av ${creator ? creator.name : '—'}</div>
+          <div class="meta">
+            <span class="meta-text">Opprettet ${fmtDate(group.created_at)}</span>
+            <span class="meta-text" style="margin-left: 10px; opacity: .7;">Invite: ${group.invite_code}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="accent" style="background: var(--primary)"></div>
+          <div class="label">Medlemmer</div>
+          <div class="value">${memberUsers.length}</div>
+        </div>
+        <div class="stat-card">
+          <div class="accent" style="background: var(--blue)"></div>
+          <div class="label">Gruppe-fangster</div>
+          <div class="value">${groupCatches.length}</div>
+        </div>
+        <div class="stat-card">
+          <div class="accent" style="background: var(--yellow)"></div>
+          <div class="label">Total vekt</div>
+          <div class="value">${groupCatches.reduce((s, c) => s + (parseFloat(c.weight) || 0), 0).toFixed(0)} kg</div>
+        </div>
+        <div class="stat-card">
+          <div class="accent" style="background: var(--pink)"></div>
+          <div class="label">Aktive medlemmer</div>
+          <div class="value">${memberUsers.filter(u => u.catches.length > 0).length}</div>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <div class="table-header">
+          <span>Medlem</span>
+          <span class="col-role">Brukernavn</span>
+          <span>Siste fangst</span>
+          <span>Fangster</span>
+          <span class="col-weight">Totalvekt</span>
+          <span>Ble med</span>
+        </div>
+        ${memberUsers.length === 0 ? `<div class="empty-state">Ingen medlemmer</div>` :
+          memberUsers.map(u => `
+            <div class="table-row" onclick="state.selectedGroupId = null; state.selectedUserId = '${u.id}'; render();">
+              <div class="user-cell">
+                ${u.avatar_url
+                  ? `<img src="${u.avatar_url}" class="avatar" style="object-fit: cover;" onerror="this.outerHTML='<div class=\\'avatar\\' style=\\'background: ${avatarColor(u.name)}\\'>${initials(u.name)}</div>'" />`
+                  : `<div class="avatar" style="background: ${avatarColor(u.name)}">${initials(u.name)}</div>`
+                }
+                <div>
+                  <div class="name">${u.name}${u.id === group.created_by ? ' <span style="font-size: 11px; color: var(--primary); margin-left: 4px;">★ Admin</span>' : ''}</div>
+                  <div class="email">${u.username || ''}</div>
+                </div>
+              </div>
+              <span class="col-role"><span class="chip chip-role">${u.username || '—'}</span></span>
+              <span class="date-val">${u.lastCatch ? fmtDate(u.lastCatch) : '—'}</span>
+              <span class="count-big ${u.catches.length === 0 ? 'count-muted' : ''}">${u.catches.length}</span>
+              <span class="col-weight weight-val">${u.totalWeight > 0 ? u.totalWeight.toFixed(1) + ' kg' : '—'}</span>
+              <span class="date-val">${fmtDate(u.joined)}</span>
+            </div>
           `).join('')
         }
+      </div>
+
+      <div class="footer-bar">
+        <span>${memberUsers.length} medlem${memberUsers.length !== 1 ? 'mer' : ''} · ${groupCatches.length} gruppe-fangster</span>
+        <span>Klikk på et medlem for detaljer</span>
       </div>
     </div>`;
 }
