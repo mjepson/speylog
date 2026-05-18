@@ -564,7 +564,7 @@
             <AppLogo size={96} t={t}/>
             <h1 style={{fontFamily:t.titleFont,fontSize:32,fontWeight:700,color:t.text,margin:"14px 0 4px"}}>Fangstlogg</h1>
             <p style={{fontSize:15,color:t.textMuted,margin:0}}>Personlig fangstlogg for laksefiske</p>
-            <p style={{fontSize:11,color:t.textMuted,margin:"6px 0 0",opacity:.6}}>v57</p>
+            <p style={{fontSize:11,color:t.textMuted,margin:"6px 0 0",opacity:.6}}>v58</p>
           </div>
           <div style={{...S.sec,width:"100%",maxWidth:340}}>
             <p style={{fontSize:15,color:t.textSec,margin:"0 0 16px",textAlign:"center",lineHeight:1.5}}>Skriv inn e-posten din, så sender vi deg en innloggingskode.</p>
@@ -589,6 +589,8 @@
       const[publicFeed,setPublicFeed]=useState([]);
       const[profile,setProfile]=useState(null);
       const[myGroups,setMyGroups]=useState([]);
+      // groupMembersByGroup: { group_id: Set<user_id> } — for å filtrere feed lokalt
+      const[groupMembersByGroup,setGroupMembersByGroup]=useState({});
       const[customRivers,setCustomRivers]=useState(lsGet("fl_rivers")||[]);
       const[prefs,setPrefs]=useState(lsGet("fl_prefs")||{lastRiver:"",lastEquipment:"Flue"});
       const[view,setView]=useState("list");
@@ -602,6 +604,7 @@
       const[fS,setFS]=useState("Alle");
       const[fY,setFY]=useState("Alle");
       const[hideOwnInFeed,setHideOwnInFeed]=useState(lsGet("fl_hideOwnInFeed")||false);
+      const[feedFilter,setFeedFilter]=useState(lsGet("fl_feedFilter")||"all"); // 'all' | 'public' | group_id
       const[delModal,setDelModal]=useState(null);
       const[lightbox,setLightbox]=useState(null);
       const allRivers=[...new Set([...DEFAULT_RIVERS,...customRivers])].sort((a,b)=>a.localeCompare(b,"nb"));
@@ -609,7 +612,9 @@
       const loadCatches=async()=>{
         const {data:mine}=await sb.from("catches").select("*").eq("user_id",session.user.id).order("date",{ascending:false});
         setCatches(mine||[]);
-        const {data:pub}=await sb.from("catches").select("*, profiles(display_name, username, avatar_url)").eq("is_public",true).order("date",{ascending:false}).limit(100);
+        // Hent alt feed-innhold jeg har tilgang til (egne ekskludert via filter senere).
+        // RLS sørger for at jeg kun ser: mine egne + visibility=public + visibility=groups med felles gruppe.
+        const {data:pub}=await sb.from("catches").select("*, profiles(display_name, username, avatar_url)").in("visibility",["public","groups"]).order("date",{ascending:false}).limit(200);
         setPublicFeed(pub||[]);
         const {data:prof}=await sb.from("profiles").select("*").eq("id",session.user.id).single();
         setProfile(prof||null);
@@ -620,19 +625,25 @@
       const loadMyGroups=async()=>{
         // Hent grupper jeg er medlem av, med medlemstall
         const {data:memberships}=await sb.from("group_members").select("group_id, groups(id, name, created_by, created_at, invite_code)").eq("user_id",session.user.id);
-        if(!memberships){setMyGroups([]);return;}
-        // Hent medlemstall for hver gruppe
+        if(!memberships){setMyGroups([]);setGroupMembersByGroup({});return;}
+        // Hent medlemstall og medlemslister for hver gruppe
         const groupIds=memberships.map(m=>m.group_id);
         let counts={};
+        let membersByGroup={};
         if(groupIds.length>0){
-          const {data:allMembers}=await sb.from("group_members").select("group_id").in("group_id",groupIds);
-          (allMembers||[]).forEach(m=>{counts[m.group_id]=(counts[m.group_id]||0)+1;});
+          const {data:allMembers}=await sb.from("group_members").select("group_id, user_id").in("group_id",groupIds);
+          (allMembers||[]).forEach(m=>{
+            counts[m.group_id]=(counts[m.group_id]||0)+1;
+            if(!membersByGroup[m.group_id])membersByGroup[m.group_id]=new Set();
+            membersByGroup[m.group_id].add(m.user_id);
+          });
         }
         const groups=memberships
           .filter(m=>m.groups)
           .map(m=>({...m.groups,member_count:counts[m.group_id]||0}));
         groups.sort((a,b)=>a.name.localeCompare(b.name,"nb"));
         setMyGroups(groups);
+        setGroupMembersByGroup(membersByGroup);
       };
 
       const[inviteModal,setInviteModal]=useState(null); // {code, group} eller null
@@ -701,7 +712,8 @@
         }
         const row={
           user_id:session.user.id,
-          is_public:form.is_public,
+          visibility:form.visibility||"private",
+          is_public:form.visibility==="public",
           date:form.date,
           time:form.time||null,
           river:form.river,
@@ -729,7 +741,8 @@
           photoUrls=[...photoUrls,...uploaded];
         }
         const row={
-          is_public:form.is_public,
+          visibility:form.visibility||"private",
+          is_public:form.visibility==="public",
           date:form.date,
           time:form.time||null,
           river:form.river,
@@ -763,6 +776,20 @@
       const sourceList=tab==="mine"?catches:publicFeed;
       const filtered=sourceList.filter(c=>{
         if(tab==="feed"&&hideOwnInFeed&&c.user_id===session.user.id)return false;
+        // Feed-filter: 'all' (default) = alt jeg har tilgang til
+        //              'public' = bare visibility=public
+        //              <group_id> = visibility=groups OG forfatter er medlem av denne gruppen
+        if(tab==="feed"){
+          const vis=c.visibility||(c.is_public?"public":"private");
+          if(feedFilter==="public"){
+            if(vis!=="public")return false;
+          }else if(feedFilter!=="all"){
+            // En spesifikk gruppe
+            if(vis!=="groups")return false;
+            const members=groupMembersByGroup[feedFilter];
+            if(!members||!members.has(c.user_id))return false;
+          }
+        }
         if(fR!=="Alle"&&c.river!==fR)return false;
         if(fS!=="Alle"&&c.species!==fS)return false;
         if(fY!=="Alle"&&new Date(c.date).getFullYear()!==+fY)return false;
@@ -775,12 +802,12 @@
 
       return (
         <div style={S.app}>
-          {view==="list"&&<ListView catches={filtered} total={catches.length} fp={fp} S={S} t={t} tab={tab} setTab={setTab} viewMode={viewMode} switchViewMode={switchViewMode} hideOwnInFeed={hideOwnInFeed} toggleHideOwnInFeed={toggleHideOwnInFeed} session={session} profile={profile} initialScrollY={listScrollY} onSelect={c=>{setListScrollY(window.scrollY);setSelected(c);setView("detail")}} onAdd={()=>setView("add")} onStats={()=>setView("stats")} onProfile={()=>setView("profile")} onRefresh={loadCatches} onExpandPhotos={(c,startIdx)=>setLightbox({photos:c.photos,index:startIdx||0})}/>}
+          {view==="list"&&<ListView catches={filtered} total={catches.length} fp={fp} S={S} t={t} tab={tab} setTab={setTab} viewMode={viewMode} switchViewMode={switchViewMode} hideOwnInFeed={hideOwnInFeed} toggleHideOwnInFeed={toggleHideOwnInFeed} myGroups={myGroups} feedFilter={feedFilter} setFeedFilter={(v)=>{setFeedFilter(v);lsSet("fl_feedFilter",v);}} session={session} profile={profile} initialScrollY={listScrollY} onSelect={c=>{setListScrollY(window.scrollY);setSelected(c);setView("detail")}} onAdd={()=>setView("add")} onStats={()=>setView("stats")} onProfile={()=>setView("profile")} onRefresh={loadCatches} onExpandPhotos={(c,startIdx)=>setLightbox({photos:c.photos,index:startIdx||0})}/>}
           {view==="stats"&&<StatsView catches={catches} fp={fp} S={S} t={t} onBack={()=>setView("list")}/>}
           {view==="profile"&&<ProfileView session={session} profile={profile} catches={catches} myGroups={myGroups} onGroupsChange={loadMyGroups} S={S} t={t} themeKey={themeKey} switchTheme={switchTheme} onBack={()=>setView("list")} onUpdate={(p)=>setProfile(p)} onSignOut={signOut}/>}
-          {view==="add"&&<FormView allRivers={allRivers} prefs={prefs} profile={profile} S={S} t={t} onSave={addCatch} onCancel={()=>setView("list")}/>}
+          {view==="add"&&<FormView allRivers={allRivers} prefs={prefs} profile={profile} myGroups={myGroups} S={S} t={t} onSave={addCatch} onCancel={()=>setView("list")}/>}
           {view==="detail"&&selected&&<DetailView c={selected} session={session} profile={profile} S={S} t={t} onBack={()=>setView("list")} onEdit={()=>{setEditing({...selected});setView("edit")}} onDelete={()=>setDelModal(selected.id)}/>}
-          {view==="edit"&&editing&&<FormView allRivers={allRivers} initial={editing} profile={profile} S={S} t={t} onSave={updateCatch} onCancel={()=>setView("detail")} isEdit/>}
+          {view==="edit"&&editing&&<FormView allRivers={allRivers} initial={editing} profile={profile} myGroups={myGroups} S={S} t={t} onSave={updateCatch} onCancel={()=>setView("detail")} isEdit/>}
           {delModal&&<div style={S.overlay}><div style={S.modal}>
             <p style={{fontSize:17,fontWeight:600,margin:"0 0 6px",color:t.text}}>Slette fangst?</p>
             <p style={{fontSize:14,color:t.textMuted,margin:"0 0 20px"}}>Kan ikke angres.</p>
@@ -856,7 +883,7 @@
     function Lbl({t:text,th}){return <label style={{display:"block",fontSize:13,fontWeight:600,color:th.textSec,marginBottom:2,marginTop:10}}>{text}</label>;}
 
     // ── ListView ──
-    function ListView({catches,total,fp,S,t,tab,setTab,viewMode,switchViewMode,hideOwnInFeed,toggleHideOwnInFeed,session,profile,initialScrollY,onSelect,onAdd,onStats,onProfile,onRefresh,onExpandPhotos}){
+    function ListView({catches,total,fp,S,t,tab,setTab,viewMode,switchViewMode,hideOwnInFeed,toggleHideOwnInFeed,myGroups,feedFilter,setFeedFilter,session,profile,initialScrollY,onSelect,onAdd,onStats,onProfile,onRefresh,onExpandPhotos}){
       const sorted=[...catches].sort((a,b)=>new Date(b.date)-new Date(a.date));
       useEffect(()=>{
         if(initialScrollY>0){
@@ -928,6 +955,27 @@
           </button>
         </div>
         <Filters fp={fp} S={S} t={t}/>
+        {tab==="feed"&&(myGroups.length>0)&&(
+          <div style={{display:"flex",gap:6,marginBottom:10,overflowX:"auto",WebkitOverflowScrolling:"touch",scrollbarWidth:"none",paddingBottom:2}}>
+            {[
+              {key:"all",label:"Alle"},
+              ...myGroups.map(g=>({key:g.id,label:g.name})),
+              {key:"public",label:"Offentlig"},
+            ].map(chip=>{
+              const sel=feedFilter===chip.key;
+              return (
+                <button key={chip.key} onClick={()=>setFeedFilter(chip.key)} style={{
+                  padding:"6px 14px",borderRadius:16,
+                  border:sel?`1.5px solid ${t.primary}`:`1px solid ${t.cardBorder}`,
+                  background:sel?t.primaryLight:t.cardBg,
+                  color:sel?t.primary:t.textSec,
+                  fontSize:13,fontWeight:sel?600:500,fontFamily:t.font,
+                  cursor:"pointer",flexShrink:0,whiteSpace:"nowrap"
+                }}>{chip.label}</button>
+              );
+            })}
+          </div>
+        )}
         {tab==="feed"&&(
           <button onClick={toggleHideOwnInFeed} style={{
             display:"flex",alignItems:"center",justifyContent:"space-between",gap:8,
@@ -949,7 +997,7 @@
             </span>
           </button>
         )}
-        {sorted.length===0?(<div style={{textAlign:"center",padding:"50px 20px"}}>{I.fish(44,t.textMuted)}<p style={{marginTop:10,color:t.textMuted,fontSize:15}}>{tab==="mine"?(total===0?"Ingen fangster ennå.":"Ingen treff."):"Ingen offentlige fangster ennå."}</p></div>):(
+        {sorted.length===0?(<div style={{textAlign:"center",padding:"50px 20px"}}>{I.fish(44,t.textMuted)}<p style={{marginTop:10,color:t.textMuted,fontSize:15}}>{tab==="mine"?(total===0?"Ingen fangster ennå.":"Ingen treff."):"Ingen fangster å vise her."}</p></div>):(
           <div style={{display:"flex",flexDirection:"column",gap:viewMode==="large"?14:8}}>
             {sorted.map(c=>viewMode==="large"
               ? <CatchCardLarge key={c.id} c={c} S={S} t={t} showOwner={tab==="feed"} currentUserId={session.user.id} onClick={()=>onSelect(c)} onExpandPhotos={(idx)=>onExpandPhotos(c,idx)}/>
@@ -958,7 +1006,7 @@
           </div>
         )}
         <div style={{marginTop:30,textAlign:"center"}}>
-          <p style={{fontSize:11,color:t.textMuted,opacity:.5,margin:0}}>v57</p>
+          <p style={{fontSize:11,color:t.textMuted,opacity:.5,margin:0}}>v58</p>
         </div>
         </div>
       </div>);
@@ -984,7 +1032,12 @@
           ):(
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:3}}>
               <span style={{fontSize:12,color:t.textMuted}}>{fmtDate(c.date)}</span>
-              {c.is_public&&<span style={{fontSize:11,color:t.primary,display:"inline-flex",alignItems:"center",gap:3}}>{I.world()} Delt</span>}
+              {(()=>{
+                const vis=c.visibility||(c.is_public?"public":"private");
+                if(vis==="public")return <span style={{fontSize:11,color:t.primary,display:"inline-flex",alignItems:"center",gap:3}}>{I.world()} Offentlig</span>;
+                if(vis==="groups")return <span style={{fontSize:11,color:t.primary,display:"inline-flex",alignItems:"center",gap:3}}>● Grupper</span>;
+                return null;
+              })()}
             </div>
           )}
           <div style={{fontSize:14,color:t.textSec,marginBottom:6,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{c.species} · {c.river}{c.beat?` · ${c.beat}`:""}</div>
@@ -1034,7 +1087,12 @@
               <span style={{fontSize:15,fontWeight:600,color:hasPhotos?"#fff":t.text,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",textShadow:hasPhotos?"0 1px 2px rgba(0,0,0,.5)":"none"}}>{displayedName}</span>
             </div>
           ):(
-            c.is_public?<span style={{fontSize:12,color:"#fff",display:"inline-flex",alignItems:"center",gap:4,background:"rgba(0,0,0,.45)",padding:"4px 10px",borderRadius:12,backdropFilter:"blur(8px)",fontWeight:500}}>{I.world()} Delt</span>:<div/>
+            (()=>{
+              const vis=c.visibility||(c.is_public?"public":"private");
+              if(vis==="public")return <span style={{fontSize:12,color:"#fff",display:"inline-flex",alignItems:"center",gap:4,background:"rgba(0,0,0,.45)",padding:"4px 10px",borderRadius:12,backdropFilter:"blur(8px)",fontWeight:500}}>{I.world()} Offentlig</span>;
+              if(vis==="groups")return <span style={{fontSize:12,color:"#fff",display:"inline-flex",alignItems:"center",gap:4,background:"rgba(0,0,0,.45)",padding:"4px 10px",borderRadius:12,backdropFilter:"blur(8px)",fontWeight:500}}>Grupper</span>;
+              return <div/>;
+            })()
           )}
           <span style={{fontSize:13,color:hasPhotos?"#fff":t.textMuted,fontWeight:500,textShadow:hasPhotos?"0 1px 2px rgba(0,0,0,.5)":"none",flexShrink:0,marginLeft:"auto"}}>{fmtDate(c.date)}</span>
         </div>
@@ -1049,7 +1107,7 @@
     function ProfileView({session,profile,catches,myGroups,onGroupsChange,S,t,themeKey,switchTheme,onBack,onUpdate,onSignOut}){
       const fileRef=useRef();
       const[displayName,setDisplayName]=useState(profile?.display_name||"");
-      const[defaultPublic,setDefaultPublic]=useState(profile?.default_public||false);
+      const[defaultVisibility,setDefaultVisibility]=useState(profile?.default_visibility||(profile?.default_public?"public":"private"));
       const[avatarUrl,setAvatarUrl]=useState(profile?.avatar_url||null);
       const[saving,setSaving]=useState(false);
       const[uploading,setUploading]=useState(false);
@@ -1063,7 +1121,10 @@
 
       const stats={
         total:catches.length,
-        shared:catches.filter(c=>c.is_public).length,
+        shared:catches.filter(c=>{
+          const vis=c.visibility||(c.is_public?"public":"private");
+          return vis!=="private";
+        }).length,
         biggest:catches.reduce((max,c)=>(c.weight!=null&&c.weight>max?c.weight:max),0),
       };
 
@@ -1080,10 +1141,14 @@
         showMsg("Navn lagret");
       };
 
-      const saveDefaultPublic=async(val)=>{
-        setDefaultPublic(val);
-        const {data,error}=await sb.from("profiles").update({default_public:val}).eq("id",session.user.id).select().single();
-        if(error){showMsg("Feil: "+error.message,true);setDefaultPublic(!val);return;}
+      const saveDefaultVisibility=async(val)=>{
+        const prev=defaultVisibility;
+        setDefaultVisibility(val);
+        const {data,error}=await sb.from("profiles").update({
+          default_visibility:val,
+          default_public:val==="public",
+        }).eq("id",session.user.id).select().single();
+        if(error){showMsg("Feil: "+error.message,true);setDefaultVisibility(prev);return;}
         if(data)onUpdate(data);
       };
 
@@ -1220,14 +1285,30 @@
           {profile?.username&&<p style={{fontSize:13,color:t.textMuted,margin:"10px 0 0"}}>Brukernavn: {profile.username}</p>}
         </div>
 
-        <div style={{...S.sec,display:"flex",alignItems:"center",gap:12}}>
-          <div style={{flex:1,minWidth:0}}>
-            <p style={{fontSize:15,fontWeight:600,color:t.text,margin:0}}>Del nye fangster som default</p>
-            <p style={{fontSize:12,color:t.textMuted,margin:"3px 0 0",lineHeight:1.4}}>Nye fangster blir automatisk synlig i felles feed. Du kan fortsatt overstyre på hver enkelt fangst.</p>
+        <div style={S.sec}>
+          <p style={S.secT}>Standard synlighet for nye fangster</p>
+          <p style={{fontSize:12,color:t.textMuted,margin:"0 0 10px",lineHeight:1.4}}>Du kan alltid overstyre på hver enkelt fangst.</p>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:6}}>
+            {[
+              {key:"private",label:"Privat"},
+              {key:"groups",label:"Grupper",disabled:myGroups.length===0},
+              {key:"public",label:"Offentlig"},
+            ].map(opt=>{
+              const sel=defaultVisibility===opt.key;
+              return (
+                <button key={opt.key} disabled={opt.disabled} onClick={()=>saveDefaultVisibility(opt.key)} style={{
+                  padding:"10px 6px",borderRadius:10,
+                  border:sel?`2px solid ${t.primary}`:`1px solid ${t.inputBorder}`,
+                  background:sel?t.primaryLight:t.cardBg,
+                  fontSize:13,fontWeight:sel?600:500,
+                  color:sel?t.primary:t.textSec,
+                  fontFamily:t.font,
+                  cursor:opt.disabled?"not-allowed":"pointer",
+                  opacity:opt.disabled?.4:1
+                }}>{opt.label}</button>
+              );
+            })}
           </div>
-          <button onClick={()=>saveDefaultPublic(!defaultPublic)} style={{width:46,height:26,borderRadius:13,border:"none",background:defaultPublic?t.primary:t.inputBorder,position:"relative",cursor:"pointer",flexShrink:0,transition:"background .2s"}}>
-            <div style={{position:"absolute",top:3,left:defaultPublic?23:3,width:20,height:20,borderRadius:10,background:"#fff",transition:"left .2s",boxShadow:"0 1px 3px rgba(0,0,0,.2)"}}/>
-          </button>
         </div>
 
         <div style={S.sec}>
@@ -1333,7 +1414,12 @@
         </div>}
         <h2 style={{fontFamily:t.titleFont,fontSize:24,fontWeight:700,color:t.text,margin:"0 0 4px"}}>{c.species}</h2>
         <p style={{fontSize:16,color:t.textSec,margin:"0 0 2px",fontWeight:500}}>{c.river}{c.beat?` — ${c.beat}`:""}</p>
-        <p style={{fontSize:14,color:t.textMuted,margin:"0 0 16px"}}>{fmtDate(c.date)}{c.time?` kl. ${c.time.slice(0,5)}`:""}{isOwn&&" · "}{isOwn&&(c.is_public?<span style={{color:t.primary}}>● Delt i feed</span>:<span>● Privat</span>)}</p>
+        <p style={{fontSize:14,color:t.textMuted,margin:"0 0 16px"}}>{fmtDate(c.date)}{c.time?` kl. ${c.time.slice(0,5)}`:""}{isOwn&&" · "}{isOwn&&(()=>{
+          const vis=c.visibility||(c.is_public?"public":"private");
+          if(vis==="public")return <span style={{color:t.primary}}>● Offentlig</span>;
+          if(vis==="groups")return <span style={{color:t.primary}}>● Delt i grupper</span>;
+          return <span>● Privat</span>;
+        })()}</p>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:20}}>
           {c.weight!=null&&<SBox v={c.weight} l="kg" t={t}/>}{c.length!=null&&<SBox v={c.length} l="cm" t={t}/>}
           <SBox v={c.equipment} l="Redskap" t={t}/><SBox v={c.released?"Ja":"Nei"} l="Gjenutsatt" t={t} color={c.released?t.released:t.kept}/>
@@ -1380,12 +1466,17 @@
     function BDSec({title,d,n,t,S}){const sorted=Object.entries(d).sort((a,b)=>b[1]-a[1]);return <div style={S.sec}><p style={S.secT}>{title}</p>{sorted.map(([k,v],i)=>{const pct=((v/n)*100).toFixed(0);return(<div key={k} style={{marginBottom:8}}><div style={{display:"flex",justifyContent:"space-between",fontSize:14,marginBottom:3}}><span style={{color:t.text}}>{k}</span><span style={{color:t.textMuted}}>{v} ({pct}%)</span></div><div style={{height:7,background:t.chipBg,borderRadius:4,overflow:"hidden"}}><div style={{height:"100%",width:`${pct}%`,background:t.primary,borderRadius:4,transition:"width .4s"}}/></div></div>);})}</div>;}
 
     // ── FormView ──
-    function FormView({onSave,onCancel,initial,isEdit,prefs,profile,allRivers,S,t}){
+    function FormView({onSave,onCancel,initial,isEdit,prefs,profile,myGroups,allRivers,S,t}){
       const fileRef=useRef();
       useEffect(()=>{window.scrollTo(0,0);},[]);
       const[form,setForm]=useState(()=>{
-        if(initial)return{...initial,photos:initial.photos||[],is_public:initial.is_public||false};
-        return{river:prefs?.lastRiver||"",beat:"",date:new Date().toISOString().split("T")[0],time:"",length:"",weight:"",equipment:prefs?.lastEquipment||"Flue",species:"Laks",released:true,photos:[],description:"",is_public:profile?.default_public||false};
+        if(initial){
+          // Migrer gamle fangster uten visibility-felt
+          const vis=initial.visibility||(initial.is_public?"public":"private");
+          return{...initial,photos:initial.photos||[],visibility:vis};
+        }
+        const defaultVis=profile?.default_visibility||(profile?.default_public?"public":"private");
+        return{river:prefs?.lastRiver||"",beat:"",date:new Date().toISOString().split("T")[0],time:"",length:"",weight:"",equipment:prefs?.lastEquipment||"Flue",species:"Laks",released:true,photos:[],description:"",visibility:defaultVis};
       });
       const[newPhotoFiles,setNewPhotoFiles]=useState([]);
       const[newPhotoPreviews,setNewPhotoPreviews]=useState([]);
@@ -1447,17 +1538,32 @@
 
         <div style={{height:1,background:t.cardBorder,margin:"12px 0"}}/>
 
-        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 12px",background:t.primaryLight,borderRadius:11,marginTop:6}}>
-          <div style={{display:"flex",alignItems:"center",gap:8,flex:1,minWidth:0}}>
-            {form.is_public?I.world():I.lock()}
-            <div style={{minWidth:0}}>
-              <p style={{fontSize:14,fontWeight:600,color:t.text,margin:0}}>{form.is_public?"Delt i felles feed":"Privat fangst"}</p>
-              <p style={{fontSize:12,color:t.textMuted,margin:"2px 0 0"}}>{form.is_public?"Andre kan se denne fangsten":"Bare du ser denne fangsten"}</p>
-            </div>
-          </div>
-          <button onClick={()=>set("is_public",!form.is_public)} style={{width:46,height:26,borderRadius:13,border:"none",background:form.is_public?t.primary:t.inputBorder,position:"relative",cursor:"pointer",flexShrink:0,transition:"background .2s"}}>
-            <div style={{position:"absolute",top:3,left:form.is_public?23:3,width:20,height:20,borderRadius:10,background:"#fff",transition:"left .2s",boxShadow:"0 1px 3px rgba(0,0,0,.2)"}}/>
-          </button>
+        <Lbl t="Synlighet" th={t}/>
+        <div style={{display:"flex",flexDirection:"column",gap:6}}>
+          {[
+            {key:"private",icon:I.lock(),title:"Privat",desc:"Bare du ser denne fangsten"},
+            {key:"groups",icon:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>,title:"Grupper",desc:myGroups&&myGroups.length>0?`Synlig for medlemmer i dine ${myGroups.length} gruppe${myGroups.length!==1?"r":""}`:"Du er ikke med i noen grupper ennå",disabled:!myGroups||myGroups.length===0},
+            {key:"public",icon:I.world(),title:"Offentlig",desc:"Synlig for alle brukere i felles feed"},
+          ].map(opt=>{
+            const sel=form.visibility===opt.key;
+            return (
+              <button key={opt.key} disabled={opt.disabled} onClick={()=>set("visibility",opt.key)} style={{
+                display:"flex",alignItems:"center",gap:10,
+                padding:"10px 12px",borderRadius:10,
+                border:sel?`2px solid ${t.primary}`:`1px solid ${t.inputBorder}`,
+                background:sel?t.primaryLight:t.cardBg,
+                fontFamily:t.font,cursor:opt.disabled?"not-allowed":"pointer",
+                opacity:opt.disabled?.45:1,
+                textAlign:"left",width:"100%"
+              }}>
+                <div style={{color:sel?t.primary:t.textMuted,display:"flex"}}>{opt.icon}</div>
+                <div style={{flex:1,minWidth:0}}>
+                  <p style={{fontSize:14,fontWeight:600,color:sel?t.primary:t.text,margin:0}}>{opt.title}</p>
+                  <p style={{fontSize:12,color:t.textMuted,margin:"2px 0 0",lineHeight:1.3}}>{opt.desc}</p>
+                </div>
+              </button>
+            );
+          })}
         </div>
 
         <Lbl t="Notat" th={t}/><textarea style={{...S.inp,minHeight:70,resize:"vertical"}} placeholder="f.eks. Junction pool, tung strøm..." value={form.description||""} onChange={e=>set("description",e.target.value)}/>
