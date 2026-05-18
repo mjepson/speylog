@@ -57,6 +57,7 @@
     const DEFAULT_RIVERS=["Altaelva","Bjerkreimselva","Bøelva","Dirdalselva","Driva","Etneelva","Figgjo","Flåmselva","Gaula","Håelva","Lærdalselva","Mandalselva","Namsen","Nidelva (Arendal)","Numedalslågen","Ogna","Orkla","Otra","Suldalslågen","Surna","Tovdalselva","Vikedalselva","River Dee","River Spey","River Tay","River Tweed"];
     const SPECIES=["Laks","Sjøørret","Brunørret","Regnbueørret","Annet"];
     const EQUIPMENT=["Flue","Sluk","Spinner","Wobbler","Mark","Annet"];
+    const DEFAULT_FLIES=["Sunray Shadow","Ally's Shrimp","Cascade","Willie Gunn","Green Highlander","Stoat's Tail","Black & Yellow","Frances","Templedog","Munro Killer","Silver Stoat","Garry Dog"];
 
     // ── Helpers ──
     function estimateWeight(cm){if(!cm||cm<=0)return null;return Math.round((0.95*Math.pow(cm,3))/100000*10)/10;}
@@ -86,13 +87,13 @@
       // Roterende slogans for login (ett valgt tilfeldig per innlasting)
       slogans:{
         nb:[
-          "Den var sååå stor...",
+          "Skrytetavla for fluerne dine.",
           "Fordi minnet er en dårlig fiskebok.",
-          "Mer fisk, færre skrytehistorier.",
-          "Lågg on, lågg off.",
+          "Mer fisk, færre skrytehistorier. Eller flere.",
+          "Logg fangsten — krymp den senere.",
           "Hvor ble det av storfisken? Her.",
-          "Snap, release, log.",
-          "Mista en stor en?",
+          "Knipsa, vega, logga.",
+          "For deg som faktisk husker hvilken flue det var på.",
         ],
         en:[
           "A trophy case for your flies.",
@@ -101,7 +102,7 @@
           "Log the catch — exaggerate it later.",
           "Where did that monster go? Right here.",
           "Snap, release, log.",
-          "Lost a big one?",
+          "For anglers who actually remember the fly.",
         ],
       },
       // Om-modal
@@ -203,6 +204,8 @@
       form_estimated_weight:{nb:"Estimert vekt:",en:"Estimated weight:"},
       form_species:{nb:"Art *",en:"Species *"},
       form_equipment:{nb:"Redskap",en:"Tackle"},
+      form_fly:{nb:"Flue",en:"Fly"},
+      form_fly_placeholder:{nb:"Søk eller skriv flue...",en:"Search or type fly..."},
       form_released_q:{nb:"Gjenutsatt?",en:"Released?"},
       form_yes:{nb:"Ja",en:"Yes"},
       form_no:{nb:"Nei",en:"No"},
@@ -847,7 +850,7 @@
             <h1 style={{fontFamily:t.titleFont,fontSize:32,fontWeight:700,color:t.text,margin:"14px 0 4px"}}>{L("app_name")}</h1>
             <p style={{fontSize:16,color:t.text,margin:"6px 0 2px",fontWeight:500,fontStyle:"italic",maxWidth:300}}>{slogan}</p>
             <p style={{fontSize:13,color:t.textMuted,margin:0}}>{L("app_tagline")}</p>
-            <p style={{fontSize:11,color:t.textMuted,margin:"6px 0 0",opacity:.6}}>v65</p>
+            <p style={{fontSize:11,color:t.textMuted,margin:"6px 0 0",opacity:.6}}>v66</p>
           </div>
           <div style={{...S.sec,width:"100%",maxWidth:340}}>
             <p style={{fontSize:15,color:t.textSec,margin:"0 0 16px",textAlign:"center",lineHeight:1.5}}>{L("auth_intro")}</p>
@@ -877,6 +880,7 @@
       // catchGroupsMap: { catch_id: [group_id, ...] } — hvilke grupper hver fangst er delt med
       const[catchGroupsMap,setCatchGroupsMap]=useState({});
       const[customRivers,setCustomRivers]=useState(lsGet("fl_rivers")||[]);
+      const[customFlies,setCustomFlies]=useState(lsGet("fl_flies")||[]);
       const[prefs,setPrefs]=useState(lsGet("fl_prefs")||{lastRiver:"",lastEquipment:"Flue"});
       const[view,setView]=useState("list");
       const[tab,setTab]=useState("mine");
@@ -893,6 +897,7 @@
       const[delModal,setDelModal]=useState(null);
       const[lightbox,setLightbox]=useState(null);
       const allRivers=[...new Set([...DEFAULT_RIVERS,...customRivers])].sort((a,b)=>a.localeCompare(b,"nb"));
+      const allFlies=[...new Set([...DEFAULT_FLIES,...customFlies])].sort((a,b)=>a.localeCompare(b,"nb"));
 
       const loadCatches=async()=>{
         const {data:mine}=await sb.from("catches").select("*").eq("user_id",session.user.id).order("date",{ascending:false});
@@ -988,6 +993,7 @@
       const switchViewMode=(m)=>{setViewMode(m);lsSet("fl_viewMode",m);};
       const toggleHideOwnInFeed=()=>{const v=!hideOwnInFeed;setHideOwnInFeed(v);lsSet("fl_hideOwnInFeed",v);};
       const addCustomRiver=(name)=>{if(!customRivers.includes(name)){const next=[...customRivers,name];setCustomRivers(next);lsSet("fl_rivers",next);}};
+      const addCustomFly=(name)=>{if(!customFlies.includes(name)&&!DEFAULT_FLIES.includes(name)){const next=[...customFlies,name];setCustomFlies(next);lsSet("fl_flies",next);}};
 
       const uploadPhotos=async(photoFiles)=>{
         const urls=[];
@@ -1020,6 +1026,7 @@
           length:parseNum(form.length),
           weight:parseNum(form.weight),
           equipment:form.equipment,
+          fly_pattern:form.equipment==="Flue"?(form.fly_pattern||null):null,
           released:form.released,
           description:form.description||null,
           photos:photoUrls,
@@ -1038,6 +1045,7 @@
         setCatches(prev=>[data,...prev]);
         savePrefs({lastRiver:form.river,lastEquipment:form.equipment});
         if(!DEFAULT_RIVERS.includes(form.river))addCustomRiver(form.river);
+        if(form.equipment==="Flue"&&form.fly_pattern&&!DEFAULT_FLIES.includes(form.fly_pattern))addCustomFly(form.fly_pattern);
         setView("list");
       };
 
@@ -1058,6 +1066,7 @@
           length:parseNum(form.length),
           weight:parseNum(form.weight),
           equipment:form.equipment,
+          fly_pattern:form.equipment==="Flue"?(form.fly_pattern||null):null,
           released:form.released,
           description:form.description||null,
           photos:photoUrls,
@@ -1079,6 +1088,7 @@
         }
         setCatches(prev=>prev.map(x=>x.id===data.id?data:x));
         if(!DEFAULT_RIVERS.includes(form.river))addCustomRiver(form.river);
+        if(form.equipment==="Flue"&&form.fly_pattern&&!DEFAULT_FLIES.includes(form.fly_pattern))addCustomFly(form.fly_pattern);
         setSelected(data);setView("detail");
       };
 
@@ -1125,9 +1135,9 @@
           {view==="list"&&<ListView L={L} lang={lang} catches={filtered} total={catches.length} fp={fp} S={S} t={t} tab={tab} setTab={setTab} viewMode={viewMode} switchViewMode={switchViewMode} hideOwnInFeed={hideOwnInFeed} toggleHideOwnInFeed={toggleHideOwnInFeed} myGroups={myGroups} feedFilter={feedFilter} setFeedFilter={(v)=>{setFeedFilter(v);lsSet("fl_feedFilter",v);}} session={session} profile={profile} initialScrollY={listScrollY} onSelect={c=>{setListScrollY(window.scrollY);setSelected(c);setView("detail")}} onAdd={()=>setView("add")} onStats={()=>setView("stats")} onProfile={()=>setView("profile")} onRefresh={loadCatches} onExpandPhotos={(c,startIdx)=>setLightbox({photos:c.photos,index:startIdx||0})}/>}
           {view==="stats"&&<StatsView L={L} lang={lang} catches={catches} fp={fp} S={S} t={t} onBack={()=>setView("list")}/>}
           {view==="profile"&&<ProfileView L={L} lang={lang} switchLang={switchLang} session={session} profile={profile} catches={catches} myGroups={myGroups} onGroupsChange={loadMyGroups} S={S} t={t} themeKey={themeKey} switchTheme={switchTheme} onBack={()=>setView("list")} onUpdate={(p)=>setProfile(p)} onSignOut={signOut}/>}
-          {view==="add"&&<FormView L={L} lang={lang} allRivers={allRivers} prefs={prefs} profile={profile} myGroups={myGroups} S={S} t={t} onSave={addCatch} onCancel={()=>setView("list")}/>}
+          {view==="add"&&<FormView L={L} lang={lang} allRivers={allRivers} allFlies={allFlies} prefs={prefs} profile={profile} myGroups={myGroups} S={S} t={t} onSave={addCatch} onCancel={()=>setView("list")}/>}
           {view==="detail"&&selected&&<DetailView L={L} lang={lang} c={selected} session={session} profile={profile} myGroups={myGroups} catchGroupIds={catchGroupsMap[selected.id]||[]} S={S} t={t} onBack={()=>setView("list")} onEdit={()=>{setEditing({...selected});setView("edit")}} onDelete={()=>setDelModal(selected.id)}/>}
-          {view==="edit"&&editing&&<FormView L={L} lang={lang} allRivers={allRivers} initial={editing} initialGroupIds={catchGroupsMap[editing.id]||[]} profile={profile} myGroups={myGroups} S={S} t={t} onSave={updateCatch} onCancel={()=>setView("detail")} isEdit/>}
+          {view==="edit"&&editing&&<FormView L={L} lang={lang} allRivers={allRivers} allFlies={allFlies} initial={editing} initialGroupIds={catchGroupsMap[editing.id]||[]} profile={profile} myGroups={myGroups} S={S} t={t} onSave={updateCatch} onCancel={()=>setView("detail")} isEdit/>}
           {delModal&&<div style={S.overlay}><div style={S.modal}>
             <p style={{fontSize:17,fontWeight:600,margin:"0 0 6px",color:t.text}}>{L("delete_catch_title")}</p>
             <p style={{fontSize:14,color:t.textMuted,margin:"0 0 20px"}}>{L("delete_warn")}</p>
@@ -1349,7 +1359,7 @@
           </div>
         )}
         <div style={{marginTop:30,textAlign:"center"}}>
-          <p style={{fontSize:11,color:t.textMuted,opacity:.5,margin:0}}>v65</p>
+          <p style={{fontSize:11,color:t.textMuted,opacity:.5,margin:0}}>v66</p>
         </div>
         </div>
 
@@ -1437,7 +1447,7 @@
           <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
             {c.weight!=null&&<span style={S.chip}>{c.weight} kg</span>}
             {c.length!=null&&<span style={S.chip}>{c.length} cm</span>}
-            <span style={S.chip}>{trEquipment(c.equipment,lang)}</span>
+            <span style={S.chip}>{c.equipment==="Flue"&&c.fly_pattern?`${trEquipment(c.equipment,lang)} · ${c.fly_pattern}`:trEquipment(c.equipment,lang)}</span>
             <span style={{...S.chip,display:"inline-flex",alignItems:"center",gap:3,color:c.released?t.released:t.kept}}>{I.rel(c.released)}{c.released?"C&R":L("detail_kept")}</span>
             {photos.length>1&&<span style={S.chip}>{L("pictures_count",photos.length)}</span>}
           </div>
@@ -1458,7 +1468,7 @@
         <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
           {c.weight!=null&&<span style={{...S.chip,background:"rgba(255,255,255,.22)",color:"#fff",backdropFilter:"blur(8px)",fontWeight:600}}>{c.weight} kg</span>}
           {c.length!=null&&<span style={{...S.chip,background:"rgba(255,255,255,.22)",color:"#fff",backdropFilter:"blur(8px)",fontWeight:600}}>{c.length} cm</span>}
-          <span style={{...S.chip,background:"rgba(255,255,255,.22)",color:"#fff",backdropFilter:"blur(8px)",fontWeight:600}}>{trEquipment(c.equipment,lang)}</span>
+          <span style={{...S.chip,background:"rgba(255,255,255,.22)",color:"#fff",backdropFilter:"blur(8px)",fontWeight:600}}>{c.equipment==="Flue"&&c.fly_pattern?`${trEquipment(c.equipment,lang)} · ${c.fly_pattern}`:trEquipment(c.equipment,lang)}</span>
           <span style={{...S.chip,display:"inline-flex",alignItems:"center",gap:3,background:"rgba(255,255,255,.22)",color:c.released?"#a7f3d0":"#fecaca",backdropFilter:"blur(8px)",fontWeight:600}}>{I.rel(c.released)}{c.released?"C&R":L("detail_kept")}</span>
         </div>
       );
@@ -1863,6 +1873,7 @@
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:20}}>
           {c.weight!=null&&<SBox v={c.weight} l="kg" t={t}/>}{c.length!=null&&<SBox v={c.length} l="cm" t={t}/>}
           <SBox v={trEquipment(c.equipment,lang)} l={L("detail_equipment")} t={t}/><SBox v={c.released?L("form_yes"):L("form_no")} l={L("detail_release")} t={t} color={c.released?t.released:t.kept}/>
+          {c.fly_pattern&&<div style={{gridColumn:"1 / -1"}}><SBox v={c.fly_pattern} l={L("form_fly")} t={t}/></div>}
         </div>
         {c.description&&<div style={{background:t.cardBg,borderRadius:12,padding:14,border:`1px solid ${t.cardBorder}`}}><p style={{fontSize:14,fontWeight:600,color:t.text,margin:"0 0 6px"}}>{L("detail_note")}</p><p style={{fontSize:15,color:t.textSec,lineHeight:1.6,margin:0}}>{c.description}</p></div>}
         {lightbox!==null&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.94)",zIndex:200,display:"flex",alignItems:"center",justifyContent:"center"}} onClick={()=>setLightbox(null)}>
@@ -1906,7 +1917,7 @@
     function BDSec({title,d,n,t,S,mapKey}){const sorted=Object.entries(d).sort((a,b)=>b[1]-a[1]);return <div style={S.sec}><p style={S.secT}>{title}</p>{sorted.map(([k,v],i)=>{const pct=((v/n)*100).toFixed(0);const displayK=mapKey?mapKey(k):k;return(<div key={k} style={{marginBottom:8}}><div style={{display:"flex",justifyContent:"space-between",fontSize:14,marginBottom:3}}><span style={{color:t.text}}>{displayK}</span><span style={{color:t.textMuted}}>{v} ({pct}%)</span></div><div style={{height:7,background:t.chipBg,borderRadius:4,overflow:"hidden"}}><div style={{height:"100%",width:`${pct}%`,background:t.primary,borderRadius:4,transition:"width .4s"}}/></div></div>);})}</div>;}
 
     // ── FormView ──
-    function FormView({L,lang,onSave,onCancel,initial,initialGroupIds,isEdit,prefs,profile,myGroups,allRivers,S,t}){
+    function FormView({L,lang,onSave,onCancel,initial,initialGroupIds,isEdit,prefs,profile,myGroups,allRivers,allFlies,S,t}){
       const fileRef=useRef();
       useEffect(()=>{window.scrollTo(0,0);},[]);
       const[form,setForm]=useState(()=>{
@@ -1916,10 +1927,10 @@
           const vis=initial.visibility||(initial.is_public?"public":"private");
           // Hvis vi får inn initialGroupIds (ved redigering), bruk dem; ellers default til alle grupper
           const selected=initialGroupIds&&initialGroupIds.length>0?initialGroupIds:allGroupIds;
-          return{...initial,photos:initial.photos||[],visibility:vis,selectedGroupIds:selected};
+          return{...initial,photos:initial.photos||[],visibility:vis,selectedGroupIds:selected,fly_pattern:initial.fly_pattern||""};
         }
         const defaultVis=profile?.default_visibility||(profile?.default_public?"public":"private");
-        return{river:prefs?.lastRiver||"",beat:"",date:new Date().toISOString().split("T")[0],time:"",length:"",weight:"",equipment:prefs?.lastEquipment||"Flue",species:"Laks",released:true,photos:[],description:"",visibility:defaultVis,selectedGroupIds:allGroupIds};
+        return{river:prefs?.lastRiver||"",beat:"",date:new Date().toISOString().split("T")[0],time:"",length:"",weight:"",equipment:prefs?.lastEquipment||"Flue",fly_pattern:"",species:"Laks",released:true,photos:[],description:"",visibility:defaultVis,selectedGroupIds:allGroupIds};
       });
       const[newPhotoFiles,setNewPhotoFiles]=useState([]);
       const[newPhotoPreviews,setNewPhotoPreviews]=useState([]);
@@ -1977,6 +1988,10 @@
           <div><Lbl t={L("form_species")} th={t}/><select style={S.inp} value={form.species} onChange={e=>set("species",e.target.value)}>{SPECIES.map((s,i)=><option key={s} value={s}>{L("species_options")[i]||s}</option>)}</select></div>
           <div><Lbl t={L("form_equipment")} th={t}/><select style={S.inp} value={form.equipment} onChange={e=>set("equipment",e.target.value)}>{EQUIPMENT.map((eq,i)=><option key={eq} value={eq}>{L("equipment_options")[i]||eq}</option>)}</select></div>
         </div>
+        {form.equipment==="Flue"&&(<>
+          <Lbl t={L("form_fly")} th={t}/>
+          <RiverInput value={form.fly_pattern||""} onChange={v=>set("fly_pattern",v)} allRivers={allFlies||[]} placeholder={L("form_fly_placeholder")} addLabel={L("form_add_river")} S={S} t={t}/>
+        </>)}
         <Lbl t={L("form_released_q")} th={t}/><div style={{display:"flex",gap:8}}><button style={form.released?S.togOn:S.togOff} onClick={()=>set("released",true)}>{L("form_yes")}</button><button style={!form.released?S.togOn:S.togOff} onClick={()=>set("released",false)}>{L("form_no")}</button></div>
 
         <div style={{height:1,background:t.cardBorder,margin:"12px 0"}}/>
