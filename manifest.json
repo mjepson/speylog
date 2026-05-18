@@ -1,7 +1,7 @@
 {
-  "name": "Fangstlogg",
-  "short_name": "Fangstlogg",
-  "description": "Personlig fangstlogg for laksefiske",
+  "name": "Speylog",
+  "short_name": "Speylog",
+  "description": "Personal catch log for flyfishing",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#f6f9f4",

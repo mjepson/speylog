@@ -1,4 +1,4 @@
-const CACHE_NAME = 'fangstlogg-v70';
+const CACHE_NAME = 'fangstlogg-v72';
 const ASSETS = [
   '/',
   '/index.html',
@@ -26,6 +26,12 @@ self.addEventListener('activate', event => {
 
 self.addEventListener('fetch', event => {
   const url = new URL(event.request.url);
+
+  // NEVER touch non-http(s) requests (chrome-extension://, data:, blob:, etc.)
+  // Cache.put() throws on these schemes.
+  if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+    return;
+  }
 
   // NEVER cache Supabase API calls (data, auth, storage)
   if (url.hostname.includes('supabase.co') || url.hostname.includes('supabase.in')) {
