@@ -2073,5 +2073,87 @@
     ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App));
   </script>
   <script>if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('/sw.js').catch(e=>console.log('SW:',e));});}</script>
+
+<script>
+    // PWA iOS Banner Logic med språkstøtte 🌍
+    function sjekkIosPWA() {
+      const isIos = /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
+      const isStandalone = ('standalone' in window.navigator) && (window.navigator.standalone);
+
+      if (isIos && !isStandalone) {
+        const lastPrompt = localStorage.getItem('pwa_ios_prompt_timestamp');
+        const now = Date.now();
+        
+        if (!lastPrompt || (now - lastPrompt > 24 * 60 * 60 * 1000)) {
+          opprettInstallasjonsBanner();
+        }
+      }
+    }
+
+    function opprettInstallasjonsBanner() {
+      // Sjekk om språket er satt i appen din, eller bruk telefonens eget språk
+      const appLang = localStorage.getItem('lang') || navigator.language || 'no';
+      const isEnglish = appLang.toLowerCase().startsWith('en');
+
+      // Tekster på engelsk og norsk
+      const text = {
+        title: isEnglish ? "Install Fangstlogg 🎣" : "Installer Fangstlogg 🎣",
+        desc: isEnglish 
+          ? "To stay logged in, add the app to your home screen:" 
+          : "For å slippe å logge inn på nytt, lagre appen på hjemskjermen din:",
+        step1: isEnglish 
+          ? "Tap the Share button in Safari" 
+          : "Trykk på dele-knappen i Safari",
+        step2: isEnglish 
+          ? 'Scroll down and tap <strong style="color: #5ee6a0;">"Add to Home Screen"</strong> <span style="font-size: 16px;">+</span>.' 
+          : 'Scroll ned og velg <strong style="color: #5ee6a0;">"Legg til på hjemskjerm"</strong> <span style="font-size: 16px;">+</span>.'
+      };
+
+      const banner = document.createElement('div');
+      banner.id = 'pwa-ios-banner';
+      
+      banner.style.position = 'fixed';
+      banner.style.bottom = 'calc(24px + env(safe-area-inset-bottom, 0px))';
+      banner.style.left = '50%';
+      banner.style.transform = 'translateX(-50%)';
+      banner.style.width = 'calc(100% - 32px)';
+      banner.style.maxWidth = '400px';
+      banner.style.backgroundColor = '#162320'; 
+      banner.style.color = '#e8f0ec'; 
+      banner.style.border = '1px solid #2a4038'; 
+      banner.style.padding = '18px';
+      banner.style.borderRadius = '16px';
+      banner.style.boxShadow = '0px 8px 32px rgba(0,0,0,0.5)';
+      banner.style.zIndex = '99999';
+      banner.style.fontFamily = '"DM Sans", -apple-system, sans-serif';
+
+      banner.innerHTML = `
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-weight: 600; font-size: 16px; color: #5ee6a0;">${text.title}</span>
+            <button id="lukk-pwa-banner" style="background: none; border: none; color: #5f7d6e; font-size: 24px; cursor: pointer; padding: 0 4px; line-height: 1;">&times;</button>
+          </div>
+          <p style="margin: 0; font-size: 13px; color: #9bb5a8; line-height: 1.4;">
+            ${text.desc}
+          </p>
+          <div style="background: #0f1a17; padding: 12px; border-radius: 8px; font-size: 13px; line-height: 1.5; color: #e8f0ec;">
+            <ol style="margin: 0; padding-left: 18px;">
+              <li style="margin-bottom: 6px;">${text.step1} <span style="font-size: 15px; background: #1c2e28; padding: 2px 6px; border-radius: 4px;">⎋</span>.</li>
+              <li>${text.step2}</li>
+            </ol>
+          </div>
+        </div>
+      `;
+
+      document.body.appendChild(banner);
+
+      document.getElementById('lukk-pwa-banner').addEventListener('click', () => {
+        banner.remove();
+        localStorage.setItem('pwa_ios_prompt_timestamp', Date.now().toString());
+      });
+    }
+
+    window.addEventListener('load', sjekkIosPWA);
+  </script>
 </body>
 </html>
