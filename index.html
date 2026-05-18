@@ -63,6 +63,195 @@
     function parseNum(v){if(v===""||v===null||v===undefined)return null;const n=parseFloat(String(v).replace(",","."));return isNaN(n)?null:n;}
     function fmtDate(iso){const d=new Date(iso);const m=["jan","feb","mar","apr","mai","jun","jul","aug","sep","okt","nov","des"];return`${d.getDate()}. ${m[d.getMonth()]} ${d.getFullYear()}`;}
     function lsGet(k){try{const v=localStorage.getItem(k);return v?JSON.parse(v):null;}catch{return null;}}
+
+    // ── i18n ──
+    function detectLang(){
+      const stored=lsGet("fl_lang");
+      if(stored==="nb"||stored==="en")return stored;
+      const nav=(navigator.language||navigator.userLanguage||"en").toLowerCase();
+      if(nav.startsWith("nb")||nav.startsWith("nn")||nav.startsWith("no"))return "nb";
+      return "en";
+    }
+    const MONTHS_NB=["jan","feb","mar","apr","mai","jun","jul","aug","sep","okt","nov","des"];
+    const MONTHS_EN=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    function fmtDateLang(iso,lang){
+      const d=new Date(iso);
+      if(lang==="en")return `${MONTHS_EN[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
+      return `${d.getDate()}. ${MONTHS_NB[d.getMonth()]} ${d.getFullYear()}`;
+    }
+    const STRINGS={
+      // App generelt
+      app_name:{nb:"Fangstlogg",en:"Catchlog"},
+      app_tagline:{nb:"Personlig fangstlogg for laksefiske",en:"Your personal salmon-fishing log"},
+      // Auth
+      auth_intro:{nb:"Skriv inn e-posten din, så sender vi deg en innloggingskode.",en:"Enter your email and we'll send you a login code."},
+      auth_name_label:{nb:"Navn (kun ny bruker)",en:"Name (new users only)"},
+      auth_email_label:{nb:"E-post",en:"Email"},
+      auth_send_code:{nb:"Send kode",en:"Send code"},
+      auth_sending:{nb:"Sender...",en:"Sending..."},
+      auth_enter_code_title:{nb:"Skriv inn koden",en:"Enter the code"},
+      auth_we_sent:{nb:"Vi har sendt en kode til",en:"We sent a code to"},
+      auth_login:{nb:"Logg inn",en:"Log in"},
+      auth_checking:{nb:"Sjekker...",en:"Checking..."},
+      auth_use_other_email:{nb:"Bruk en annen e-post",en:"Use a different email"},
+      auth_wrong_code:{nb:"Feil kode. Prøv igjen.",en:"Wrong code. Try again."},
+      auth_something_wrong:{nb:"Noe gikk galt",en:"Something went wrong"},
+      // List view / tabs
+      tab_mine:{nb:"Mine fangster",en:"My catches"},
+      tab_feed:{nb:"Felles feed",en:"Community feed"},
+      filter_title:{nb:"Filter",en:"Filter"},
+      filter_river:{nb:"Elv",en:"River"},
+      filter_year:{nb:"År",en:"Year"},
+      filter_species:{nb:"Art",en:"Species"},
+      filter_all_rivers:{nb:"Alle elver",en:"All rivers"},
+      filter_all_years:{nb:"Alle år",en:"All years"},
+      filter_all_species:{nb:"Alle arter",en:"All species"},
+      filter_hide_own:{nb:"Skjul mine fangster",en:"Hide my catches"},
+      filter_reset:{nb:"Nullstill",en:"Reset"},
+      filter_done:{nb:"Ferdig",en:"Done"},
+      chip_all:{nb:"Alle",en:"All"},
+      chip_public:{nb:"Offentlig",en:"Public"},
+      // Catch counts
+      catch_count_one:{nb:"fangst",en:"catch"},
+      catch_count_many:{nb:"fangster",en:"catches"},
+      member_one:{nb:"medlem",en:"member"},
+      member_many:{nb:"medlemmer",en:"members"},
+      // Empty states
+      empty_no_catches_yet:{nb:"Ingen fangster ennå.",en:"No catches yet."},
+      empty_no_results:{nb:"Ingen treff.",en:"No matches."},
+      empty_no_feed:{nb:"Ingen fangster å vise her.",en:"No catches to show here."},
+      // Detail
+      detail_release:{nb:"Gjenutsatt",en:"Released"},
+      detail_kept:{nb:"Avlivet",en:"Kept"},
+      detail_equipment:{nb:"Redskap",en:"Tackle"},
+      detail_note:{nb:"Notat",en:"Note"},
+      detail_clock:{nb:"kl.",en:"at"},
+      visibility_private:{nb:"Privat",en:"Private"},
+      visibility_groups_short:{nb:"Grupper",en:"Groups"},
+      visibility_public_short:{nb:"Offentlig",en:"Public"},
+      visibility_shared_with:{nb:"Delt med",en:"Shared with"},
+      visibility_in_groups:{nb:"Delt i grupper",en:"Shared in groups"},
+      // Form
+      form_new:{nb:"Ny fangst",en:"New catch"},
+      form_edit:{nb:"Rediger fangst",en:"Edit catch"},
+      form_add_photos:{nb:"Legg til bilder",en:"Add photos"},
+      form_add_more_photos:{nb:"Legg til flere bilder",en:"Add more photos"},
+      form_river_label:{nb:"Elv *",en:"River *"},
+      form_river_placeholder:{nb:"Søk eller skriv elvenavn...",en:"Search or type river name..."},
+      form_beat_label:{nb:"Beat / Sone",en:"Beat / Zone"},
+      form_beat_placeholder:{nb:"f.eks. Orton Estate",en:"e.g. Orton Estate"},
+      form_date:{nb:"Dato *",en:"Date *"},
+      form_time:{nb:"Klokkeslett",en:"Time"},
+      form_length:{nb:"Lengde (cm)",en:"Length (cm)"},
+      form_weight:{nb:"Vekt (kg)",en:"Weight (kg)"},
+      form_estimated_weight:{nb:"Estimert vekt:",en:"Estimated weight:"},
+      form_species:{nb:"Art *",en:"Species *"},
+      form_equipment:{nb:"Redskap",en:"Tackle"},
+      form_released_q:{nb:"Gjenutsatt?",en:"Released?"},
+      form_yes:{nb:"Ja",en:"Yes"},
+      form_no:{nb:"Nei",en:"No"},
+      form_visibility:{nb:"Synlighet",en:"Visibility"},
+      form_note:{nb:"Notat",en:"Note"},
+      form_note_placeholder:{nb:"f.eks. Junction pool, tung strøm...",en:"e.g. Junction pool, heavy current..."},
+      form_save:{nb:"Registrer fangst",en:"Save catch"},
+      form_save_edit:{nb:"Lagre endringer",en:"Save changes"},
+      form_saving:{nb:"Lagrer...",en:"Saving..."},
+      form_add_river:{nb:"Legg til",en:"Add"},
+      vis_private_desc:{nb:"Bare du ser denne fangsten",en:"Only you can see this catch"},
+      vis_groups_desc_active:{nb:n=>`Synlig for medlemmer i dine ${n} gruppe${n!==1?"r":""}`,en:n=>`Visible to members of your ${n} group${n!==1?"s":""}`},
+      vis_groups_desc_empty:{nb:"Du er ikke med i noen grupper ennå",en:"You're not a member of any groups yet"},
+      vis_public_desc:{nb:"Synlig for alle brukere i felles feed",en:"Visible to all users in the community feed"},
+      vis_share_with:{nb:"Del med",en:"Share with"},
+      vis_pick_at_least_one:{nb:"Velg minst én gruppe",en:"Select at least one group"},
+      // Profile
+      profile_title:{nb:"Profil",en:"Profile"},
+      profile_stat_catches:{nb:"Fangster",en:"Catches"},
+      profile_stat_shared:{nb:"Delt",en:"Shared"},
+      profile_stat_biggest:{nb:"Største (kg)",en:"Biggest (kg)"},
+      profile_display_name:{nb:"Visningsnavn",en:"Display name"},
+      profile_save_name:{nb:"Lagre navn",en:"Save name"},
+      profile_saving:{nb:"Lagrer...",en:"Saving..."},
+      profile_username:{nb:"Brukernavn:",en:"Username:"},
+      profile_default_visibility:{nb:"Standard synlighet for nye fangster",en:"Default visibility for new catches"},
+      profile_default_visibility_desc:{nb:"Du kan alltid overstyre på hver enkelt fangst.",en:"You can always override on each individual catch."},
+      profile_theme:{nb:"Tema",en:"Theme"},
+      profile_language:{nb:"Språk",en:"Language"},
+      profile_logout:{nb:"Logg ut",en:"Log out"},
+      profile_name_saved:{nb:"Navn lagret",en:"Name saved"},
+      profile_photo_updated:{nb:"Bilde oppdatert",en:"Photo updated"},
+      // Groups
+      groups_title:{nb:"Mine grupper",en:"My groups"},
+      groups_new:{nb:"Ny gruppe",en:"New group"},
+      groups_empty:{nb:"Du er ikke medlem av noen grupper ennå. Opprett en og inviter fiskekameratene dine, eller klikk på en invitasjonslenke fra noen.",en:"You're not a member of any groups yet. Create one and invite your fishing buddies, or click an invite link from someone."},
+      groups_admin_tag:{nb:"Du er admin",en:"You're admin"},
+      groups_invite:{nb:"Inviter",en:"Invite"},
+      groups_invite_to:{nb:"Inviter til",en:"Invite to"},
+      groups_share_link_intro:{nb:"Del denne lenken med de du vil ha med i gruppen:",en:"Share this link with the people you want in the group:"},
+      groups_close:{nb:"Lukk",en:"Close"},
+      groups_share:{nb:"Del",en:"Share"},
+      groups_create_title:{nb:"Ny gruppe",en:"New group"},
+      groups_name_placeholder:{nb:"f.eks. Suldal-gjengen",en:"e.g. The Suldal crew"},
+      groups_create:{nb:"Opprett",en:"Create"},
+      groups_creating:{nb:"Lager...",en:"Creating..."},
+      groups_link_copied:{nb:"Lenke kopiert!",en:"Link copied!"},
+      groups_invitation:{nb:"Invitasjon",en:"Invitation"},
+      groups_decline:{nb:"Avvis",en:"Decline"},
+      groups_join:{nb:"Bli med",en:"Join"},
+      groups_leave_title:{nb:"Forlate",en:"Leave"},
+      groups_leave_warning:{nb:"Du mister tilgang til fangster delt med denne gruppen. Du kan bli med igjen via en ny invitasjonslenke.",en:"You'll lose access to catches shared with this group. You can rejoin via a new invite link."},
+      groups_leave:{nb:"Forlat",en:"Leave"},
+      groups_invite_share_text:{nb:n=>`Bli med i fiskegruppen «${n}» på Fangstlogg:`,en:n=>`Join the fishing group "${n}" on Catchlog:`},
+      // Stats
+      stats_title:{nb:"Statistikk",en:"Statistics"},
+      stats_catches:{nb:"Fangster",en:"Catches"},
+      stats_biggest:{nb:"Største (kg)",en:"Biggest (kg)"},
+      stats_avg:{nb:"Snitt (kg)",en:"Average (kg)"},
+      stats_released:{nb:"Gjenutsatt",en:"Released"},
+      stats_per_month:{nb:"Per måned",en:"Per month"},
+      stats_species:{nb:"Art",en:"Species"},
+      stats_equipment:{nb:"Redskap",en:"Tackle"},
+      stats_river:{nb:"Elv",en:"River"},
+      // Common
+      cancel:{nb:"Avbryt",en:"Cancel"},
+      delete:{nb:"Slett",en:"Delete"},
+      delete_catch_title:{nb:"Slette fangst?",en:"Delete catch?"},
+      delete_warn:{nb:"Kan ikke angres.",en:"Cannot be undone."},
+      you_suffix:{nb:"(deg)",en:"(you)"},
+      you:{nb:"Du",en:"You"},
+      shared_label:{nb:"Delt",en:"Shared"},
+      // Misc
+      pictures_count:{nb:n=>`${n} bilder`,en:n=>`${n} photos`},
+      species_options:{
+        nb:["Laks","Sjøørret","Brunørret","Regnbueørret","Annet"],
+        en:["Salmon","Sea trout","Brown trout","Rainbow trout","Other"],
+      },
+      equipment_options:{
+        nb:["Flue","Sluk","Spinner","Wobbler","Mark","Annet"],
+        en:["Fly","Spoon","Spinner","Plug","Worm","Other"],
+      },
+      // Errors
+      error_prefix:{nb:"Feil:",en:"Error:"},
+      error_unknown:{nb:"ukjent",en:"unknown"},
+      no_photo_for_share:{nb:"Fangsten må ha minst ett bilde for å kunne deles.",en:"The catch needs at least one photo to be shared."},
+      share_failed:{nb:"Kunne ikke dele:",en:"Could not share:"},
+      group_create_failed:{nb:"Kunne ikke opprette gruppe:",en:"Could not create group:"},
+      group_join_failed:{nb:"Kunne ikke bli med:",en:"Could not join:"},
+      copy_failed:{nb:"Kunne ikke kopiere. Lenke:",en:"Could not copy. Link:"},
+    };
+    function tr(key,lang){
+      const entry=STRINGS[key];
+      if(!entry)return key;
+      return entry[lang]||entry["nb"]||key;
+    }
+    // Pluralisering av "fangst/fangster"
+    function trCatches(n,lang){
+      const word=n===1?tr("catch_count_one",lang):tr("catch_count_many",lang);
+      return `${n} ${word}`;
+    }
+    function trMembers(n,lang){
+      const word=n===1?tr("member_one",lang):tr("member_many",lang);
+      return `${n} ${word}`;
+    }
     function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){console.error(e);}}
 
     function avatarColor(seed){
@@ -124,8 +313,6 @@
       expand:()=><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>,
       share:()=><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>,
       filter:()=><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>,
-      eye:()=><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>,
-      eyeOff:()=><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>,
     };
 
     // ── Generate share image (original photo ratio, scaled to ~1080px wide) ──
@@ -331,7 +518,8 @@
         }
       }catch(e){
         if(e.name!=="AbortError"){
-          alert("Kunne ikke dele: "+(e.message||"ukjent feil"));
+          const lang=detectLang();
+          alert(STRINGS.share_failed[lang]+" "+(e.message||STRINGS.error_unknown[lang]));
         }
       }
     }
@@ -466,8 +654,16 @@
       const[session,setSession]=useState(null);
       const[loading,setLoading]=useState(true);
       const[themeKey,setThemeKey]=useState(lsGet("fl_theme")||"dark");
+      const[lang,setLang]=useState(detectLang());
       const t=THEMES[themeKey];
       const S=makeStyles(t);
+      const L=(key,...args)=>{
+        const entry=STRINGS[key];
+        if(!entry)return key;
+        const val=entry[lang]||entry["nb"];
+        if(typeof val==="function")return val(...args);
+        return val;
+      };
 
       useEffect(()=>{
         const bgColor=themeKey==="dark"?"#0f1a17":themeKey==="coastal"?"#faf8f4":"#f6f9f4";
@@ -478,22 +674,27 @@
       },[themeKey]);
 
       useEffect(()=>{
+        document.documentElement.lang=lang==="en"?"en":"no";
+      },[lang]);
+
+      useEffect(()=>{
         sb.auth.getSession().then(({data})=>{setSession(data.session);setLoading(false);});
         const {data:listener}=sb.auth.onAuthStateChange((_e,session)=>{setSession(session);});
         return()=>listener.subscription.unsubscribe();
       },[]);
 
       const switchTheme=(k)=>{setThemeKey(k);lsSet("fl_theme",k);};
+      const switchLang=(l)=>{setLang(l);lsSet("fl_lang",l);};
 
       if(loading)return <div style={S.center}><div className="spinner"/></div>;
-      if(!session)return <AuthView S={S} t={t}/>;
-      return <MainApp session={session} S={S} t={t} themeKey={themeKey} switchTheme={switchTheme}/>;
+      if(!session)return <AuthView S={S} t={t} L={L} lang={lang}/>;
+      return <MainApp session={session} S={S} t={t} L={L} lang={lang} themeKey={themeKey} switchTheme={switchTheme} switchLang={switchLang}/>;
     }
 
     // ══════════════════════════════════════
     // Auth View — OTP Code (works in PWA)
     // ══════════════════════════════════════
-    function AuthView({S,t}){
+    function AuthView({S,t,L,lang}){
       const[email,setEmail]=useState("");
       const[displayName,setDisplayName]=useState("");
       const[code,setCode]=useState("");
@@ -513,7 +714,7 @@
           });
           if(error)throw error;
           setStep("code");
-        }catch(e){setErr(e.message||"Noe gikk galt");}
+        }catch(e){setErr(e.message||L("auth_something_wrong"));}
         setBusy(false);
       };
 
@@ -526,7 +727,7 @@
             type:"email",
           });
           if(error)throw error;
-        }catch(e){setErr(e.message||"Feil kode. Prøv igjen.");}
+        }catch(e){setErr(e.message||L("auth_wrong_code"));}
         setBusy(false);
       };
 
@@ -535,10 +736,10 @@
           <div className="safe-top safe-bottom" style={{...S.app,...S.center,minHeight:"100vh"}}>
             <div style={{textAlign:"center",marginBottom:30}}>
               <AppLogo size={80} t={t}/>
-              <h1 style={{fontFamily:t.titleFont,fontSize:28,fontWeight:700,color:t.text,margin:"14px 0 4px"}}>Skriv inn koden</h1>
+              <h1 style={{fontFamily:t.titleFont,fontSize:28,fontWeight:700,color:t.text,margin:"14px 0 4px"}}>{L("auth_enter_code_title")}</h1>
             </div>
             <div style={{...S.sec,width:"100%",maxWidth:340}}>
-              <p style={{fontSize:15,color:t.textSec,margin:"0 0 4px",textAlign:"center",lineHeight:1.5}}>Vi har sendt en kode til</p>
+              <p style={{fontSize:15,color:t.textSec,margin:"0 0 4px",textAlign:"center",lineHeight:1.5}}>{L("auth_we_sent")}</p>
               <p style={{fontSize:15,color:t.primary,fontWeight:600,margin:"0 0 16px",textAlign:"center"}}>{email}</p>
               <input
                 style={{...S.inp,fontSize:24,textAlign:"center",letterSpacing:6,fontWeight:600,marginBottom:14}}
@@ -553,9 +754,9 @@
               />
               {err&&<p style={{color:t.danger,fontSize:14,marginBottom:10}}>{err}</p>}
               <button style={{...S.btnPriFull,opacity:(busy||code.length<6)?.6:1,marginBottom:8}} disabled={busy||code.length<6} onClick={verifyCode}>
-                {busy?"Sjekker..." : "Logg inn"}
+                {busy?L("auth_checking"):L("auth_login")}
               </button>
-              <button style={{...S.btnSec,fontSize:14,width:"100%"}} onClick={()=>{setStep("email");setCode("");setErr("");}}>Bruk en annen e-post</button>
+              <button style={{...S.btnSec,fontSize:14,width:"100%"}} onClick={()=>{setStep("email");setCode("");setErr("");}}>{L("auth_use_other_email")}</button>
             </div>
           </div>
         );
@@ -565,19 +766,19 @@
         <div className="safe-top safe-bottom" style={{...S.app,...S.center,minHeight:"100vh"}}>
           <div style={{textAlign:"center",marginBottom:30}}>
             <AppLogo size={96} t={t}/>
-            <h1 style={{fontFamily:t.titleFont,fontSize:32,fontWeight:700,color:t.text,margin:"14px 0 4px"}}>Fangstlogg</h1>
-            <p style={{fontSize:15,color:t.textMuted,margin:0}}>Personlig fangstlogg for laksefiske</p>
-            <p style={{fontSize:11,color:t.textMuted,margin:"6px 0 0",opacity:.6}}>v60</p>
+            <h1 style={{fontFamily:t.titleFont,fontSize:32,fontWeight:700,color:t.text,margin:"14px 0 4px"}}>{L("app_name")}</h1>
+            <p style={{fontSize:15,color:t.textMuted,margin:0}}>{L("app_tagline")}</p>
+            <p style={{fontSize:11,color:t.textMuted,margin:"6px 0 0",opacity:.6}}>v62</p>
           </div>
           <div style={{...S.sec,width:"100%",maxWidth:340}}>
-            <p style={{fontSize:15,color:t.textSec,margin:"0 0 16px",textAlign:"center",lineHeight:1.5}}>Skriv inn e-posten din, så sender vi deg en innloggingskode.</p>
-            <label style={{fontSize:13,fontWeight:600,color:t.textSec}}>Navn (kun ny bruker)</label>
+            <p style={{fontSize:15,color:t.textSec,margin:"0 0 16px",textAlign:"center",lineHeight:1.5}}>{L("auth_intro")}</p>
+            <label style={{fontSize:13,fontWeight:600,color:t.textSec}}>{L("auth_name_label")}</label>
             <input style={{...S.inp,marginTop:4,marginBottom:10}} placeholder="Magnus" value={displayName} onChange={e=>setDisplayName(e.target.value)}/>
-            <label style={{fontSize:13,fontWeight:600,color:t.textSec}}>E-post</label>
+            <label style={{fontSize:13,fontWeight:600,color:t.textSec}}>{L("auth_email_label")}</label>
             <input style={{...S.inp,marginTop:4,marginBottom:14}} type="email" inputMode="email" autoComplete="email" placeholder="navn@example.com" value={email} onChange={e=>setEmail(e.target.value)}/>
             {err&&<p style={{color:t.danger,fontSize:14,marginBottom:10}}>{err}</p>}
             <button style={{...S.btnPriFull,opacity:busy?.6:1}} disabled={busy||!email} onClick={sendCode}>
-              {busy?"Sender..." : "Send kode"}
+              {busy?L("auth_sending"):L("auth_send_code")}
             </button>
           </div>
         </div>
@@ -587,7 +788,7 @@
     // ══════════════════════════════════════
     // Main App (authenticated)
     // ══════════════════════════════════════
-    function MainApp({session,S,t,themeKey,switchTheme}){
+    function MainApp({session,S,t,L,lang,themeKey,switchTheme,switchLang}){
       const[catches,setCatches]=useState([]);
       const[publicFeed,setPublicFeed]=useState([]);
       const[profile,setProfile]=useState(null);
@@ -693,7 +894,7 @@
         // Rydd URL
         window.history.replaceState({},document.title,window.location.pathname);
         if(error&&!error.message.includes("duplicate")){
-          alert("Kunne ikke bli med: "+error.message);
+          alert(L("group_join_failed")+" "+error.message);
         }
         setInviteModal(null);
         await loadMyGroups();
@@ -745,12 +946,12 @@
           photos:photoUrls,
         };
         const {data,error}=await sb.from("catches").insert(row).select().single();
-        if(error){alert("Feil: "+error.message);return;}
+        if(error){alert(L("error_prefix")+" "+error.message);return;}
         // Lagre gruppe-koblinger hvis visibility=groups
         if(form.visibility==="groups"&&form.selectedGroupIds&&form.selectedGroupIds.length>0){
           const cgRows=form.selectedGroupIds.map(gid=>({catch_id:data.id,group_id:gid}));
           const {error:cgErr}=await sb.from("catch_groups").insert(cgRows);
-          if(cgErr){console.error("catch_groups insert feilet",cgErr);alert("Fangst lagret, men gruppe-koblingene feilet: "+cgErr.message);}
+          if(cgErr){console.error("catch_groups insert feilet",cgErr);alert(L("error_prefix")+" "+cgErr.message);}
           else{
             setCatchGroupsMap(prev=>({...prev,[data.id]:form.selectedGroupIds}));
           }
@@ -783,14 +984,14 @@
           photos:photoUrls,
         };
         const {data,error}=await sb.from("catches").update(row).eq("id",form.id).select().single();
-        if(error){alert("Feil: "+error.message);return;}
+        if(error){alert(L("error_prefix")+" "+error.message);return;}
         // Synkroniser catch_groups: slett alle gamle, sett inn nye hvis groups-mode
         const {error:delErr}=await sb.from("catch_groups").delete().eq("catch_id",form.id);
         if(delErr)console.error("catch_groups delete feilet",delErr);
         if(form.visibility==="groups"&&form.selectedGroupIds&&form.selectedGroupIds.length>0){
           const cgRows=form.selectedGroupIds.map(gid=>({catch_id:form.id,group_id:gid}));
           const {error:cgErr}=await sb.from("catch_groups").insert(cgRows);
-          if(cgErr){console.error("catch_groups insert feilet",cgErr);alert("Fangst lagret, men gruppe-koblingene feilet: "+cgErr.message);}
+          if(cgErr){console.error("catch_groups insert feilet",cgErr);alert(L("error_prefix")+" "+cgErr.message);}
           else{
             setCatchGroupsMap(prev=>({...prev,[form.id]:form.selectedGroupIds}));
           }
@@ -804,7 +1005,7 @@
 
       const deleteCatch=async(id)=>{
         const {error}=await sb.from("catches").delete().eq("id",id);
-        if(error){alert("Feil: "+error.message);return;}
+        if(error){alert(L("error_prefix")+" "+error.message);return;}
         setCatches(prev=>prev.filter(x=>x.id!==id));
         setDelModal(null);setView("list");
       };
@@ -842,28 +1043,28 @@
 
       return (
         <div style={S.app}>
-          {view==="list"&&<ListView catches={filtered} total={catches.length} fp={fp} S={S} t={t} tab={tab} setTab={setTab} viewMode={viewMode} switchViewMode={switchViewMode} hideOwnInFeed={hideOwnInFeed} toggleHideOwnInFeed={toggleHideOwnInFeed} myGroups={myGroups} feedFilter={feedFilter} setFeedFilter={(v)=>{setFeedFilter(v);lsSet("fl_feedFilter",v);}} session={session} profile={profile} initialScrollY={listScrollY} onSelect={c=>{setListScrollY(window.scrollY);setSelected(c);setView("detail")}} onAdd={()=>setView("add")} onStats={()=>setView("stats")} onProfile={()=>setView("profile")} onRefresh={loadCatches} onExpandPhotos={(c,startIdx)=>setLightbox({photos:c.photos,index:startIdx||0})}/>}
-          {view==="stats"&&<StatsView catches={catches} fp={fp} S={S} t={t} onBack={()=>setView("list")}/>}
-          {view==="profile"&&<ProfileView session={session} profile={profile} catches={catches} myGroups={myGroups} onGroupsChange={loadMyGroups} S={S} t={t} themeKey={themeKey} switchTheme={switchTheme} onBack={()=>setView("list")} onUpdate={(p)=>setProfile(p)} onSignOut={signOut}/>}
-          {view==="add"&&<FormView allRivers={allRivers} prefs={prefs} profile={profile} myGroups={myGroups} S={S} t={t} onSave={addCatch} onCancel={()=>setView("list")}/>}
-          {view==="detail"&&selected&&<DetailView c={selected} session={session} profile={profile} myGroups={myGroups} catchGroupIds={catchGroupsMap[selected.id]||[]} S={S} t={t} onBack={()=>setView("list")} onEdit={()=>{setEditing({...selected});setView("edit")}} onDelete={()=>setDelModal(selected.id)}/>}
-          {view==="edit"&&editing&&<FormView allRivers={allRivers} initial={editing} initialGroupIds={catchGroupsMap[editing.id]||[]} profile={profile} myGroups={myGroups} S={S} t={t} onSave={updateCatch} onCancel={()=>setView("detail")} isEdit/>}
+          {view==="list"&&<ListView L={L} lang={lang} catches={filtered} total={catches.length} fp={fp} S={S} t={t} tab={tab} setTab={setTab} viewMode={viewMode} switchViewMode={switchViewMode} hideOwnInFeed={hideOwnInFeed} toggleHideOwnInFeed={toggleHideOwnInFeed} myGroups={myGroups} feedFilter={feedFilter} setFeedFilter={(v)=>{setFeedFilter(v);lsSet("fl_feedFilter",v);}} session={session} profile={profile} initialScrollY={listScrollY} onSelect={c=>{setListScrollY(window.scrollY);setSelected(c);setView("detail")}} onAdd={()=>setView("add")} onStats={()=>setView("stats")} onProfile={()=>setView("profile")} onRefresh={loadCatches} onExpandPhotos={(c,startIdx)=>setLightbox({photos:c.photos,index:startIdx||0})}/>}
+          {view==="stats"&&<StatsView L={L} lang={lang} catches={catches} fp={fp} S={S} t={t} onBack={()=>setView("list")}/>}
+          {view==="profile"&&<ProfileView L={L} lang={lang} switchLang={switchLang} session={session} profile={profile} catches={catches} myGroups={myGroups} onGroupsChange={loadMyGroups} S={S} t={t} themeKey={themeKey} switchTheme={switchTheme} onBack={()=>setView("list")} onUpdate={(p)=>setProfile(p)} onSignOut={signOut}/>}
+          {view==="add"&&<FormView L={L} lang={lang} allRivers={allRivers} prefs={prefs} profile={profile} myGroups={myGroups} S={S} t={t} onSave={addCatch} onCancel={()=>setView("list")}/>}
+          {view==="detail"&&selected&&<DetailView L={L} lang={lang} c={selected} session={session} profile={profile} myGroups={myGroups} catchGroupIds={catchGroupsMap[selected.id]||[]} S={S} t={t} onBack={()=>setView("list")} onEdit={()=>{setEditing({...selected});setView("edit")}} onDelete={()=>setDelModal(selected.id)}/>}
+          {view==="edit"&&editing&&<FormView L={L} lang={lang} allRivers={allRivers} initial={editing} initialGroupIds={catchGroupsMap[editing.id]||[]} profile={profile} myGroups={myGroups} S={S} t={t} onSave={updateCatch} onCancel={()=>setView("detail")} isEdit/>}
           {delModal&&<div style={S.overlay}><div style={S.modal}>
-            <p style={{fontSize:17,fontWeight:600,margin:"0 0 6px",color:t.text}}>Slette fangst?</p>
-            <p style={{fontSize:14,color:t.textMuted,margin:"0 0 20px"}}>Kan ikke angres.</p>
+            <p style={{fontSize:17,fontWeight:600,margin:"0 0 6px",color:t.text}}>{L("delete_catch_title")}</p>
+            <p style={{fontSize:14,color:t.textMuted,margin:"0 0 20px"}}>{L("delete_warn")}</p>
             <div style={{display:"flex",gap:10}}>
-              <button style={{...S.btnSec,flex:1}} onClick={()=>setDelModal(null)}>Avbryt</button>
-              <button style={{...S.btnDng,flex:1}} onClick={()=>deleteCatch(delModal)}>Slett</button>
+              <button style={{...S.btnSec,flex:1}} onClick={()=>setDelModal(null)}>{L("cancel")}</button>
+              <button style={{...S.btnDng,flex:1}} onClick={()=>deleteCatch(delModal)}>{L("delete")}</button>
             </div>
           </div></div>}
 
           {inviteModal&&<div style={S.overlay}><div style={S.modal}>
-            <p style={{fontSize:13,color:t.textMuted,margin:"0 0 4px",textTransform:"uppercase",letterSpacing:0.5,fontWeight:600}}>Invitasjon</p>
+            <p style={{fontSize:13,color:t.textMuted,margin:"0 0 4px",textTransform:"uppercase",letterSpacing:0.5,fontWeight:600}}>{L("groups_invitation")}</p>
             <p style={{fontSize:19,fontWeight:700,margin:"0 0 4px",color:t.text}}>{inviteModal.group.name}</p>
-            <p style={{fontSize:14,color:t.textMuted,margin:"0 0 18px"}}>{inviteModal.group.member_count} medlem{inviteModal.group.member_count!==1?"mer":""}</p>
+            <p style={{fontSize:14,color:t.textMuted,margin:"0 0 18px"}}>{trMembers(inviteModal.group.member_count,lang)}</p>
             <div style={{display:"flex",gap:10}}>
-              <button style={{...S.btnSec,flex:1}} onClick={declineInvite}>Avvis</button>
-              <button style={{...S.btnPri,flex:1}} onClick={acceptInvite}>Bli med</button>
+              <button style={{...S.btnSec,flex:1}} onClick={declineInvite}>{L("groups_decline")}</button>
+              <button style={{...S.btnPri,flex:1}} onClick={acceptInvite}>{L("groups_join")}</button>
             </div>
           </div></div>}
 
@@ -902,14 +1103,14 @@
       </div>);
     }
 
-    function RiverInput({value,onChange,allRivers,S,t}){
+    function RiverInput({value,onChange,allRivers,S,t,placeholder,addLabel}){
       const[query,setQuery]=useState(value||"");const[open,setOpen]=useState(false);const wrapRef=useRef();
       useEffect(()=>{setQuery(value||"");},[value]);
       useEffect(()=>{const h=e=>{if(wrapRef.current&&!wrapRef.current.contains(e.target))setOpen(false);};document.addEventListener("mousedown",h);document.addEventListener("touchstart",h);return()=>{document.removeEventListener("mousedown",h);document.removeEventListener("touchstart",h);};},[]);
       const q=query.toLowerCase().trim();const filtered=q?allRivers.filter(r=>r.toLowerCase().includes(q)):allRivers;const exactMatch=allRivers.some(r=>r.toLowerCase()===q);const showAdd=q&&!exactMatch&&q.length>=2;
       const select=r=>{setQuery(r);onChange(r);setOpen(false);};
-      return(<div ref={wrapRef} style={{position:"relative"}}><div style={{position:"relative"}}><div style={{position:"absolute",left:12,top:"50%",transform:"translateY(-50%)",color:t.textMuted,pointerEvents:"none"}}>{I.search()}</div><input style={{...S.inp,paddingLeft:34,paddingRight:query?34:12}} placeholder="Søk eller skriv elvenavn..." value={query} onChange={e=>{setQuery(e.target.value);onChange(e.target.value);setOpen(true);}} onFocus={()=>setOpen(true)}/>{query&&<button style={{position:"absolute",right:8,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",color:t.textMuted,padding:4}} onClick={()=>{setQuery("");onChange("");setOpen(false);}}>{I.x()}</button>}</div>
-        {open&&(filtered.length>0||showAdd)&&(<div style={S.dropdown}><div style={{maxHeight:200,overflowY:"auto",WebkitOverflowScrolling:"touch"}}>{filtered.map(r=><div key={r} style={S.dropItem} onMouseDown={()=>select(r)} onTouchEnd={e=>{e.preventDefault();select(r);}}>{r}</div>)}{showAdd&&<div style={{...S.dropItem,color:t.primary,fontWeight:600}} onMouseDown={()=>select(query.trim())} onTouchEnd={e=>{e.preventDefault();select(query.trim());}}>+ Legg til «{query.trim()}»</div>}</div></div>)}
+      return(<div ref={wrapRef} style={{position:"relative"}}><div style={{position:"relative"}}><div style={{position:"absolute",left:12,top:"50%",transform:"translateY(-50%)",color:t.textMuted,pointerEvents:"none"}}>{I.search()}</div><input style={{...S.inp,paddingLeft:34,paddingRight:query?34:12}} placeholder={placeholder||"Søk eller skriv elvenavn..."} value={query} onChange={e=>{setQuery(e.target.value);onChange(e.target.value);setOpen(true);}} onFocus={()=>setOpen(true)}/>{query&&<button style={{position:"absolute",right:8,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",color:t.textMuted,padding:4}} onClick={()=>{setQuery("");onChange("");setOpen(false);}}>{I.x()}</button>}</div>
+        {open&&(filtered.length>0||showAdd)&&(<div style={S.dropdown}><div style={{maxHeight:200,overflowY:"auto",WebkitOverflowScrolling:"touch"}}>{filtered.map(r=><div key={r} style={S.dropItem} onMouseDown={()=>select(r)} onTouchEnd={e=>{e.preventDefault();select(r);}}>{r}</div>)}{showAdd&&<div style={{...S.dropItem,color:t.primary,fontWeight:600}} onMouseDown={()=>select(query.trim())} onTouchEnd={e=>{e.preventDefault();select(query.trim());}}>+ {addLabel||"Legg til"} «{query.trim()}»</div>}</div></div>)}
       </div>);
     }
 
@@ -923,10 +1124,10 @@
     function Lbl({t:text,th}){return <label style={{display:"block",fontSize:13,fontWeight:600,color:th.textSec,marginBottom:2,marginTop:10}}>{text}</label>;}
 
     // ── ListView ──
-    function ListView({catches,total,fp,S,t,tab,setTab,viewMode,switchViewMode,hideOwnInFeed,toggleHideOwnInFeed,myGroups,feedFilter,setFeedFilter,session,profile,initialScrollY,onSelect,onAdd,onStats,onProfile,onRefresh,onExpandPhotos}){
+    function ListView({L,lang,catches,total,fp,S,t,tab,setTab,viewMode,switchViewMode,hideOwnInFeed,toggleHideOwnInFeed,myGroups,feedFilter,setFeedFilter,session,profile,initialScrollY,onSelect,onAdd,onStats,onProfile,onRefresh,onExpandPhotos}){
       const sorted=[...catches].sort((a,b)=>new Date(b.date)-new Date(a.date));
       const[filterModalOpen,setFilterModalOpen]=useState(false);
-      const hasActiveFilter=fp.fR!=="Alle"||fp.fS!=="Alle"||fp.fY!=="Alle";
+      const hasActiveFilter=fp.fR!=="Alle"||fp.fS!=="Alle"||fp.fY!=="Alle"||(tab==="feed"&&hideOwnInFeed);
       useEffect(()=>{
         if(initialScrollY>0){
           // Bruker rAF for å sikre at DOM er rendret før vi scroller
@@ -980,7 +1181,7 @@
         )}
         <div style={{transform:`translateY(${pullY}px)`,transition:isPulling.current?"none":"transform 0.2s"}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
-          <div><h1 style={{fontFamily:t.titleFont,fontSize:28,fontWeight:700,color:t.text,margin:0}}>Fangstlogg</h1><p style={{fontSize:14,color:t.textMuted,margin:"2px 0 0"}}>{tab==="mine"?`${total} fangst${total!==1?"er":""}`:"Felles feed"}</p></div>
+          <div><h1 style={{fontFamily:t.titleFont,fontSize:28,fontWeight:700,color:t.text,margin:0}}>{L("app_name")}</h1><p style={{fontSize:14,color:t.textMuted,margin:"2px 0 0"}}>{tab==="mine"?trCatches(total,lang):L("tab_feed")}</p></div>
           <div style={{display:"flex",gap:8,alignItems:"center"}}>
             <button style={S.circBtn} onClick={onStats}>{I.chart()}</button>
             <button style={S.circPri} onClick={onAdd}>{I.plus()}</button>
@@ -989,18 +1190,13 @@
         </div>
         <div style={{display:"flex",gap:8,marginBottom:14,alignItems:"center"}}>
           <div style={{...S.tabBar,marginBottom:0,flex:1}}>
-            <button style={tab==="mine"?S.tabActive:S.tab} onClick={()=>setTab("mine")}>Mine fangster</button>
-            <button style={tab==="feed"?S.tabActive:S.tab} onClick={()=>setTab("feed")}>Felles feed</button>
+            <button style={tab==="mine"?S.tabActive:S.tab} onClick={()=>setTab("mine")}>{L("tab_mine")}</button>
+            <button style={tab==="feed"?S.tabActive:S.tab} onClick={()=>setTab("feed")}>{L("tab_feed")}</button>
           </div>
           <button onClick={()=>setFilterModalOpen(true)} style={{position:"relative",width:42,height:42,borderRadius:11,background:hasActiveFilter?t.primaryLight:t.cardBg,color:hasActiveFilter?t.primary:t.primary,border:`1px solid ${hasActiveFilter?t.primary:t.cardBorder}`,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",flexShrink:0}}>
             {I.filter()}
             {hasActiveFilter&&<span style={{position:"absolute",top:6,right:6,width:7,height:7,borderRadius:4,background:t.primary,boxShadow:`0 0 0 2px ${t.cardBg}`}}/>}
           </button>
-          {tab==="feed"&&(
-            <button onClick={toggleHideOwnInFeed} title={hideOwnInFeed?"Vis mine i feeden":"Skjul mine i feeden"} style={{width:42,height:42,borderRadius:11,background:hideOwnInFeed?t.primaryLight:t.cardBg,color:hideOwnInFeed?t.primary:t.textSec,border:`1px solid ${hideOwnInFeed?t.primary:t.cardBorder}`,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",flexShrink:0}}>
-              {hideOwnInFeed?I.eyeOff():I.eye()}
-            </button>
-          )}
           <button onClick={()=>switchViewMode(viewMode==="compact"?"large":"compact")} style={{width:42,height:42,borderRadius:11,background:t.cardBg,color:t.primary,border:`1px solid ${t.cardBorder}`,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",flexShrink:0}}>
             {viewMode==="compact"?I.grid():I.list()}
           </button>
@@ -1008,9 +1204,9 @@
         {tab==="feed"&&(myGroups.length>0)&&(
           <div style={{display:"flex",gap:6,marginBottom:10,overflowX:"auto",WebkitOverflowScrolling:"touch",scrollbarWidth:"none",paddingBottom:2}}>
             {[
-              {key:"all",label:"Alle"},
+              {key:"all",label:L("chip_all")},
               ...myGroups.map(g=>({key:g.id,label:g.name})),
-              {key:"public",label:"Offentlig"},
+              {key:"public",label:L("chip_public")},
             ].map(chip=>{
               const sel=feedFilter===chip.key;
               return (
@@ -1026,57 +1222,78 @@
             })}
           </div>
         )}
-        {sorted.length===0?(<div style={{textAlign:"center",padding:"50px 20px"}}>{I.fish(44,t.textMuted)}<p style={{marginTop:10,color:t.textMuted,fontSize:15}}>{tab==="mine"?(total===0?"Ingen fangster ennå.":"Ingen treff."):"Ingen fangster å vise her."}</p></div>):(
+        {sorted.length===0?(<div style={{textAlign:"center",padding:"50px 20px"}}>{I.fish(44,t.textMuted)}<p style={{marginTop:10,color:t.textMuted,fontSize:15}}>{tab==="mine"?(total===0?L("empty_no_catches_yet"):L("empty_no_results")):L("empty_no_feed")}</p></div>):(
           <div style={{display:"flex",flexDirection:"column",gap:viewMode==="large"?14:8}}>
             {sorted.map(c=>viewMode==="large"
-              ? <CatchCardLarge key={c.id} c={c} S={S} t={t} showOwner={tab==="feed"} currentUserId={session.user.id} onClick={()=>onSelect(c)} onExpandPhotos={(idx)=>onExpandPhotos(c,idx)}/>
-              : <CatchCard key={c.id} c={c} S={S} t={t} showOwner={tab==="feed"} currentUserId={session.user.id} onClick={()=>onSelect(c)}/>
+              ? <CatchCardLarge key={c.id} L={L} lang={lang} c={c} S={S} t={t} showOwner={tab==="feed"} currentUserId={session.user.id} onClick={()=>onSelect(c)} onExpandPhotos={(idx)=>onExpandPhotos(c,idx)}/>
+              : <CatchCard key={c.id} L={L} lang={lang} c={c} S={S} t={t} showOwner={tab==="feed"} currentUserId={session.user.id} onClick={()=>onSelect(c)}/>
             )}
           </div>
         )}
         <div style={{marginTop:30,textAlign:"center"}}>
-          <p style={{fontSize:11,color:t.textMuted,opacity:.5,margin:0}}>v60</p>
+          <p style={{fontSize:11,color:t.textMuted,opacity:.5,margin:0}}>v62</p>
         </div>
         </div>
 
         {filterModalOpen&&<div style={S.overlay} onClick={()=>setFilterModalOpen(false)}>
           <div style={{...S.modal,maxWidth:340,padding:"20px 18px"}} onClick={e=>e.stopPropagation()}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
-              <p style={{fontSize:17,fontWeight:600,margin:0,color:t.text}}>Filter</p>
+              <p style={{fontSize:17,fontWeight:600,margin:0,color:t.text}}>{L("filter_title")}</p>
               <button onClick={()=>setFilterModalOpen(false)} style={{background:"none",border:"none",color:t.textMuted,cursor:"pointer",display:"flex",padding:4}}>{I.x()}</button>
             </div>
-            <Lbl t="Elv" th={t}/>
+            <Lbl t={L("filter_river")} th={t}/>
             <select style={S.inp} value={fp.fR} onChange={e=>fp.setFR(e.target.value)}>
-              <option value="Alle">Alle elver</option>
+              <option value="Alle">{L("filter_all_rivers")}</option>
               {fp.rivers.map(r=><option key={r}>{r}</option>)}
             </select>
-            <Lbl t="År" th={t}/>
+            <Lbl t={L("filter_year")} th={t}/>
             <select style={S.inp} value={fp.fY} onChange={e=>fp.setFY(e.target.value)}>
-              <option value="Alle">Alle år</option>
+              <option value="Alle">{L("filter_all_years")}</option>
               {fp.years.map(y=><option key={y}>{y}</option>)}
             </select>
-            <Lbl t="Art" th={t}/>
+            <Lbl t={L("filter_species")} th={t}/>
             <select style={S.inp} value={fp.fS} onChange={e=>fp.setFS(e.target.value)}>
-              <option value="Alle">Alle arter</option>
-              {SPECIES.map(s=><option key={s}>{s}</option>)}
+              <option value="Alle">{L("filter_all_species")}</option>
+              {L("species_options").map((s,i)=><option key={i} value={SPECIES[i]}>{s}</option>)}
             </select>
+            {tab==="feed"&&(
+              <button onClick={toggleHideOwnInFeed} style={{
+                display:"flex",alignItems:"center",justifyContent:"space-between",gap:8,
+                width:"100%",padding:"12px 14px",marginTop:16,borderRadius:10,
+                border:`1px solid ${hideOwnInFeed?t.primary:t.inputBorder}`,
+                background:hideOwnInFeed?t.primaryLight:t.cardBg,
+                color:hideOwnInFeed?t.primary:t.textSec,
+                fontSize:14,fontFamily:t.font,fontWeight:500,cursor:"pointer"
+              }}>
+                <span>{L("filter_hide_own")}</span>
+                <span style={{
+                  width:36,height:20,borderRadius:10,background:hideOwnInFeed?t.primary:t.inputBorder,
+                  position:"relative",transition:"background .2s",flexShrink:0,display:"inline-block"
+                }}>
+                  <span style={{
+                    position:"absolute",top:2,left:hideOwnInFeed?18:2,width:16,height:16,borderRadius:8,
+                    background:"#fff",transition:"left .2s",boxShadow:"0 1px 2px rgba(0,0,0,.2)"
+                  }}/>
+                </span>
+              </button>
+            )}
             <div style={{display:"flex",gap:10,marginTop:18}}>
-              <button style={{...S.btnSec,flex:1}} disabled={!hasActiveFilter} onClick={()=>{fp.setFR("Alle");fp.setFS("Alle");fp.setFY("Alle");}}>Nullstill</button>
-              <button style={{...S.btnPri,flex:1}} onClick={()=>setFilterModalOpen(false)}>Ferdig</button>
+              <button style={{...S.btnSec,flex:1}} disabled={!hasActiveFilter} onClick={()=>{fp.setFR("Alle");fp.setFS("Alle");fp.setFY("Alle");if(tab==="feed"&&hideOwnInFeed)toggleHideOwnInFeed();}}>{L("filter_reset")}</button>
+              <button style={{...S.btnPri,flex:1}} onClick={()=>setFilterModalOpen(false)}>{L("filter_done")}</button>
             </div>
           </div>
         </div>}
       </div>);
     }
 
-    function CatchCard({c,S,t,showOwner,currentUserId,onClick}){
+    function CatchCard({L,lang,c,S,t,showOwner,currentUserId,onClick}){
       const photos=c.photos||[];
       const thumb=photos.length>0?photos[0]:null;
       const isOwn=c.user_id===currentUserId;
       const ownerName=c.profiles?.display_name||c.profiles?.username||"";
       const avatarUrl=c.profiles?.avatar_url;
       const seed=c.profiles?.username||c.user_id;
-      const displayedName=isOwn?(ownerName?`${ownerName} (deg)`:"Du"):ownerName;
+      const displayedName=isOwn?(ownerName?`${ownerName} ${L("you_suffix")}`:L("you")):ownerName;
       return(<div style={S.card} onClick={onClick}>
         {thumb?<LazyImage src={thumb} style={S.thumb}/>:<div style={S.thumbNone}>{I.fish(24,t.textMuted)}</div>}
         <div style={{flex:1,minWidth:0}}>
@@ -1084,15 +1301,15 @@
             <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:3}}>
               <Avatar url={avatarUrl} name={ownerName} seed={seed} size={26} t={t}/>
               <span style={{fontSize:14,fontWeight:600,color:t.text,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",flex:1}}>{displayedName}</span>
-              <span style={{fontSize:12,color:t.textMuted,flexShrink:0}}>{fmtDate(c.date)}</span>
+              <span style={{fontSize:12,color:t.textMuted,flexShrink:0}}>{fmtDateLang(c.date,lang)}</span>
             </div>
           ):(
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:3}}>
-              <span style={{fontSize:12,color:t.textMuted}}>{fmtDate(c.date)}</span>
+              <span style={{fontSize:12,color:t.textMuted}}>{fmtDateLang(c.date,lang)}</span>
               {(()=>{
                 const vis=c.visibility||(c.is_public?"public":"private");
-                if(vis==="public")return <span style={{fontSize:11,color:t.primary,display:"inline-flex",alignItems:"center",gap:3}}>{I.world()} Offentlig</span>;
-                if(vis==="groups")return <span style={{fontSize:11,color:t.primary,display:"inline-flex",alignItems:"center",gap:3}}>● Grupper</span>;
+                if(vis==="public")return <span style={{fontSize:11,color:t.primary,display:"inline-flex",alignItems:"center",gap:3}}>{I.world()} {L("visibility_public_short")}</span>;
+                if(vis==="groups")return <span style={{fontSize:11,color:t.primary,display:"inline-flex",alignItems:"center",gap:3}}>● {L("visibility_groups_short")}</span>;
                 return null;
               })()}
             </div>
@@ -1102,20 +1319,20 @@
             {c.weight!=null&&<span style={S.chip}>{c.weight} kg</span>}
             {c.length!=null&&<span style={S.chip}>{c.length} cm</span>}
             <span style={S.chip}>{c.equipment}</span>
-            <span style={{...S.chip,display:"inline-flex",alignItems:"center",gap:3,color:c.released?t.released:t.kept}}>{I.rel(c.released)}{c.released?"C&R":"Avlivet"}</span>
-            {photos.length>1&&<span style={S.chip}>{photos.length} bilder</span>}
+            <span style={{...S.chip,display:"inline-flex",alignItems:"center",gap:3,color:c.released?t.released:t.kept}}>{I.rel(c.released)}{c.released?"C&R":L("detail_kept")}</span>
+            {photos.length>1&&<span style={S.chip}>{L("pictures_count",photos.length)}</span>}
           </div>
         </div>
       </div>);
     }
 
-    function CatchCardLarge({c,S,t,showOwner,currentUserId,onClick,onExpandPhotos}){
+    function CatchCardLarge({L,lang,c,S,t,showOwner,currentUserId,onClick,onExpandPhotos}){
       const photos=c.photos||[];
       const isOwn=c.user_id===currentUserId;
       const ownerName=c.profiles?.display_name||c.profiles?.username||"";
       const avatarUrl=c.profiles?.avatar_url;
       const seed=c.profiles?.username||c.user_id;
-      const displayedName=isOwn?(ownerName?`${ownerName} (deg)`:"Du"):ownerName;
+      const displayedName=isOwn?(ownerName?`${ownerName} ${L("you_suffix")}`:L("you")):ownerName;
       const hasPhotos=photos.length>0;
 
       const chips=(
@@ -1123,7 +1340,7 @@
           {c.weight!=null&&<span style={{...S.chip,background:"rgba(255,255,255,.22)",color:"#fff",backdropFilter:"blur(8px)",fontWeight:600}}>{c.weight} kg</span>}
           {c.length!=null&&<span style={{...S.chip,background:"rgba(255,255,255,.22)",color:"#fff",backdropFilter:"blur(8px)",fontWeight:600}}>{c.length} cm</span>}
           <span style={{...S.chip,background:"rgba(255,255,255,.22)",color:"#fff",backdropFilter:"blur(8px)",fontWeight:600}}>{c.equipment}</span>
-          <span style={{...S.chip,display:"inline-flex",alignItems:"center",gap:3,background:"rgba(255,255,255,.22)",color:c.released?"#a7f3d0":"#fecaca",backdropFilter:"blur(8px)",fontWeight:600}}>{I.rel(c.released)}{c.released?"C&R":"Avlivet"}</span>
+          <span style={{...S.chip,display:"inline-flex",alignItems:"center",gap:3,background:"rgba(255,255,255,.22)",color:c.released?"#a7f3d0":"#fecaca",backdropFilter:"blur(8px)",fontWeight:600}}>{I.rel(c.released)}{c.released?"C&R":L("detail_kept")}</span>
         </div>
       );
 
@@ -1146,12 +1363,12 @@
           ):(
             (()=>{
               const vis=c.visibility||(c.is_public?"public":"private");
-              if(vis==="public")return <span style={{fontSize:12,color:"#fff",display:"inline-flex",alignItems:"center",gap:4,background:"rgba(0,0,0,.45)",padding:"4px 10px",borderRadius:12,backdropFilter:"blur(8px)",fontWeight:500}}>{I.world()} Offentlig</span>;
-              if(vis==="groups")return <span style={{fontSize:12,color:"#fff",display:"inline-flex",alignItems:"center",gap:4,background:"rgba(0,0,0,.45)",padding:"4px 10px",borderRadius:12,backdropFilter:"blur(8px)",fontWeight:500}}>Grupper</span>;
+              if(vis==="public")return <span style={{fontSize:12,color:"#fff",display:"inline-flex",alignItems:"center",gap:4,background:"rgba(0,0,0,.45)",padding:"4px 10px",borderRadius:12,backdropFilter:"blur(8px)",fontWeight:500}}>{I.world()} {L("visibility_public_short")}</span>;
+              if(vis==="groups")return <span style={{fontSize:12,color:"#fff",display:"inline-flex",alignItems:"center",gap:4,background:"rgba(0,0,0,.45)",padding:"4px 10px",borderRadius:12,backdropFilter:"blur(8px)",fontWeight:500}}>{L("visibility_groups_short")}</span>;
               return <div/>;
             })()
           )}
-          <span style={{fontSize:13,color:hasPhotos?"#fff":t.textMuted,fontWeight:500,textShadow:hasPhotos?"0 1px 2px rgba(0,0,0,.5)":"none",flexShrink:0,marginLeft:"auto"}}>{fmtDate(c.date)}</span>
+          <span style={{fontSize:13,color:hasPhotos?"#fff":t.textMuted,fontWeight:500,textShadow:hasPhotos?"0 1px 2px rgba(0,0,0,.5)":"none",flexShrink:0,marginLeft:"auto"}}>{fmtDateLang(c.date,lang)}</span>
         </div>
         <div style={{position:"absolute",bottom:0,left:0,right:0,padding:"50px 14px 14px",background:hasPhotos?"linear-gradient(0deg,rgba(0,0,0,.78),rgba(0,0,0,.45) 60%,rgba(0,0,0,0))":"transparent",pointerEvents:"none",zIndex:2}}>
           <p style={{fontSize:17,fontWeight:700,color:hasPhotos?"#fff":t.text,margin:"0 0 8px",textShadow:hasPhotos?"0 1px 3px rgba(0,0,0,.6)":"none"}}>{c.species} · {c.river}{c.beat?` · ${c.beat}`:""}</p>
@@ -1161,7 +1378,7 @@
     }
 
     // ── ProfileView ──
-    function ProfileView({session,profile,catches,myGroups,onGroupsChange,S,t,themeKey,switchTheme,onBack,onUpdate,onSignOut}){
+    function ProfileView({L,lang,switchLang,session,profile,catches,myGroups,onGroupsChange,S,t,themeKey,switchTheme,onBack,onUpdate,onSignOut}){
       const fileRef=useRef();
       const[displayName,setDisplayName]=useState(profile?.display_name||"");
       const[defaultVisibility,setDefaultVisibility]=useState(profile?.default_visibility||(profile?.default_public?"public":"private"));
@@ -1193,9 +1410,9 @@
         setSaving(true);setMsg("");
         const {data,error}=await sb.from("profiles").update({display_name:name}).eq("id",session.user.id).select().single();
         setSaving(false);
-        if(error){showMsg("Feil: "+error.message,true);return;}
+        if(error){showMsg(L("error_prefix")+" "+error.message,true);return;}
         onUpdate(data);
-        showMsg("Navn lagret");
+        showMsg(L("profile_name_saved"));
       };
 
       const saveDefaultVisibility=async(val)=>{
@@ -1205,7 +1422,7 @@
           default_visibility:val,
           default_public:val==="public",
         }).eq("id",session.user.id).select().single();
-        if(error){showMsg("Feil: "+error.message,true);setDefaultVisibility(prev);return;}
+        if(error){showMsg(L("error_prefix")+" "+error.message,true);setDefaultVisibility(prev);return;}
         if(data)onUpdate(data);
       };
 
@@ -1228,9 +1445,9 @@
           if(error)throw error;
           setAvatarUrl(newUrl);
           onUpdate(data);
-          showMsg("Bilde oppdatert");
+          showMsg(L("profile_photo_updated"));
         }catch(err){
-          showMsg("Feil: "+(err.message||"ukjent"),true);
+          showMsg(L("error_prefix")+" "+(err.message||L("error_unknown")),true);
         }
         setUploading(false);
         e.target.value="";
@@ -1258,7 +1475,7 @@
           // Vis invitasjons-modal med en gang så brukeren kan dele
           setShareGroup({...group,member_count:1});
         }catch(e){
-          alert("Kunne ikke opprette gruppe: "+(e.message||"ukjent"));
+          alert(L("group_create_failed")+" "+(e.message||L("error_unknown")));
         }
         setCreatingGroup(false);
       };
@@ -1270,7 +1487,7 @@
 
       const shareInviteLink=async(group)=>{
         const url=buildInviteUrl(group.invite_code);
-        const text=`Bli med i fiskegruppen «${group.name}» på Fangstlogg:`;
+        const text=L("groups_invite_share_text",group.name);
         if(navigator.share){
           try{await navigator.share({title:group.name,text,url});}
           catch(e){if(e.name!=="AbortError")copyToClipboard(url);}
@@ -1282,10 +1499,10 @@
       const copyToClipboard=async(text)=>{
         try{
           await navigator.clipboard.writeText(text);
-          setMsg("Lenke kopiert!");
+          setMsg(L("groups_link_copied"));
           setTimeout(()=>setMsg(""),2000);
         }catch(e){
-          alert("Kunne ikke kopiere. Lenke: "+text);
+          alert(L("copy_failed")+" "+text);
         }
       };
 
@@ -1293,7 +1510,7 @@
         const {error}=await sb.from("group_members").delete()
           .eq("group_id",group.id)
           .eq("user_id",session.user.id);
-        if(error){alert("Feil: "+error.message);return;}
+        if(error){alert(L("error_prefix")+" "+error.message);return;}
         setLeaveGroup(null);
         await onGroupsChange();
       };
@@ -1304,7 +1521,7 @@
         <div style={S.topBar}>
           <button style={S.backBtn} onClick={onBack}>{I.back()}</button>
         </div>
-        <h2 style={{fontFamily:t.titleFont,fontSize:26,fontWeight:700,color:t.text,margin:"0 0 18px"}}>Profil</h2>
+        <h2 style={{fontFamily:t.titleFont,fontSize:26,fontWeight:700,color:t.text,margin:"0 0 18px"}}>{L("profile_title")}</h2>
 
         <div style={{display:"flex",flexDirection:"column",alignItems:"center",marginBottom:22}}>
           <div style={{position:"relative"}}>
@@ -1321,35 +1538,35 @@
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:18}}>
           <div style={{background:t.cardBg,borderRadius:14,padding:"14px 8px",textAlign:"center",border:`1px solid ${t.cardBorder}`}}>
             <p style={{fontSize:24,fontWeight:700,color:t.primary,margin:0,fontFamily:t.titleFont}}>{stats.total}</p>
-            <p style={{fontSize:12,color:t.textMuted,margin:"2px 0 0"}}>Fangster</p>
+            <p style={{fontSize:12,color:t.textMuted,margin:"2px 0 0"}}>{L("profile_stat_catches")}</p>
           </div>
           <div style={{background:t.cardBg,borderRadius:14,padding:"14px 8px",textAlign:"center",border:`1px solid ${t.cardBorder}`}}>
             <p style={{fontSize:24,fontWeight:700,color:t.primary,margin:0,fontFamily:t.titleFont}}>{stats.shared}</p>
-            <p style={{fontSize:12,color:t.textMuted,margin:"2px 0 0"}}>Delt</p>
+            <p style={{fontSize:12,color:t.textMuted,margin:"2px 0 0"}}>{L("profile_stat_shared")}</p>
           </div>
           <div style={{background:t.cardBg,borderRadius:14,padding:"14px 8px",textAlign:"center",border:`1px solid ${t.cardBorder}`}}>
             <p style={{fontSize:24,fontWeight:700,color:t.primary,margin:0,fontFamily:t.titleFont}}>{stats.biggest||"—"}</p>
-            <p style={{fontSize:12,color:t.textMuted,margin:"2px 0 0"}}>Største (kg)</p>
+            <p style={{fontSize:12,color:t.textMuted,margin:"2px 0 0"}}>{L("profile_stat_biggest")}</p>
           </div>
         </div>
 
         <div style={S.sec}>
-          <p style={S.secT}>Visningsnavn</p>
+          <p style={S.secT}>{L("profile_display_name")}</p>
           <input value={displayName} onChange={e=>setDisplayName(e.target.value)} style={S.inp}/>
           <button onClick={saveName} disabled={saving||!displayName.trim()||nameUnchanged} style={{...S.btnPriFull,marginTop:10,opacity:(saving||!displayName.trim()||nameUnchanged)?.45:1}}>
-            {saving?"Lagrer...":"Lagre navn"}
+            {saving?L("profile_saving"):L("profile_save_name")}
           </button>
-          {profile?.username&&<p style={{fontSize:13,color:t.textMuted,margin:"10px 0 0"}}>Brukernavn: {profile.username}</p>}
+          {profile?.username&&<p style={{fontSize:13,color:t.textMuted,margin:"10px 0 0"}}>{L("profile_username")} {profile.username}</p>}
         </div>
 
         <div style={S.sec}>
-          <p style={S.secT}>Standard synlighet for nye fangster</p>
-          <p style={{fontSize:12,color:t.textMuted,margin:"0 0 10px",lineHeight:1.4}}>Du kan alltid overstyre på hver enkelt fangst.</p>
+          <p style={S.secT}>{L("profile_default_visibility")}</p>
+          <p style={{fontSize:12,color:t.textMuted,margin:"0 0 10px",lineHeight:1.4}}>{L("profile_default_visibility_desc")}</p>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:6}}>
             {[
-              {key:"private",label:"Privat"},
-              {key:"groups",label:"Grupper",disabled:myGroups.length===0},
-              {key:"public",label:"Offentlig"},
+              {key:"private",label:L("visibility_private")},
+              {key:"groups",label:L("visibility_groups_short"),disabled:myGroups.length===0},
+              {key:"public",label:L("visibility_public_short")},
             ].map(opt=>{
               const sel=defaultVisibility===opt.key;
               return (
@@ -1370,22 +1587,22 @@
 
         <div style={S.sec}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
-            <p style={{...S.secT,marginBottom:0}}>Mine grupper</p>
+            <p style={{...S.secT,marginBottom:0}}>{L("groups_title")}</p>
             <button onClick={()=>setShowCreateGroup(true)} style={{padding:"6px 12px",borderRadius:8,background:t.primaryLight,color:t.primary,border:"none",fontSize:13,fontWeight:600,fontFamily:t.font,cursor:"pointer",display:"inline-flex",alignItems:"center",gap:4}}>
-              <span style={{fontSize:16,lineHeight:1}}>+</span> Ny gruppe
+              <span style={{fontSize:16,lineHeight:1}}>+</span> {L("groups_new")}
             </button>
           </div>
           {myGroups.length===0?(
-            <p style={{fontSize:13,color:t.textMuted,margin:0,lineHeight:1.5}}>Du er ikke medlem av noen grupper ennå. Opprett en og inviter fiskekameratene dine, eller klikk på en invitasjonslenke fra noen.</p>
+            <p style={{fontSize:13,color:t.textMuted,margin:0,lineHeight:1.5}}>{L("groups_empty")}</p>
           ):(
             <div style={{display:"flex",flexDirection:"column",gap:8}}>
               {myGroups.map(g=>(
                 <div key={g.id} style={{padding:"10px 12px",background:t.chipBg,borderRadius:10,display:"flex",alignItems:"center",gap:10}}>
                   <div style={{flex:1,minWidth:0}}>
                     <p style={{fontSize:15,fontWeight:600,color:t.text,margin:0,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{g.name}</p>
-                    <p style={{fontSize:12,color:t.textMuted,margin:"2px 0 0"}}>{g.member_count} medlem{g.member_count!==1?"mer":""}{g.created_by===session.user.id?" · Du er admin":""}</p>
+                    <p style={{fontSize:12,color:t.textMuted,margin:"2px 0 0"}}>{trMembers(g.member_count,lang)}{g.created_by===session.user.id?" · "+L("groups_admin_tag"):""}</p>
                   </div>
-                  <button onClick={()=>shareInviteLink(g)} style={{padding:"6px 10px",borderRadius:8,background:t.cardBg,color:t.primary,border:`1px solid ${t.cardBorder}`,fontSize:12,fontWeight:600,fontFamily:t.font,cursor:"pointer",flexShrink:0}}>Inviter</button>
+                  <button onClick={()=>shareInviteLink(g)} style={{padding:"6px 10px",borderRadius:8,background:t.cardBg,color:t.primary,border:`1px solid ${t.cardBorder}`,fontSize:12,fontWeight:600,fontFamily:t.font,cursor:"pointer",flexShrink:0}}>{L("groups_invite")}</button>
                   <button onClick={()=>setLeaveGroup(g)} style={{padding:6,borderRadius:8,background:"transparent",color:t.textMuted,border:"none",cursor:"pointer",flexShrink:0,display:"flex"}}>{I.trash()}</button>
                 </div>
               ))}
@@ -1394,7 +1611,7 @@
         </div>
 
         <div style={S.sec}>
-          <p style={S.secT}>Tema</p>
+          <p style={S.secT}>{L("profile_theme")}</p>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
             {Object.entries(THEMES).map(([k,th])=>(
               <button key={k} onClick={()=>switchTheme(k)} style={{padding:"10px 8px",borderRadius:10,border:k===themeKey?`2px solid ${t.primary}`:`1px solid ${t.inputBorder}`,background:k===themeKey?t.primaryLight:t.cardBg,fontSize:14,fontWeight:k===themeKey?600:500,color:k===themeKey?t.primary:t.textSec,fontFamily:t.font,cursor:"pointer"}}>{th.name}</button>
@@ -1402,44 +1619,56 @@
           </div>
         </div>
 
+        <div style={S.sec}>
+          <p style={S.secT}>{L("profile_language")}</p>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+            {[{k:"nb",label:"Norsk"},{k:"en",label:"English"}].map(opt=>{
+              const sel=lang===opt.k;
+              return (
+                <button key={opt.k} onClick={()=>switchLang(opt.k)} style={{padding:"10px 8px",borderRadius:10,border:sel?`2px solid ${t.primary}`:`1px solid ${t.inputBorder}`,background:sel?t.primaryLight:t.cardBg,fontSize:14,fontWeight:sel?600:500,color:sel?t.primary:t.textSec,fontFamily:t.font,cursor:"pointer"}}>{opt.label}</button>
+              );
+            })}
+          </div>
+        </div>
+
         {msg&&<p style={{fontSize:14,color:msg.startsWith("Feil")?t.danger:t.primary,textAlign:"center",margin:"0 0 14px",fontWeight:500}}>{msg}</p>}
 
-        <button onClick={onSignOut} style={{...S.btnSec,width:"100%",display:"flex",alignItems:"center",justifyContent:"center",gap:8,marginTop:6}}>{I.logout()} Logg ut</button>
+        <button onClick={onSignOut} style={{...S.btnSec,width:"100%",display:"flex",alignItems:"center",justifyContent:"center",gap:8,marginTop:6}}>{I.logout()} {L("profile_logout")}</button>
         <div style={{height:30}}/>
 
         {showCreateGroup&&<div style={S.overlay}><div style={S.modal}>
-          <p style={{fontSize:17,fontWeight:600,margin:"0 0 12px",color:t.text}}>Ny gruppe</p>
-          <input style={{...S.inp,marginBottom:14}} placeholder="f.eks. Suldal-gjengen" maxLength={60} value={newGroupName} onChange={e=>setNewGroupName(e.target.value)} autoFocus/>
+          <p style={{fontSize:17,fontWeight:600,margin:"0 0 12px",color:t.text}}>{L("groups_create_title")}</p>
+          <input style={{...S.inp,marginBottom:14}} placeholder={L("groups_name_placeholder")} maxLength={60} value={newGroupName} onChange={e=>setNewGroupName(e.target.value)} autoFocus/>
           <div style={{display:"flex",gap:10}}>
-            <button style={{...S.btnSec,flex:1}} disabled={creatingGroup} onClick={()=>{setShowCreateGroup(false);setNewGroupName("");}}>Avbryt</button>
-            <button style={{...S.btnPri,flex:1,opacity:(!newGroupName.trim()||creatingGroup)?.5:1}} disabled={!newGroupName.trim()||creatingGroup} onClick={createGroup}>{creatingGroup?"Lager...":"Opprett"}</button>
+            <button style={{...S.btnSec,flex:1}} disabled={creatingGroup} onClick={()=>{setShowCreateGroup(false);setNewGroupName("");}}>{L("cancel")}</button>
+            <button style={{...S.btnPri,flex:1,opacity:(!newGroupName.trim()||creatingGroup)?.5:1}} disabled={!newGroupName.trim()||creatingGroup} onClick={createGroup}>{creatingGroup?L("groups_creating"):L("groups_create")}</button>
           </div>
         </div></div>}
 
         {shareGroup&&<div style={S.overlay}><div style={S.modal}>
-          <p style={{fontSize:13,color:t.textMuted,margin:"0 0 4px",textTransform:"uppercase",letterSpacing:0.5,fontWeight:600}}>Inviter til</p>
+          <p style={{fontSize:13,color:t.textMuted,margin:"0 0 4px",textTransform:"uppercase",letterSpacing:0.5,fontWeight:600}}>{L("groups_invite_to")}</p>
           <p style={{fontSize:19,fontWeight:700,margin:"0 0 14px",color:t.text}}>{shareGroup.name}</p>
-          <p style={{fontSize:14,color:t.textSec,margin:"0 0 12px",lineHeight:1.5}}>Del denne lenken med de du vil ha med i gruppen:</p>
+          <p style={{fontSize:14,color:t.textSec,margin:"0 0 12px",lineHeight:1.5}}>{L("groups_share_link_intro")}</p>
           <div style={{padding:"10px 12px",background:t.chipBg,borderRadius:8,fontSize:12,color:t.textSec,wordBreak:"break-all",marginBottom:14,fontFamily:"monospace"}}>{buildInviteUrl(shareGroup.invite_code)}</div>
           <div style={{display:"flex",gap:10}}>
-            <button style={{...S.btnSec,flex:1}} onClick={()=>setShareGroup(null)}>Lukk</button>
-            <button style={{...S.btnPri,flex:1}} onClick={()=>shareInviteLink(shareGroup)}>Del</button>
+            <button style={{...S.btnSec,flex:1}} onClick={()=>setShareGroup(null)}>{L("groups_close")}</button>
+            <button style={{...S.btnPri,flex:1}} onClick={()=>shareInviteLink(shareGroup)}>{L("groups_share")}</button>
           </div>
         </div></div>}
 
         {leaveGroup&&<div style={S.overlay}><div style={S.modal}>
-          <p style={{fontSize:17,fontWeight:600,margin:"0 0 6px",color:t.text}}>Forlate «{leaveGroup.name}»?</p>
-          <p style={{fontSize:14,color:t.textMuted,margin:"0 0 20px",lineHeight:1.4}}>Du mister tilgang til fangster delt med denne gruppen. Du kan bli med igjen via en ny invitasjonslenke.</p>
+          <p style={{fontSize:17,fontWeight:600,margin:"0 0 6px",color:t.text}}>{L("groups_leave_title")} «{leaveGroup.name}»?</p>
+          <p style={{fontSize:14,color:t.textMuted,margin:"0 0 20px",lineHeight:1.4}}>{L("groups_leave_warning")}</p>
           <div style={{display:"flex",gap:10}}>
-            <button style={{...S.btnSec,flex:1}} onClick={()=>setLeaveGroup(null)}>Avbryt</button>
-            <button style={{...S.btnDng,flex:1}} onClick={()=>doLeaveGroup(leaveGroup)}>Forlat</button>
+            <button style={{...S.btnSec,flex:1}} onClick={()=>setLeaveGroup(null)}>{L("cancel")}</button>
+            <button style={{...S.btnDng,flex:1}} onClick={()=>doLeaveGroup(leaveGroup)}>{L("groups_leave")}</button>
           </div>
         </div></div>}
       </div>);
     }
 
     // ── DetailView ──
-    function DetailView({c,session,profile,myGroups,catchGroupIds,S,t,onBack,onEdit,onDelete}){
+    function DetailView({L,lang,c,session,profile,myGroups,catchGroupIds,S,t,onBack,onEdit,onDelete}){
       const[lightbox,setLightbox]=useState(null);
       const[sharing,setSharing]=useState(false);
       useEffect(()=>{window.scrollTo(0,0);},[]);
@@ -1451,7 +1680,7 @@
       const profileForShare=isOwn?profile:(c.profiles||null);
       const handleShare=async()=>{
         if(sharing)return;
-        if(!photos||photos.length===0){alert("Fangsten må ha minst ett bilde for å kunne deles.");return;}
+        if(!photos||photos.length===0){alert(L("no_photo_for_share"));return;}
         setSharing(true);
         try{await shareCatch(c,profileForShare);}finally{setSharing(false);}
       };
@@ -1471,24 +1700,24 @@
         </div>}
         <h2 style={{fontFamily:t.titleFont,fontSize:24,fontWeight:700,color:t.text,margin:"0 0 4px"}}>{c.species}</h2>
         <p style={{fontSize:16,color:t.textSec,margin:"0 0 2px",fontWeight:500}}>{c.river}{c.beat?` — ${c.beat}`:""}</p>
-        <p style={{fontSize:14,color:t.textMuted,margin:"0 0 16px"}}>{fmtDate(c.date)}{c.time?` kl. ${c.time.slice(0,5)}`:""}{isOwn&&" · "}{isOwn&&(()=>{
+        <p style={{fontSize:14,color:t.textMuted,margin:"0 0 16px"}}>{fmtDateLang(c.date,lang)}{c.time?` ${L("detail_clock")} ${c.time.slice(0,5)}`:""}{isOwn&&" · "}{isOwn&&(()=>{
           const vis=c.visibility||(c.is_public?"public":"private");
-          if(vis==="public")return <span style={{color:t.primary}}>● Offentlig</span>;
+          if(vis==="public")return <span style={{color:t.primary}}>● {L("visibility_public_short")}</span>;
           if(vis==="groups"){
             const names=(catchGroupIds||[]).map(gid=>{
               const g=(myGroups||[]).find(x=>x.id===gid);
               return g?g.name:null;
             }).filter(Boolean);
-            const label=names.length>0?`Delt med ${names.join(", ")}`:"Delt i grupper";
+            const label=names.length>0?`${L("visibility_shared_with")} ${names.join(", ")}`:L("visibility_in_groups");
             return <span style={{color:t.primary}}>● {label}</span>;
           }
-          return <span>● Privat</span>;
+          return <span>● {L("visibility_private")}</span>;
         })()}</p>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:20}}>
           {c.weight!=null&&<SBox v={c.weight} l="kg" t={t}/>}{c.length!=null&&<SBox v={c.length} l="cm" t={t}/>}
-          <SBox v={c.equipment} l="Redskap" t={t}/><SBox v={c.released?"Ja":"Nei"} l="Gjenutsatt" t={t} color={c.released?t.released:t.kept}/>
+          <SBox v={c.equipment} l={L("detail_equipment")} t={t}/><SBox v={c.released?L("form_yes"):L("form_no")} l={L("detail_release")} t={t} color={c.released?t.released:t.kept}/>
         </div>
-        {c.description&&<div style={{background:t.cardBg,borderRadius:12,padding:14,border:`1px solid ${t.cardBorder}`}}><p style={{fontSize:14,fontWeight:600,color:t.text,margin:"0 0 6px"}}>Notat</p><p style={{fontSize:15,color:t.textSec,lineHeight:1.6,margin:0}}>{c.description}</p></div>}
+        {c.description&&<div style={{background:t.cardBg,borderRadius:12,padding:14,border:`1px solid ${t.cardBorder}`}}><p style={{fontSize:14,fontWeight:600,color:t.text,margin:"0 0 6px"}}>{L("detail_note")}</p><p style={{fontSize:15,color:t.textSec,lineHeight:1.6,margin:0}}>{c.description}</p></div>}
         {lightbox!==null&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.94)",zIndex:200,display:"flex",alignItems:"center",justifyContent:"center"}} onClick={()=>setLightbox(null)}>
           <button onClick={()=>setLightbox(null)} style={{position:"absolute",top:"calc(12px + env(safe-area-inset-top))",right:16,background:"rgba(255,255,255,.15)",border:"none",borderRadius:20,width:40,height:40,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",color:"#fff",zIndex:201}}>{I.x()}</button>
           {photos.length>1&&<div style={{position:"absolute",bottom:"calc(20px + env(safe-area-inset-bottom))",color:"#fff",fontSize:14,opacity:.7}}>{lightbox+1} / {photos.length}</div>}
@@ -1502,7 +1731,7 @@
     function SBox({v,l,t,color}){return <div style={{background:t.cardBg,borderRadius:12,padding:"14px 10px",textAlign:"center",border:`1px solid ${t.cardBorder}`}}><span style={{display:"block",fontSize:20,fontWeight:700,color:color||t.primary}}>{v}</span><span style={{display:"block",fontSize:12,color:t.textMuted,marginTop:2}}>{l}</span></div>;}
 
     // ── StatsView ──
-    function StatsView({catches,fp,S,t,onBack}){
+    function StatsView({L,lang,catches,fp,S,t,onBack}){
       useEffect(()=>{window.scrollTo(0,0);},[]);
       const filtered=catches.filter(c=>{
         if(fp.fR!=="Alle"&&c.river!==fp.fR)return false;
@@ -1511,18 +1740,18 @@
         return true;
       });
       const n=filtered.length;const big=filtered.reduce((m,c)=>Math.max(m,c.weight||0),0);const avg=n>0?(filtered.reduce((s,c)=>s+(c.weight||0),0)/n).toFixed(1):0;const cr=n>0?((filtered.filter(c=>c.released).length/n)*100).toFixed(0):0;
-      const specC={},eqC={},rivC={},moC={};const moN=["Jan","Feb","Mar","Apr","Mai","Jun","Jul","Aug","Sep","Okt","Nov","Des"];
+      const specC={},eqC={},rivC={},moC={};const moN=lang==="en"?["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]:["Jan","Feb","Mar","Apr","Mai","Jun","Jul","Aug","Sep","Okt","Nov","Des"];
       filtered.forEach(c=>{specC[c.species]=(specC[c.species]||0)+1;eqC[c.equipment]=(eqC[c.equipment]||0)+1;rivC[c.river]=(rivC[c.river]||0)+1;moC[new Date(c.date).getMonth()]=(moC[new Date(c.date).getMonth()]||0)+1;});
       const maxMo=Math.max(...Object.values(moC),1);
       return(<div className="safe-top safe-bottom" style={S.page}>
         <div style={S.topBar}><button style={S.backBtn} onClick={onBack}>{I.back()}</button></div>
-        <h2 style={{fontFamily:t.titleFont,fontSize:26,fontWeight:700,color:t.text,margin:"0 0 4px"}}>Statistikk</h2>
+        <h2 style={{fontFamily:t.titleFont,fontSize:26,fontWeight:700,color:t.text,margin:"0 0 4px"}}>{L("stats_title")}</h2>
         <Filters fp={fp} S={S} t={t}/>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:16}}><BStat v={n} l="Fangster" t={t}/><BStat v={big||"—"} l="Største (kg)" t={t}/><BStat v={avg>0?avg:"—"} l="Snitt (kg)" t={t}/><BStat v={`${cr}%`} l="Gjenutsatt" t={t}/></div>
-        {n>0&&<div style={S.sec}><p style={S.secT}>Per måned</p><div style={{display:"flex",gap:3,alignItems:"flex-end",height:100}}>{moN.map((m,i)=>(<div key={i} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center"}}><div style={{width:"100%",minHeight:2,height:`${((moC[i]||0)/maxMo)*100}%`,background:`linear-gradient(${t.primary},${t.accent})`,borderRadius:"3px 3px 0 0",display:"flex",alignItems:"flex-start",justifyContent:"center"}}>{moC[i]>0&&<span style={{fontSize:9,color:t.name==="Mørk"?"#0f1a17":"#fff",fontWeight:700,marginTop:2}}>{moC[i]}</span>}</div><span style={{fontSize:10,color:t.textMuted,marginTop:3}}>{m}</span></div>))}</div></div>}
-        {Object.keys(specC).length>0&&<BDSec title="Art" d={specC} n={n} t={t} S={S}/>}
-        {Object.keys(eqC).length>0&&<BDSec title="Redskap" d={eqC} n={n} t={t} S={S}/>}
-        {Object.keys(rivC).length>0&&<BDSec title="Elv" d={rivC} n={n} t={t} S={S}/>}
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:16}}><BStat v={n} l={L("stats_catches")} t={t}/><BStat v={big||"—"} l={L("stats_biggest")} t={t}/><BStat v={avg>0?avg:"—"} l={L("stats_avg")} t={t}/><BStat v={`${cr}%`} l={L("stats_released")} t={t}/></div>
+        {n>0&&<div style={S.sec}><p style={S.secT}>{L("stats_per_month")}</p><div style={{display:"flex",gap:3,alignItems:"flex-end",height:100}}>{moN.map((m,i)=>(<div key={i} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center"}}><div style={{width:"100%",minHeight:2,height:`${((moC[i]||0)/maxMo)*100}%`,background:`linear-gradient(${t.primary},${t.accent})`,borderRadius:"3px 3px 0 0",display:"flex",alignItems:"flex-start",justifyContent:"center"}}>{moC[i]>0&&<span style={{fontSize:9,color:t.name==="Mørk"?"#0f1a17":"#fff",fontWeight:700,marginTop:2}}>{moC[i]}</span>}</div><span style={{fontSize:10,color:t.textMuted,marginTop:3}}>{m}</span></div>))}</div></div>}
+        {Object.keys(specC).length>0&&<BDSec title={L("stats_species")} d={specC} n={n} t={t} S={S}/>}
+        {Object.keys(eqC).length>0&&<BDSec title={L("stats_equipment")} d={eqC} n={n} t={t} S={S}/>}
+        {Object.keys(rivC).length>0&&<BDSec title={L("stats_river")} d={rivC} n={n} t={t} S={S}/>}
         <div style={{height:30}}/>
       </div>);
     }
@@ -1530,7 +1759,7 @@
     function BDSec({title,d,n,t,S}){const sorted=Object.entries(d).sort((a,b)=>b[1]-a[1]);return <div style={S.sec}><p style={S.secT}>{title}</p>{sorted.map(([k,v],i)=>{const pct=((v/n)*100).toFixed(0);return(<div key={k} style={{marginBottom:8}}><div style={{display:"flex",justifyContent:"space-between",fontSize:14,marginBottom:3}}><span style={{color:t.text}}>{k}</span><span style={{color:t.textMuted}}>{v} ({pct}%)</span></div><div style={{height:7,background:t.chipBg,borderRadius:4,overflow:"hidden"}}><div style={{height:"100%",width:`${pct}%`,background:t.primary,borderRadius:4,transition:"width .4s"}}/></div></div>);})}</div>;}
 
     // ── FormView ──
-    function FormView({onSave,onCancel,initial,initialGroupIds,isEdit,prefs,profile,myGroups,allRivers,S,t}){
+    function FormView({L,lang,onSave,onCancel,initial,initialGroupIds,isEdit,prefs,profile,myGroups,allRivers,S,t}){
       const fileRef=useRef();
       useEffect(()=>{window.scrollTo(0,0);},[]);
       const[form,setForm]=useState(()=>{
@@ -1576,7 +1805,7 @@
 
       return(<div className="safe-top safe-bottom" style={S.page}>
         <div style={S.topBar}><button style={S.backBtn} onClick={onCancel}>{I.xLarge()}</button></div>
-        <h2 style={{fontFamily:t.titleFont,fontSize:24,fontWeight:700,color:t.text,margin:"0 0 14px"}}>{isEdit?"Rediger fangst":"Ny fangst"}</h2>
+        <h2 style={{fontFamily:t.titleFont,fontSize:24,fontWeight:700,color:t.text,margin:"0 0 14px"}}>{isEdit?L("form_edit"):L("form_new")}</h2>
 
         <div style={{marginBottom:10}}>
           {(form.photos.length>0||newPhotoPreviews.length>0)&&(
@@ -1586,31 +1815,31 @@
             </div>
           )}
           <button onClick={()=>fileRef.current?.click()} style={{display:"flex",alignItems:"center",gap:8,padding:"12px 16px",borderRadius:12,border:`2px dashed ${t.inputBorder}`,background:t.primaryLight,cursor:"pointer",color:t.textSec,fontSize:15,fontFamily:t.font,width:"100%",justifyContent:"center"}}>
-            {I.imgPlus()} {(form.photos.length+newPhotoPreviews.length)===0?"Legg til bilder":"Legg til flere bilder"}
+            {I.imgPlus()} {(form.photos.length+newPhotoPreviews.length)===0?L("form_add_photos"):L("form_add_more_photos")}
           </button>
           <input ref={fileRef} type="file" accept="image/*" multiple style={{display:"none"}} onChange={handlePhotos}/>
         </div>
 
-        <Lbl t="Elv *" th={t}/><RiverInput value={form.river} onChange={v=>set("river",v)} allRivers={allRivers} S={S} t={t}/>
-        <Lbl t="Beat / Sone" th={t}/><input style={S.inp} placeholder="f.eks. Orton Estate" value={form.beat||""} onChange={e=>set("beat",e.target.value)}/>
-        <div style={{display:"grid",gridTemplateColumns:"3fr 2fr",gap:8}}><div><Lbl t="Dato *" th={t}/><input style={{...S.inp,fontSize:15}} type="date" value={form.date} onChange={e=>set("date",e.target.value)}/></div><div><Lbl t="Klokkeslett" th={t}/><input style={{...S.inp,fontSize:15}} type="time" value={form.time||""} onChange={e=>set("time",e.target.value)}/></div></div>
+        <Lbl t={L("form_river_label")} th={t}/><RiverInput value={form.river} onChange={v=>set("river",v)} allRivers={allRivers} placeholder={L("form_river_placeholder")} addLabel={L("form_add_river")} S={S} t={t}/>
+        <Lbl t={L("form_beat_label")} th={t}/><input style={S.inp} placeholder={L("form_beat_placeholder")} value={form.beat||""} onChange={e=>set("beat",e.target.value)}/>
+        <div style={{display:"grid",gridTemplateColumns:"3fr 2fr",gap:8}}><div><Lbl t={L("form_date")} th={t}/><input style={{...S.inp,fontSize:15}} type="date" value={form.date} onChange={e=>set("date",e.target.value)}/></div><div><Lbl t={L("form_time")} th={t}/><input style={{...S.inp,fontSize:15}} type="time" value={form.time||""} onChange={e=>set("time",e.target.value)}/></div></div>
         <div style={{height:1,background:t.cardBorder,margin:"12px 0"}}/>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}><div><Lbl t="Lengde (cm)" th={t}/><NumInput placeholder="70" value={form.length} onChange={handleLength} S={S}/></div><div><Lbl t="Vekt (kg)" th={t}/><NumInput placeholder="3,3" value={form.weight} onChange={handleWeight} S={S}/></div></div>
-        {estimatedWt&&!weightManual&&<p style={{fontSize:13,color:t.textSec,margin:"4px 0 0",fontStyle:"italic"}}>Estimert vekt: {estimatedWt} kg</p>}
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}><div><Lbl t={L("form_length")} th={t}/><NumInput placeholder="70" value={form.length} onChange={handleLength} S={S}/></div><div><Lbl t={L("form_weight")} th={t}/><NumInput placeholder="3,3" value={form.weight} onChange={handleWeight} S={S}/></div></div>
+        {estimatedWt&&!weightManual&&<p style={{fontSize:13,color:t.textSec,margin:"4px 0 0",fontStyle:"italic"}}>{L("form_estimated_weight")} {estimatedWt} kg</p>}
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-          <div><Lbl t="Art *" th={t}/><select style={S.inp} value={form.species} onChange={e=>set("species",e.target.value)}>{SPECIES.map(s=><option key={s}>{s}</option>)}</select></div>
-          <div><Lbl t="Redskap" th={t}/><select style={S.inp} value={form.equipment} onChange={e=>set("equipment",e.target.value)}>{EQUIPMENT.map(eq=><option key={eq}>{eq}</option>)}</select></div>
+          <div><Lbl t={L("form_species")} th={t}/><select style={S.inp} value={form.species} onChange={e=>set("species",e.target.value)}>{SPECIES.map((s,i)=><option key={s} value={s}>{L("species_options")[i]||s}</option>)}</select></div>
+          <div><Lbl t={L("form_equipment")} th={t}/><select style={S.inp} value={form.equipment} onChange={e=>set("equipment",e.target.value)}>{EQUIPMENT.map((eq,i)=><option key={eq} value={eq}>{L("equipment_options")[i]||eq}</option>)}</select></div>
         </div>
-        <Lbl t="Gjenutsatt?" th={t}/><div style={{display:"flex",gap:8}}><button style={form.released?S.togOn:S.togOff} onClick={()=>set("released",true)}>Ja</button><button style={!form.released?S.togOn:S.togOff} onClick={()=>set("released",false)}>Nei</button></div>
+        <Lbl t={L("form_released_q")} th={t}/><div style={{display:"flex",gap:8}}><button style={form.released?S.togOn:S.togOff} onClick={()=>set("released",true)}>{L("form_yes")}</button><button style={!form.released?S.togOn:S.togOff} onClick={()=>set("released",false)}>{L("form_no")}</button></div>
 
         <div style={{height:1,background:t.cardBorder,margin:"12px 0"}}/>
 
-        <Lbl t="Synlighet" th={t}/>
+        <Lbl t={L("form_visibility")} th={t}/>
         <div style={{display:"flex",flexDirection:"column",gap:6}}>
           {[
-            {key:"private",icon:I.lock(),title:"Privat",desc:"Bare du ser denne fangsten"},
-            {key:"groups",icon:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>,title:"Grupper",desc:myGroups&&myGroups.length>0?`Synlig for medlemmer i dine ${myGroups.length} gruppe${myGroups.length!==1?"r":""}`:"Du er ikke med i noen grupper ennå",disabled:!myGroups||myGroups.length===0},
-            {key:"public",icon:I.world(),title:"Offentlig",desc:"Synlig for alle brukere i felles feed"},
+            {key:"private",icon:I.lock(),title:L("visibility_private"),desc:L("vis_private_desc")},
+            {key:"groups",icon:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>,title:L("visibility_groups_short"),desc:myGroups&&myGroups.length>0?L("vis_groups_desc_active",myGroups.length):L("vis_groups_desc_empty"),disabled:!myGroups||myGroups.length===0},
+            {key:"public",icon:I.world(),title:L("visibility_public_short"),desc:L("vis_public_desc")},
           ].map(opt=>{
             const sel=form.visibility===opt.key;
             return (
@@ -1635,7 +1864,7 @@
 
         {form.visibility==="groups"&&myGroups&&myGroups.length>0&&(
           <div style={{marginTop:8,padding:"10px 12px",background:t.chipBg,borderRadius:10,border:`1px solid ${t.cardBorder}`}}>
-            <p style={{fontSize:12,fontWeight:600,color:t.textSec,margin:"0 0 8px",textTransform:"uppercase",letterSpacing:0.4}}>Del med</p>
+            <p style={{fontSize:12,fontWeight:600,color:t.textSec,margin:"0 0 8px",textTransform:"uppercase",letterSpacing:0.4}}>{L("vis_share_with")}</p>
             <div style={{display:"flex",flexDirection:"column",gap:4}}>
               {myGroups.map(g=>{
                 const checked=(form.selectedGroupIds||[]).includes(g.id);
@@ -1659,20 +1888,20 @@
                       {checked&&<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={t.name==="Mørk"?"#0f1a17":"#fff"} strokeWidth="3" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>}
                     </div>
                     <span style={{fontSize:14,color:t.text,flex:1}}>{g.name}</span>
-                    <span style={{fontSize:12,color:t.textMuted}}>{g.member_count} medlem{g.member_count!==1?"mer":""}</span>
+                    <span style={{fontSize:12,color:t.textMuted}}>{trMembers(g.member_count,lang)}</span>
                   </button>
                 );
               })}
             </div>
             {(form.selectedGroupIds||[]).length===0&&(
-              <p style={{fontSize:12,color:t.danger,margin:"8px 0 0"}}>Velg minst én gruppe</p>
+              <p style={{fontSize:12,color:t.danger,margin:"8px 0 0"}}>{L("vis_pick_at_least_one")}</p>
             )}
           </div>
         )}
 
-        <Lbl t="Notat" th={t}/><textarea style={{...S.inp,minHeight:70,resize:"vertical"}} placeholder="f.eks. Junction pool, tung strøm..." value={form.description||""} onChange={e=>set("description",e.target.value)}/>
+        <Lbl t={L("form_note")} th={t}/><textarea style={{...S.inp,minHeight:70,resize:"vertical"}} placeholder={L("form_note_placeholder")} value={form.description||""} onChange={e=>set("description",e.target.value)}/>
         <button style={{...S.btnPriFull,opacity:(valid&&!saving)?1:.45,marginTop:20}} disabled={!valid||saving} onClick={submit}>
-          {saving?"Lagrer...":(isEdit?"Lagre endringer":"Registrer fangst")}
+          {saving?L("form_saving"):(isEdit?L("form_save_edit"):L("form_save"))}
         </button>
         <div style={{height:30}}/>
       </div>);
