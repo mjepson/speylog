@@ -564,7 +564,7 @@
             <AppLogo size={96} t={t}/>
             <h1 style={{fontFamily:t.titleFont,fontSize:32,fontWeight:700,color:t.text,margin:"14px 0 4px"}}>Fangstlogg</h1>
             <p style={{fontSize:15,color:t.textMuted,margin:0}}>Personlig fangstlogg for laksefiske</p>
-            <p style={{fontSize:11,color:t.textMuted,margin:"6px 0 0",opacity:.6}}>v56</p>
+            <p style={{fontSize:11,color:t.textMuted,margin:"6px 0 0",opacity:.6}}>v57</p>
           </div>
           <div style={{...S.sec,width:"100%",maxWidth:340}}>
             <p style={{fontSize:15,color:t.textSec,margin:"0 0 16px",textAlign:"center",lineHeight:1.5}}>Skriv inn e-posten din, så sender vi deg en innloggingskode.</p>
@@ -588,6 +588,7 @@
       const[catches,setCatches]=useState([]);
       const[publicFeed,setPublicFeed]=useState([]);
       const[profile,setProfile]=useState(null);
+      const[myGroups,setMyGroups]=useState([]);
       const[customRivers,setCustomRivers]=useState(lsGet("fl_rivers")||[]);
       const[prefs,setPrefs]=useState(lsGet("fl_prefs")||{lastRiver:"",lastEquipment:"Flue"});
       const[view,setView]=useState("list");
@@ -612,10 +613,67 @@
         setPublicFeed(pub||[]);
         const {data:prof}=await sb.from("profiles").select("*").eq("id",session.user.id).single();
         setProfile(prof||null);
+        await loadMyGroups();
         setLoading(false);
       };
 
+      const loadMyGroups=async()=>{
+        // Hent grupper jeg er medlem av, med medlemstall
+        const {data:memberships}=await sb.from("group_members").select("group_id, groups(id, name, created_by, created_at, invite_code)").eq("user_id",session.user.id);
+        if(!memberships){setMyGroups([]);return;}
+        // Hent medlemstall for hver gruppe
+        const groupIds=memberships.map(m=>m.group_id);
+        let counts={};
+        if(groupIds.length>0){
+          const {data:allMembers}=await sb.from("group_members").select("group_id").in("group_id",groupIds);
+          (allMembers||[]).forEach(m=>{counts[m.group_id]=(counts[m.group_id]||0)+1;});
+        }
+        const groups=memberships
+          .filter(m=>m.groups)
+          .map(m=>({...m.groups,member_count:counts[m.group_id]||0}));
+        groups.sort((a,b)=>a.name.localeCompare(b.name,"nb"));
+        setMyGroups(groups);
+      };
+
+      const[inviteModal,setInviteModal]=useState(null); // {code, group} eller null
       useEffect(()=>{loadCatches();},[]);
+
+      // Sjekk for ?invite=<kode> i URL ved app-start
+      useEffect(()=>{
+        const params=new URLSearchParams(window.location.search);
+        const code=params.get("invite");
+        if(!code)return;
+        // Hent gruppe-info via RPC
+        sb.rpc("get_group_by_invite",{p_invite_code:code}).then(({data,error})=>{
+          if(error||!data||data.length===0){
+            console.warn("Ugyldig invitasjonskode",error);
+            // Rydd URL uansett
+            window.history.replaceState({},document.title,window.location.pathname);
+            return;
+          }
+          setInviteModal({code,group:data[0]});
+        });
+      },[]);
+
+      const acceptInvite=async()=>{
+        if(!inviteModal)return;
+        const {error}=await sb.from("group_members").insert({
+          group_id:inviteModal.group.id,
+          user_id:session.user.id,
+        });
+        // Rydd URL
+        window.history.replaceState({},document.title,window.location.pathname);
+        if(error&&!error.message.includes("duplicate")){
+          alert("Kunne ikke bli med: "+error.message);
+        }
+        setInviteModal(null);
+        await loadMyGroups();
+      };
+
+      const declineInvite=()=>{
+        window.history.replaceState({},document.title,window.location.pathname);
+        setInviteModal(null);
+      };
 
       const savePrefs=(p)=>{setPrefs(p);lsSet("fl_prefs",p);};
       const switchViewMode=(m)=>{setViewMode(m);lsSet("fl_viewMode",m);};
@@ -719,7 +777,7 @@
         <div style={S.app}>
           {view==="list"&&<ListView catches={filtered} total={catches.length} fp={fp} S={S} t={t} tab={tab} setTab={setTab} viewMode={viewMode} switchViewMode={switchViewMode} hideOwnInFeed={hideOwnInFeed} toggleHideOwnInFeed={toggleHideOwnInFeed} session={session} profile={profile} initialScrollY={listScrollY} onSelect={c=>{setListScrollY(window.scrollY);setSelected(c);setView("detail")}} onAdd={()=>setView("add")} onStats={()=>setView("stats")} onProfile={()=>setView("profile")} onRefresh={loadCatches} onExpandPhotos={(c,startIdx)=>setLightbox({photos:c.photos,index:startIdx||0})}/>}
           {view==="stats"&&<StatsView catches={catches} fp={fp} S={S} t={t} onBack={()=>setView("list")}/>}
-          {view==="profile"&&<ProfileView session={session} profile={profile} catches={catches} S={S} t={t} themeKey={themeKey} switchTheme={switchTheme} onBack={()=>setView("list")} onUpdate={(p)=>setProfile(p)} onSignOut={signOut}/>}
+          {view==="profile"&&<ProfileView session={session} profile={profile} catches={catches} myGroups={myGroups} onGroupsChange={loadMyGroups} S={S} t={t} themeKey={themeKey} switchTheme={switchTheme} onBack={()=>setView("list")} onUpdate={(p)=>setProfile(p)} onSignOut={signOut}/>}
           {view==="add"&&<FormView allRivers={allRivers} prefs={prefs} profile={profile} S={S} t={t} onSave={addCatch} onCancel={()=>setView("list")}/>}
           {view==="detail"&&selected&&<DetailView c={selected} session={session} profile={profile} S={S} t={t} onBack={()=>setView("list")} onEdit={()=>{setEditing({...selected});setView("edit")}} onDelete={()=>setDelModal(selected.id)}/>}
           {view==="edit"&&editing&&<FormView allRivers={allRivers} initial={editing} profile={profile} S={S} t={t} onSave={updateCatch} onCancel={()=>setView("detail")} isEdit/>}
@@ -729,6 +787,16 @@
             <div style={{display:"flex",gap:10}}>
               <button style={{...S.btnSec,flex:1}} onClick={()=>setDelModal(null)}>Avbryt</button>
               <button style={{...S.btnDng,flex:1}} onClick={()=>deleteCatch(delModal)}>Slett</button>
+            </div>
+          </div></div>}
+
+          {inviteModal&&<div style={S.overlay}><div style={S.modal}>
+            <p style={{fontSize:13,color:t.textMuted,margin:"0 0 4px",textTransform:"uppercase",letterSpacing:0.5,fontWeight:600}}>Invitasjon</p>
+            <p style={{fontSize:19,fontWeight:700,margin:"0 0 4px",color:t.text}}>{inviteModal.group.name}</p>
+            <p style={{fontSize:14,color:t.textMuted,margin:"0 0 18px"}}>{inviteModal.group.member_count} medlem{inviteModal.group.member_count!==1?"mer":""}</p>
+            <div style={{display:"flex",gap:10}}>
+              <button style={{...S.btnSec,flex:1}} onClick={declineInvite}>Avvis</button>
+              <button style={{...S.btnPri,flex:1}} onClick={acceptInvite}>Bli med</button>
             </div>
           </div></div>}
 
@@ -890,7 +958,7 @@
           </div>
         )}
         <div style={{marginTop:30,textAlign:"center"}}>
-          <p style={{fontSize:11,color:t.textMuted,opacity:.5,margin:0}}>v56</p>
+          <p style={{fontSize:11,color:t.textMuted,opacity:.5,margin:0}}>v57</p>
         </div>
         </div>
       </div>);
@@ -978,7 +1046,7 @@
     }
 
     // ── ProfileView ──
-    function ProfileView({session,profile,catches,S,t,themeKey,switchTheme,onBack,onUpdate,onSignOut}){
+    function ProfileView({session,profile,catches,myGroups,onGroupsChange,S,t,themeKey,switchTheme,onBack,onUpdate,onSignOut}){
       const fileRef=useRef();
       const[displayName,setDisplayName]=useState(profile?.display_name||"");
       const[defaultPublic,setDefaultPublic]=useState(profile?.default_public||false);
@@ -986,6 +1054,11 @@
       const[saving,setSaving]=useState(false);
       const[uploading,setUploading]=useState(false);
       const[msg,setMsg]=useState("");
+      const[showCreateGroup,setShowCreateGroup]=useState(false);
+      const[newGroupName,setNewGroupName]=useState("");
+      const[creatingGroup,setCreatingGroup]=useState(false);
+      const[shareGroup,setShareGroup]=useState(null); // gruppen som skal inviteres til
+      const[leaveGroup,setLeaveGroup]=useState(null);
       useEffect(()=>{window.scrollTo(0,0);},[]);
 
       const stats={
@@ -1039,6 +1112,68 @@
         }
         setUploading(false);
         e.target.value="";
+      };
+
+      const createGroup=async()=>{
+        const name=newGroupName.trim();
+        if(!name)return;
+        setCreatingGroup(true);
+        try{
+          const {data:group,error}=await sb.from("groups").insert({
+            name,
+            created_by:session.user.id,
+          }).select().single();
+          if(error)throw error;
+          // Legg meg selv til som medlem
+          const {error:memberErr}=await sb.from("group_members").insert({
+            group_id:group.id,
+            user_id:session.user.id,
+          });
+          if(memberErr)throw memberErr;
+          await onGroupsChange();
+          setNewGroupName("");
+          setShowCreateGroup(false);
+          // Vis invitasjons-modal med en gang så brukeren kan dele
+          setShareGroup({...group,member_count:1});
+        }catch(e){
+          alert("Kunne ikke opprette gruppe: "+(e.message||"ukjent"));
+        }
+        setCreatingGroup(false);
+      };
+
+      const buildInviteUrl=(code)=>{
+        const base=window.location.origin+window.location.pathname;
+        return `${base}?invite=${code}`;
+      };
+
+      const shareInviteLink=async(group)=>{
+        const url=buildInviteUrl(group.invite_code);
+        const text=`Bli med i fiskegruppen «${group.name}» på Fangstlogg:`;
+        if(navigator.share){
+          try{await navigator.share({title:group.name,text,url});}
+          catch(e){if(e.name!=="AbortError")copyToClipboard(url);}
+        }else{
+          copyToClipboard(url);
+        }
+      };
+
+      const copyToClipboard=async(text)=>{
+        try{
+          await navigator.clipboard.writeText(text);
+          setMsg("Lenke kopiert!");
+          setTimeout(()=>setMsg(""),2000);
+        }catch(e){
+          alert("Kunne ikke kopiere. Lenke: "+text);
+        }
+      };
+
+      const doLeaveGroup=async(group)=>{
+        const {error}=await sb.from("group_members").delete()
+          .eq("group_id",group.id)
+          .eq("user_id",session.user.id);
+        if(error){alert("Feil: "+error.message);return;}
+        setLeaveGroup(null);
+        await onGroupsChange();
       };
 
       const nameUnchanged=displayName.trim()===(profile?.display_name||"");
@@ -1096,6 +1231,31 @@
         </div>
 
         <div style={S.sec}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+            <p style={{...S.secT,marginBottom:0}}>Mine grupper</p>
+            <button onClick={()=>setShowCreateGroup(true)} style={{padding:"6px 12px",borderRadius:8,background:t.primaryLight,color:t.primary,border:"none",fontSize:13,fontWeight:600,fontFamily:t.font,cursor:"pointer",display:"inline-flex",alignItems:"center",gap:4}}>
+              <span style={{fontSize:16,lineHeight:1}}>+</span> Ny gruppe
+            </button>
+          </div>
+          {myGroups.length===0?(
+            <p style={{fontSize:13,color:t.textMuted,margin:0,lineHeight:1.5}}>Du er ikke medlem av noen grupper ennå. Opprett en og inviter fiskekameratene dine, eller klikk på en invitasjonslenke fra noen.</p>
+          ):(
+            <div style={{display:"flex",flexDirection:"column",gap:8}}>
+              {myGroups.map(g=>(
+                <div key={g.id} style={{padding:"10px 12px",background:t.chipBg,borderRadius:10,display:"flex",alignItems:"center",gap:10}}>
+                  <div style={{flex:1,minWidth:0}}>
+                    <p style={{fontSize:15,fontWeight:600,color:t.text,margin:0,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{g.name}</p>
+                    <p style={{fontSize:12,color:t.textMuted,margin:"2px 0 0"}}>{g.member_count} medlem{g.member_count!==1?"mer":""}{g.created_by===session.user.id?" · Du er admin":""}</p>
+                  </div>
+                  <button onClick={()=>shareInviteLink(g)} style={{padding:"6px 10px",borderRadius:8,background:t.cardBg,color:t.primary,border:`1px solid ${t.cardBorder}`,fontSize:12,fontWeight:600,fontFamily:t.font,cursor:"pointer",flexShrink:0}}>Inviter</button>
+                  <button onClick={()=>setLeaveGroup(g)} style={{padding:6,borderRadius:8,background:"transparent",color:t.textMuted,border:"none",cursor:"pointer",flexShrink:0,display:"flex"}}>{I.trash()}</button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div style={S.sec}>
           <p style={S.secT}>Tema</p>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
             {Object.entries(THEMES).map(([k,th])=>(
@@ -1108,6 +1268,35 @@
 
         <button onClick={onSignOut} style={{...S.btnSec,width:"100%",display:"flex",alignItems:"center",justifyContent:"center",gap:8,marginTop:6}}>{I.logout()} Logg ut</button>
         <div style={{height:30}}/>
+
+        {showCreateGroup&&<div style={S.overlay}><div style={S.modal}>
+          <p style={{fontSize:17,fontWeight:600,margin:"0 0 12px",color:t.text}}>Ny gruppe</p>
+          <input style={{...S.inp,marginBottom:14}} placeholder="f.eks. Suldal-gjengen" maxLength={60} value={newGroupName} onChange={e=>setNewGroupName(e.target.value)} autoFocus/>
+          <div style={{display:"flex",gap:10}}>
+            <button style={{...S.btnSec,flex:1}} disabled={creatingGroup} onClick={()=>{setShowCreateGroup(false);setNewGroupName("");}}>Avbryt</button>
+            <button style={{...S.btnPri,flex:1,opacity:(!newGroupName.trim()||creatingGroup)?.5:1}} disabled={!newGroupName.trim()||creatingGroup} onClick={createGroup}>{creatingGroup?"Lager...":"Opprett"}</button>
+          </div>
+        </div></div>}
+
+        {shareGroup&&<div style={S.overlay}><div style={S.modal}>
+          <p style={{fontSize:13,color:t.textMuted,margin:"0 0 4px",textTransform:"uppercase",letterSpacing:0.5,fontWeight:600}}>Inviter til</p>
+          <p style={{fontSize:19,fontWeight:700,margin:"0 0 14px",color:t.text}}>{shareGroup.name}</p>
+          <p style={{fontSize:14,color:t.textSec,margin:"0 0 12px",lineHeight:1.5}}>Del denne lenken med de du vil ha med i gruppen:</p>
+          <div style={{padding:"10px 12px",background:t.chipBg,borderRadius:8,fontSize:12,color:t.textSec,wordBreak:"break-all",marginBottom:14,fontFamily:"monospace"}}>{buildInviteUrl(shareGroup.invite_code)}</div>
+          <div style={{display:"flex",gap:10}}>
+            <button style={{...S.btnSec,flex:1}} onClick={()=>setShareGroup(null)}>Lukk</button>
+            <button style={{...S.btnPri,flex:1}} onClick={()=>shareInviteLink(shareGroup)}>Del</button>
+          </div>
+        </div></div>}
+
+        {leaveGroup&&<div style={S.overlay}><div style={S.modal}>
+          <p style={{fontSize:17,fontWeight:600,margin:"0 0 6px",color:t.text}}>Forlate «{leaveGroup.name}»?</p>
+          <p style={{fontSize:14,color:t.textMuted,margin:"0 0 20px",lineHeight:1.4}}>Du mister tilgang til fangster delt med denne gruppen. Du kan bli med igjen via en ny invitasjonslenke.</p>
+          <div style={{display:"flex",gap:10}}>
+            <button style={{...S.btnSec,flex:1}} onClick={()=>setLeaveGroup(null)}>Avbryt</button>
+            <button style={{...S.btnDng,flex:1}} onClick={()=>doLeaveGroup(leaveGroup)}>Forlat</button>
+          </div>
+        </div></div>}
       </div>);
     }
 
