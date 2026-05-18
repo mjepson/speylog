@@ -5,10 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Fangstlogg">
+  <meta name="apple-mobile-web-app-title" content="Speylog">
   <meta name="theme-color" content="#0d3a6e">
   <meta name="description" content="Personlig fangstlogg for fluefiskere">
-  <title>Fangstlogg</title>
+  <title>Speylog</title>
   <link rel="manifest" href="/manifest.json">
   <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
   <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192x192.png">
@@ -82,7 +82,7 @@
     }
     const STRINGS={
       // App generelt
-      app_name:{nb:"Fangstlogg",en:"Catchlog"},
+      app_name:{nb:"Speylog",en:"Speylog"},
       app_tagline:{nb:"Personlig fangstlogg for fluefiskere",en:"A personal log for fly anglers"},
       // Roterende slogans for login (ett valgt tilfeldig per innlasting)
       slogans:{
@@ -106,10 +106,10 @@
         ],
       },
       // Om-modal
-      about_title:{nb:"Om Catchlog",en:"About Catchlog"},
+      about_title:{nb:"Om Speylog",en:"About Speylog"},
       about_body:{
-        nb:"Catchlog er en fangstlogg laget for fluefiskere som setter ut igjen. Registrer hver fangst med bilder, vekt, lengde, redskap og notater — og hold oversikten på tvers av sesonger, elver og turer.\n\nDu kan dele fangster privat med deg selv, med spesifikke grupper av fiskekamerater, eller åpent i fellesfeeden. Du bestemmer selv hvem som ser hva.",
-        en:"Catchlog is a fishing log built for fly anglers who release. Record each catch with photos, weight, length, tackle, and notes — and keep track across seasons, rivers, and trips.\n\nYou can share catches privately with yourself, with specific groups of fishing buddies, or openly in the community feed. You decide who sees what.",
+        nb:"Speylog er en fangstlogg laget for fluefiskere som setter ut igjen. Registrer hver fangst med bilder, vekt, lengde, redskap og notater — og hold oversikten på tvers av sesonger, elver og turer.\n\nDu kan dele fangster privat med deg selv, med spesifikke grupper av fiskekamerater, eller åpent i fellesfeeden. Du bestemmer selv hvem som ser hva.",
+        en:"Speylog is a fishing log built for fly anglers who release. Record each catch with photos, weight, length, tackle, and notes — and keep track across seasons, rivers, and trips.\n\nYou can share catches privately with yourself, with specific groups of fishing buddies, or openly in the community feed. You decide who sees what.",
       },
       about_section_groups:{nb:"Grupper",en:"Groups"},
       about_section_groups_body:{
@@ -132,12 +132,12 @@
       welcome_learn_more:{nb:"Les mer",en:"Learn more"},
       // Feedback
       feedback:{nb:"Send tilbakemelding",en:"Send feedback"},
-      feedback_subject:{nb:"Tilbakemelding på Catchlog",en:"Catchlog feedback"},
+      feedback_subject:{nb:"Tilbakemelding på Speylog",en:"Speylog feedback"},
       // Share app
-      share_app:{nb:"Anbefal Catchlog",en:"Share Catchlog"},
+      share_app:{nb:"Anbefal Speylog",en:"Share Speylog"},
       share_app_text:{
-        nb:"Sjekk ut Catchlog — en fangstlogg for fluefiskere:",
-        en:"Check out Catchlog — a fishing log for fly anglers:",
+        nb:"Sjekk ut Speylog — en fangstlogg for fluefiskere:",
+        en:"Check out Speylog — a fishing log for fly anglers:",
       },
       share_app_copied:{nb:"Lenke kopiert!",en:"Link copied!"},
       // Auth
@@ -259,7 +259,7 @@
       groups_leave_title:{nb:"Forlate",en:"Leave"},
       groups_leave_warning:{nb:"Du mister tilgang til fangster delt med denne gruppen. Du kan bli med igjen via en ny invitasjonslenke.",en:"You'll lose access to catches shared with this group. You can rejoin via a new invite link."},
       groups_leave:{nb:"Forlat",en:"Leave"},
-      groups_invite_share_text:{nb:n=>`Bli med i fiskegruppen «${n}» på Fangstlogg:`,en:n=>`Join the fishing group "${n}" on Catchlog:`},
+      groups_invite_share_text:{nb:n=>`Bli med i fiskegruppen «${n}» på Speylog:`,en:n=>`Join the fishing group "${n}" on Speylog:`},
       // Stats
       stats_title:{nb:"Statistikk",en:"Statistics"},
       stats_catches:{nb:"Fangster",en:"Catches"},
@@ -850,7 +850,7 @@
             <h1 style={{fontFamily:t.titleFont,fontSize:32,fontWeight:700,color:t.text,margin:"14px 0 4px"}}>{L("app_name")}</h1>
             <p style={{fontSize:16,color:t.text,margin:"6px 0 2px",fontWeight:500,fontStyle:"italic",maxWidth:300}}>{slogan}</p>
             <p style={{fontSize:13,color:t.textMuted,margin:0}}>{L("app_tagline")}</p>
-            <p style={{fontSize:11,color:t.textMuted,margin:"6px 0 0",opacity:.6}}>v66</p>
+            <p style={{fontSize:11,color:t.textMuted,margin:"6px 0 0",opacity:.6}}>v70</p>
           </div>
           <div style={{...S.sec,width:"100%",maxWidth:340}}>
             <p style={{fontSize:15,color:t.textSec,margin:"0 0 16px",textAlign:"center",lineHeight:1.5}}>{L("auth_intro")}</p>
@@ -1359,7 +1359,7 @@
           </div>
         )}
         <div style={{marginTop:30,textAlign:"center"}}>
-          <p style={{fontSize:11,color:t.textMuted,opacity:.5,margin:0}}>v66</p>
+          <p style={{fontSize:11,color:t.textMuted,opacity:.5,margin:0}}>v70</p>
         </div>
         </div>
 
@@ -2097,7 +2097,7 @@
 
       // Tekster på engelsk og norsk
       const text = {
-        title: isEnglish ? "Install Fangstlogg 🎣" : "Installer Fangstlogg 🎣",
+        title: isEnglish ? "Install Speylog 🎣" : "Installer Speylog 🎣",
         desc: isEnglish 
           ? "To stay logged in, add the app to your home screen:" 
           : "For å slippe å logge inn på nytt, lagre appen på hjemskjermen din:",

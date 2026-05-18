@@ -1,6 +1,6 @@
-# Fangstlogg
+# Speylog
 
-A simple, fast Progressive Web App for logging your fishing catches. Track what you caught, where, and when — all from your phone or browser.
+A simple, fast Progressive Web App for logging your flyfishing catches. Track what you caught, where, and when — all from your phone or browser.
 
 🌐 **Live app:** [fangstlogg.jepson.no](https://jepson.fangstlogg.no)
 
