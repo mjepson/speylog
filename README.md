@@ -35,19 +35,7 @@ Just visit [fangstlogg.jepson.no](https://fangstlogg.jepson.no) in your browser.
 
 Built with plain HTML, CSS, and JavaScript — no build step, no dependencies. Service worker handles offline support and caching.
 
-## Project Structure
-fangstlogg/
-├── index.html       # Main app
-├── admin.html       # Admin interface
-├── sw.js            # Service worker
-├── manifest.json    # PWA manifest
-├── icons/           # App icons
-└── CNAME            # Custom domain config
-
 ## License
 
 © mjepson. All rights reserved.
 
-![alt text](image.png)
-![alt text](image-1.png)
-![alt text](image-2.png)
