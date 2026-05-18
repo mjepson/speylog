@@ -1,4 +1,4 @@
-const CACHE_NAME = 'fangstlogg-v72';
+const CACHE_NAME = 'speylog-debug-v72';
 const ASSETS = [
   '/',
   '/index.html',

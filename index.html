@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
   <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Speylog">
   <meta name="theme-color" content="#0d3a6e">
@@ -754,8 +755,17 @@
       },[lang]);
 
       useEffect(()=>{
-        sb.auth.getSession().then(({data})=>{setSession(data.session);setLoading(false);});
-        const {data:listener}=sb.auth.onAuthStateChange((_e,session)=>{setSession(session);});
+        console.log("[DEBUG] App mounted, getting session...");
+        sb.auth.getSession().then(({data,error})=>{
+          if(error)console.error("[DEBUG] getSession error:",error);
+          console.log("[DEBUG] Initial session:",data.session?"YES (user="+data.session.user?.id+")":"NO");
+          setSession(data.session);
+          setLoading(false);
+        });
+        const {data:listener}=sb.auth.onAuthStateChange((event,session)=>{
+          console.log("[DEBUG] Auth state change:",event,session?"session=YES (user="+session.user?.id+")":"session=NO");
+          setSession(session);
+        });
         return()=>listener.subscription.unsubscribe();
       },[]);
 
@@ -777,6 +787,13 @@
       const[err,setErr]=useState("");
       const[busy,setBusy]=useState(false);
       const[step,setStep]=useState("email");
+      // VIKTIG: slogan-hooken må stå FØR enhver tidlig return for at hooks-rekkefølgen
+      // skal være stabil mellom renders. Tidligere lå den nederst i komponenten,
+      // noe som forårsaket React error #300 ved bytte til kode-skjermen.
+      const[slogan]=useState(()=>{
+        const list=STRINGS.slogans[lang]||STRINGS.slogans.nb;
+        return list[Math.floor(Math.random()*list.length)];
+      });
 
       const sendCode=async()=>{
         setErr("");setBusy(true);
@@ -797,13 +814,18 @@
       const verifyCode=async()=>{
         setErr("");setBusy(true);
         try{
-          const {error}=await sb.auth.verifyOtp({
+          console.log("[DEBUG] verifyOtp: sending...");
+          const {data,error}=await sb.auth.verifyOtp({
             email,
             token:code.trim(),
             type:"email",
           });
+          console.log("[DEBUG] verifyOtp response: data=",data,"error=",error);
           if(error)throw error;
-        }catch(e){setErr(e.message||L("auth_wrong_code"));}
+        }catch(e){
+          console.error("[DEBUG] verifyOtp threw:",e);
+          setErr(e.message||L("auth_wrong_code"));
+        }
         setBusy(false);
       };
 
@@ -838,11 +860,6 @@
         );
       }
 
-      const[slogan]=useState(()=>{
-        const list=STRINGS.slogans[lang]||STRINGS.slogans.nb;
-        return list[Math.floor(Math.random()*list.length)];
-      });
-
       return (
         <div className="safe-top safe-bottom" style={{...S.app,...S.center,minHeight:"100vh"}}>
           <div style={{textAlign:"center",marginBottom:30}}>
@@ -850,7 +867,7 @@
             <h1 style={{fontFamily:t.titleFont,fontSize:32,fontWeight:700,color:t.text,margin:"14px 0 4px"}}>{L("app_name")}</h1>
             <p style={{fontSize:16,color:t.text,margin:"6px 0 2px",fontWeight:500,fontStyle:"italic",maxWidth:300}}>{slogan}</p>
             <p style={{fontSize:13,color:t.textMuted,margin:0}}>{L("app_tagline")}</p>
-            <p style={{fontSize:11,color:t.textMuted,margin:"6px 0 0",opacity:.6}}>v72</p>
+            <p style={{fontSize:11,color:t.textMuted,margin:"6px 0 0",opacity:.6}}>v70</p>
           </div>
           <div style={{...S.sec,width:"100%",maxWidth:340}}>
             <p style={{fontSize:15,color:t.textSec,margin:"0 0 16px",textAlign:"center",lineHeight:1.5}}>{L("auth_intro")}</p>
@@ -900,29 +917,55 @@
       const allFlies=[...new Set([...DEFAULT_FLIES,...customFlies])].sort((a,b)=>a.localeCompare(b,"nb"));
 
       const loadCatches=async()=>{
-        const {data:mine}=await sb.from("catches").select("*").eq("user_id",session.user.id).order("date",{ascending:false});
-        setCatches(mine||[]);
-        // Hent alt feed-innhold jeg har tilgang til (egne ekskludert via filter senere).
-        // RLS sørger for at jeg kun ser: mine egne + visibility=public + visibility=groups med felles gruppe.
-        const {data:pub}=await sb.from("catches").select("*, profiles(display_name, username, avatar_url)").in("visibility",["public","groups"]).order("date",{ascending:false}).limit(200);
-        setPublicFeed(pub||[]);
-        // Hent catch_groups for både egne og feed-fangster, så vi vet hvilke grupper hver fangst er delt med
-        const allCatchIds=[...(mine||[]),...(pub||[])].map(c=>c.id);
-        if(allCatchIds.length>0){
-          const {data:cgRows}=await sb.from("catch_groups").select("catch_id, group_id").in("catch_id",allCatchIds);
-          const map={};
-          (cgRows||[]).forEach(r=>{
-            if(!map[r.catch_id])map[r.catch_id]=[];
-            map[r.catch_id].push(r.group_id);
-          });
-          setCatchGroupsMap(map);
-        }else{
-          setCatchGroupsMap({});
+        console.log("[DEBUG] loadCatches: start, user_id=",session.user.id);
+        try{
+          console.log("[DEBUG] Fetching own catches...");
+          const {data:mine,error:mineErr}=await sb.from("catches").select("*").eq("user_id",session.user.id).order("date",{ascending:false});
+          if(mineErr){console.error("[DEBUG] catches (mine) error:",mineErr);}
+          console.log("[DEBUG] Own catches:",mine?.length||0);
+          setCatches(mine||[]);
+
+          console.log("[DEBUG] Fetching public feed...");
+          const {data:pub,error:pubErr}=await sb.from("catches").select("*, profiles(display_name, username, avatar_url)").in("visibility",["public","groups"]).order("date",{ascending:false}).limit(200);
+          if(pubErr){console.error("[DEBUG] catches (feed) error:",pubErr);}
+          console.log("[DEBUG] Feed catches:",pub?.length||0);
+          setPublicFeed(pub||[]);
+
+          const allCatchIds=[...(mine||[]),...(pub||[])].map(c=>c.id);
+          if(allCatchIds.length>0){
+            console.log("[DEBUG] Fetching catch_groups...");
+            const {data:cgRows,error:cgErr}=await sb.from("catch_groups").select("catch_id, group_id").in("catch_id",allCatchIds);
+            if(cgErr){console.error("[DEBUG] catch_groups error:",cgErr);}
+            const map={};
+            (cgRows||[]).forEach(r=>{
+              if(!map[r.catch_id])map[r.catch_id]=[];
+              map[r.catch_id].push(r.group_id);
+            });
+            setCatchGroupsMap(map);
+          }else{
+            setCatchGroupsMap({});
+          }
+
+          console.log("[DEBUG] Fetching profile...");
+          // Bruk maybeSingle() i stedet for single() — single() kaster feil hvis raden ikke finnes,
+          // som er vanlig for helt nye brukere. maybeSingle() returnerer null i stedet.
+          const {data:prof,error:profErr}=await sb.from("profiles").select("*").eq("id",session.user.id).maybeSingle();
+          if(profErr){console.error("[DEBUG] profile error:",profErr);}
+          console.log("[DEBUG] Profile:",prof);
+          setProfile(prof||null);
+
+          console.log("[DEBUG] Loading groups...");
+          await loadMyGroups();
+          console.log("[DEBUG] loadCatches: complete");
+        }catch(err){
+          console.error("[DEBUG] loadCatches CRASHED:",err);
+          console.error("[DEBUG] Error name:",err?.name);
+          console.error("[DEBUG] Error message:",err?.message);
+          console.error("[DEBUG] Error stack:",err?.stack);
+        }finally{
+          // VIKTIG: setLoading(false) MÅ alltid kjøres, ellers står appen fast på spinner / tom skjerm.
+          setLoading(false);
         }
-        const {data:prof}=await sb.from("profiles").select("*").eq("id",session.user.id).single();
-        setProfile(prof||null);
-        await loadMyGroups();
-        setLoading(false);
       };
 
       const loadMyGroups=async()=>{
@@ -1359,7 +1402,7 @@
           </div>
         )}
         <div style={{marginTop:30,textAlign:"center"}}>
-          <p style={{fontSize:11,color:t.textMuted,opacity:.5,margin:0}}>v72</p>
+          <p style={{fontSize:11,color:t.textMuted,opacity:.5,margin:0}}>v70</p>
         </div>
         </div>
 
