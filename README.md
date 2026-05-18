@@ -2,7 +2,7 @@
 
 A simple, fast Progressive Web App for logging your fishing catches. Track what you caught, where, and when — all from your phone or browser.
 
-🌐 **Live app:** [fangstlogg.no](https://fangstlogg.no)
+🌐 **Live app:** [fangstlogg.jepson.no](https://jepson.fangstlogg.no)
 
 ## Features
 
@@ -15,7 +15,7 @@ A simple, fast Progressive Web App for logging your fishing catches. Track what 
 
 ## Getting Started
 
-Just visit [fangstlogg.no](https://fangstlogg.no) in your browser. No account or installation required.
+Just visit [fangstlogg.jepson.no](https://fangstlogg.jepson.no) in your browser. No account or installation required.
 
 ### Install as an app
 
@@ -36,3 +36,14 @@ Just visit [fangstlogg.no](https://fangstlogg.no) in your browser. No account or
 Built with plain HTML, CSS, and JavaScript — no build step, no dependencies. Service worker handles offline support and caching.
 
 ## Project Structure
+fangstlogg/
+├── index.html       # Main app
+├── admin.html       # Admin interface
+├── sw.js            # Service worker
+├── manifest.json    # PWA manifest
+├── icons/           # App icons
+└── CNAME            # Custom domain config
+
+## License
+
+© mjepson. All rights reserved.
