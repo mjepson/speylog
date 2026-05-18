@@ -252,6 +252,19 @@
       const word=n===1?tr("member_one",lang):tr("member_many",lang);
       return `${n} ${word}`;
     }
+    // Mapper databaseverdi (alltid norsk) → oversatt visningsverdi
+    function trSpecies(nbValue,lang){
+      if(!nbValue)return nbValue;
+      const idx=SPECIES.indexOf(nbValue);
+      if(idx<0)return nbValue;
+      return STRINGS.species_options[lang][idx]||nbValue;
+    }
+    function trEquipment(nbValue,lang){
+      if(!nbValue)return nbValue;
+      const idx=EQUIPMENT.indexOf(nbValue);
+      if(idx<0)return nbValue;
+      return STRINGS.equipment_options[lang][idx]||nbValue;
+    }
     function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){console.error(e);}}
 
     function avatarColor(seed){
@@ -316,7 +329,7 @@
     };
 
     // ── Generate share image (original photo ratio, scaled to ~1080px wide) ──
-    async function generateShareImage(c,profileData){
+    async function generateShareImage(c,profileData,lang){
       const loadImg=async(url)=>{
         const res=await fetch(url,{mode:"cors"});
         const blob=await res.blob();
@@ -455,7 +468,7 @@
       ctx.textAlign="left";
       ctx.shadowColor="rgba(0,0,0,.7)";
       ctx.shadowBlur=10;
-      const title=`${c.species} · ${c.river}${c.beat?" · "+c.beat:""}`;
+      const L=lang||"nb";const title=`${trSpecies(c.species,L)} · ${c.river}${c.beat?" · "+c.beat:""}`;
       let displayTitle=title;
       const maxTitleW=W-Math.round(100*sc);
       if(ctx.measureText(displayTitle).width>maxTitleW){
@@ -470,8 +483,8 @@
       const chips=[];
       if(c.weight!=null)chips.push({text:`${c.weight} kg`,color:"#fff"});
       if(c.length!=null)chips.push({text:`${c.length} cm`,color:"#fff"});
-      chips.push({text:c.equipment,color:"#fff"});
-      chips.push({text:c.released?"C&R":"Avlivet",color:c.released?"#a7f3d0":"#fecaca"});
+      chips.push({text:trEquipment(c.equipment,L),color:"#fff"});
+      chips.push({text:c.released?"C&R":STRINGS.detail_kept[L],color:c.released?"#a7f3d0":"#fecaca"});
 
       const chipY=H-Math.round(100*sc);
       const chipH=Math.round(54*sc);
@@ -494,14 +507,16 @@
       return new Promise(resolve=>canvas.toBlob(b=>resolve(b),"image/jpeg",0.92));
     }
 
-    async function shareCatch(c,profileData){
+    async function shareCatch(c,profileData,lang){
       try{
-        const blob=await generateShareImage(c,profileData);
+        const blob=await generateShareImage(c,profileData,lang);
         if(!blob)throw new Error("Kunne ikke generere bilde");
         const file=new File([blob],`fangst-${c.id}.jpg`,{type:"image/jpeg"});
+        const L=lang||"nb";
+        const sp=trSpecies(c.species,L);
         const shareData={
-          title:`${c.species} · ${c.river}`,
-          text:`${c.species} · ${c.river}${c.beat?" · "+c.beat:""}`,
+          title:`${sp} · ${c.river}`,
+          text:`${sp} · ${c.river}${c.beat?" · "+c.beat:""}`,
           files:[file],
         };
         if(navigator.canShare&&navigator.canShare(shareData)){
@@ -768,7 +783,7 @@
             <AppLogo size={96} t={t}/>
             <h1 style={{fontFamily:t.titleFont,fontSize:32,fontWeight:700,color:t.text,margin:"14px 0 4px"}}>{L("app_name")}</h1>
             <p style={{fontSize:15,color:t.textMuted,margin:0}}>{L("app_tagline")}</p>
-            <p style={{fontSize:11,color:t.textMuted,margin:"6px 0 0",opacity:.6}}>v62</p>
+            <p style={{fontSize:11,color:t.textMuted,margin:"6px 0 0",opacity:.6}}>v63</p>
           </div>
           <div style={{...S.sec,width:"100%",maxWidth:340}}>
             <p style={{fontSize:15,color:t.textSec,margin:"0 0 16px",textAlign:"center",lineHeight:1.5}}>{L("auth_intro")}</p>
@@ -1231,7 +1246,7 @@
           </div>
         )}
         <div style={{marginTop:30,textAlign:"center"}}>
-          <p style={{fontSize:11,color:t.textMuted,opacity:.5,margin:0}}>v62</p>
+          <p style={{fontSize:11,color:t.textMuted,opacity:.5,margin:0}}>v63</p>
         </div>
         </div>
 
@@ -1314,11 +1329,11 @@
               })()}
             </div>
           )}
-          <div style={{fontSize:14,color:t.textSec,marginBottom:6,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{c.species} · {c.river}{c.beat?` · ${c.beat}`:""}</div>
+          <div style={{fontSize:14,color:t.textSec,marginBottom:6,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{trSpecies(c.species,lang)} · {c.river}{c.beat?` · ${c.beat}`:""}</div>
           <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
             {c.weight!=null&&<span style={S.chip}>{c.weight} kg</span>}
             {c.length!=null&&<span style={S.chip}>{c.length} cm</span>}
-            <span style={S.chip}>{c.equipment}</span>
+            <span style={S.chip}>{trEquipment(c.equipment,lang)}</span>
             <span style={{...S.chip,display:"inline-flex",alignItems:"center",gap:3,color:c.released?t.released:t.kept}}>{I.rel(c.released)}{c.released?"C&R":L("detail_kept")}</span>
             {photos.length>1&&<span style={S.chip}>{L("pictures_count",photos.length)}</span>}
           </div>
@@ -1339,7 +1354,7 @@
         <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
           {c.weight!=null&&<span style={{...S.chip,background:"rgba(255,255,255,.22)",color:"#fff",backdropFilter:"blur(8px)",fontWeight:600}}>{c.weight} kg</span>}
           {c.length!=null&&<span style={{...S.chip,background:"rgba(255,255,255,.22)",color:"#fff",backdropFilter:"blur(8px)",fontWeight:600}}>{c.length} cm</span>}
-          <span style={{...S.chip,background:"rgba(255,255,255,.22)",color:"#fff",backdropFilter:"blur(8px)",fontWeight:600}}>{c.equipment}</span>
+          <span style={{...S.chip,background:"rgba(255,255,255,.22)",color:"#fff",backdropFilter:"blur(8px)",fontWeight:600}}>{trEquipment(c.equipment,lang)}</span>
           <span style={{...S.chip,display:"inline-flex",alignItems:"center",gap:3,background:"rgba(255,255,255,.22)",color:c.released?"#a7f3d0":"#fecaca",backdropFilter:"blur(8px)",fontWeight:600}}>{I.rel(c.released)}{c.released?"C&R":L("detail_kept")}</span>
         </div>
       );
@@ -1371,7 +1386,7 @@
           <span style={{fontSize:13,color:hasPhotos?"#fff":t.textMuted,fontWeight:500,textShadow:hasPhotos?"0 1px 2px rgba(0,0,0,.5)":"none",flexShrink:0,marginLeft:"auto"}}>{fmtDateLang(c.date,lang)}</span>
         </div>
         <div style={{position:"absolute",bottom:0,left:0,right:0,padding:"50px 14px 14px",background:hasPhotos?"linear-gradient(0deg,rgba(0,0,0,.78),rgba(0,0,0,.45) 60%,rgba(0,0,0,0))":"transparent",pointerEvents:"none",zIndex:2}}>
-          <p style={{fontSize:17,fontWeight:700,color:hasPhotos?"#fff":t.text,margin:"0 0 8px",textShadow:hasPhotos?"0 1px 3px rgba(0,0,0,.6)":"none"}}>{c.species} · {c.river}{c.beat?` · ${c.beat}`:""}</p>
+          <p style={{fontSize:17,fontWeight:700,color:hasPhotos?"#fff":t.text,margin:"0 0 8px",textShadow:hasPhotos?"0 1px 3px rgba(0,0,0,.6)":"none"}}>{trSpecies(c.species,lang)} · {c.river}{c.beat?` · ${c.beat}`:""}</p>
           {chips}
         </div>
       </div>);
@@ -1682,7 +1697,7 @@
         if(sharing)return;
         if(!photos||photos.length===0){alert(L("no_photo_for_share"));return;}
         setSharing(true);
-        try{await shareCatch(c,profileForShare);}finally{setSharing(false);}
+        try{await shareCatch(c,profileForShare,lang);}finally{setSharing(false);}
       };
       return(<div className="safe-top safe-bottom" style={S.page}>
         <div style={S.topBar}>
@@ -1698,7 +1713,7 @@
           <Avatar url={avatarUrl} name={ownerName} seed={seed} size={36} t={t}/>
           <span style={{fontSize:15,fontWeight:600,color:t.text}}>{ownerName}</span>
         </div>}
-        <h2 style={{fontFamily:t.titleFont,fontSize:24,fontWeight:700,color:t.text,margin:"0 0 4px"}}>{c.species}</h2>
+        <h2 style={{fontFamily:t.titleFont,fontSize:24,fontWeight:700,color:t.text,margin:"0 0 4px"}}>{trSpecies(c.species,lang)}</h2>
         <p style={{fontSize:16,color:t.textSec,margin:"0 0 2px",fontWeight:500}}>{c.river}{c.beat?` — ${c.beat}`:""}</p>
         <p style={{fontSize:14,color:t.textMuted,margin:"0 0 16px"}}>{fmtDateLang(c.date,lang)}{c.time?` ${L("detail_clock")} ${c.time.slice(0,5)}`:""}{isOwn&&" · "}{isOwn&&(()=>{
           const vis=c.visibility||(c.is_public?"public":"private");
@@ -1715,7 +1730,7 @@
         })()}</p>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:20}}>
           {c.weight!=null&&<SBox v={c.weight} l="kg" t={t}/>}{c.length!=null&&<SBox v={c.length} l="cm" t={t}/>}
-          <SBox v={c.equipment} l={L("detail_equipment")} t={t}/><SBox v={c.released?L("form_yes"):L("form_no")} l={L("detail_release")} t={t} color={c.released?t.released:t.kept}/>
+          <SBox v={trEquipment(c.equipment,lang)} l={L("detail_equipment")} t={t}/><SBox v={c.released?L("form_yes"):L("form_no")} l={L("detail_release")} t={t} color={c.released?t.released:t.kept}/>
         </div>
         {c.description&&<div style={{background:t.cardBg,borderRadius:12,padding:14,border:`1px solid ${t.cardBorder}`}}><p style={{fontSize:14,fontWeight:600,color:t.text,margin:"0 0 6px"}}>{L("detail_note")}</p><p style={{fontSize:15,color:t.textSec,lineHeight:1.6,margin:0}}>{c.description}</p></div>}
         {lightbox!==null&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.94)",zIndex:200,display:"flex",alignItems:"center",justifyContent:"center"}} onClick={()=>setLightbox(null)}>
@@ -1749,14 +1764,14 @@
         <Filters fp={fp} S={S} t={t}/>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:16}}><BStat v={n} l={L("stats_catches")} t={t}/><BStat v={big||"—"} l={L("stats_biggest")} t={t}/><BStat v={avg>0?avg:"—"} l={L("stats_avg")} t={t}/><BStat v={`${cr}%`} l={L("stats_released")} t={t}/></div>
         {n>0&&<div style={S.sec}><p style={S.secT}>{L("stats_per_month")}</p><div style={{display:"flex",gap:3,alignItems:"flex-end",height:100}}>{moN.map((m,i)=>(<div key={i} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center"}}><div style={{width:"100%",minHeight:2,height:`${((moC[i]||0)/maxMo)*100}%`,background:`linear-gradient(${t.primary},${t.accent})`,borderRadius:"3px 3px 0 0",display:"flex",alignItems:"flex-start",justifyContent:"center"}}>{moC[i]>0&&<span style={{fontSize:9,color:t.name==="Mørk"?"#0f1a17":"#fff",fontWeight:700,marginTop:2}}>{moC[i]}</span>}</div><span style={{fontSize:10,color:t.textMuted,marginTop:3}}>{m}</span></div>))}</div></div>}
-        {Object.keys(specC).length>0&&<BDSec title={L("stats_species")} d={specC} n={n} t={t} S={S}/>}
-        {Object.keys(eqC).length>0&&<BDSec title={L("stats_equipment")} d={eqC} n={n} t={t} S={S}/>}
+        {Object.keys(specC).length>0&&<BDSec title={L("stats_species")} d={specC} n={n} t={t} S={S} mapKey={k=>trSpecies(k,lang)}/>}
+        {Object.keys(eqC).length>0&&<BDSec title={L("stats_equipment")} d={eqC} n={n} t={t} S={S} mapKey={k=>trEquipment(k,lang)}/>}
         {Object.keys(rivC).length>0&&<BDSec title={L("stats_river")} d={rivC} n={n} t={t} S={S}/>}
         <div style={{height:30}}/>
       </div>);
     }
     function BStat({v,l,t}){return <div style={{background:t.cardBg,borderRadius:14,padding:"16px 10px",textAlign:"center",border:`1px solid ${t.cardBorder}`}}><span style={{display:"block",fontSize:24,fontWeight:700,color:t.primary,fontFamily:t.titleFont}}>{v}</span><span style={{display:"block",fontSize:12,color:t.textMuted,marginTop:3}}>{l}</span></div>;}
-    function BDSec({title,d,n,t,S}){const sorted=Object.entries(d).sort((a,b)=>b[1]-a[1]);return <div style={S.sec}><p style={S.secT}>{title}</p>{sorted.map(([k,v],i)=>{const pct=((v/n)*100).toFixed(0);return(<div key={k} style={{marginBottom:8}}><div style={{display:"flex",justifyContent:"space-between",fontSize:14,marginBottom:3}}><span style={{color:t.text}}>{k}</span><span style={{color:t.textMuted}}>{v} ({pct}%)</span></div><div style={{height:7,background:t.chipBg,borderRadius:4,overflow:"hidden"}}><div style={{height:"100%",width:`${pct}%`,background:t.primary,borderRadius:4,transition:"width .4s"}}/></div></div>);})}</div>;}
+    function BDSec({title,d,n,t,S,mapKey}){const sorted=Object.entries(d).sort((a,b)=>b[1]-a[1]);return <div style={S.sec}><p style={S.secT}>{title}</p>{sorted.map(([k,v],i)=>{const pct=((v/n)*100).toFixed(0);const displayK=mapKey?mapKey(k):k;return(<div key={k} style={{marginBottom:8}}><div style={{display:"flex",justifyContent:"space-between",fontSize:14,marginBottom:3}}><span style={{color:t.text}}>{displayK}</span><span style={{color:t.textMuted}}>{v} ({pct}%)</span></div><div style={{height:7,background:t.chipBg,borderRadius:4,overflow:"hidden"}}><div style={{height:"100%",width:`${pct}%`,background:t.primary,borderRadius:4,transition:"width .4s"}}/></div></div>);})}</div>;}
 
     // ── FormView ──
     function FormView({L,lang,onSave,onCancel,initial,initialGroupIds,isEdit,prefs,profile,myGroups,allRivers,S,t}){
