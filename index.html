@@ -27,20 +27,51 @@
     .photo-scroll>div{scroll-snap-align:start;flex-shrink:0}
     .spinner{width:32px;height:32px;border:3px solid #d4ddd4;border-top-color:#1a5c3a;border-radius:50%;animation:spin 1s linear infinite}
     @keyframes spin{to{transform:rotate(360deg)}}
-    /* Fiks iOS Safari date/time-input: tving samme høyde som vanlige felt */
+    /* ── iOS Safari date/time-input fiks ──
+       iOS lager en intern ::-webkit-date-and-time-value som ignorerer
+       vanlig padding/height. Vi må styre den direkte. */
     input[type="date"],input[type="time"]{
       -webkit-appearance:none;
+      -moz-appearance:none;
       appearance:none;
-      min-height:46px;
+      height:46px !important;
+      max-height:46px !important;
+      min-height:46px !important;
+      line-height:normal;
+      box-sizing:border-box;
+      padding:0 12px;
+      display:block;
+      width:100%;
+      /* Forhindrer at iOS automatisk strekker feltet */
+      font-variant-numeric:tabular-nums;
     }
     input[type="date"]::-webkit-date-and-time-value,
     input[type="time"]::-webkit-date-and-time-value{
       text-align:left;
-      min-height:1.2em;
+      height:44px;
+      line-height:44px;
+      padding:0;
+      margin:0;
+      display:inline-block;
+      white-space:nowrap;
+    }
+    input[type="date"]::-webkit-datetime-edit,
+    input[type="time"]::-webkit-datetime-edit{
+      padding:0;
+      height:44px;
+      line-height:44px;
+    }
+    input[type="date"]::-webkit-datetime-edit-fields-wrapper,
+    input[type="time"]::-webkit-datetime-edit-fields-wrapper{
+      padding:0;
+      height:44px;
+      line-height:44px;
     }
     input[type="date"]::-webkit-calendar-picker-indicator,
     input[type="time"]::-webkit-calendar-picker-indicator{
       opacity:0.5;
+      padding:0;
+      margin:0;
     }
   </style>
 </head>
@@ -785,8 +816,8 @@
         secT:{fontSize:14,fontWeight:600,color:t.text,marginTop:0,marginBottom:10},
         inp:{width:"100%",padding:"11px 12px",borderRadius:11,border:`1px solid ${t.inputBorder}`,fontSize:16,fontFamily:t.font,background:t.inputBg,color:t.text,boxSizing:"border-box",outline:"none"},
         // Date/time-input: iOS Safari ignorerer padding på shadow-DOM-en,
-        // så vi tvinger eksplisitt høyde + dropper -webkit-appearance.
-        dateInp:{width:"100%",height:46,padding:"0 12px",borderRadius:11,border:`1px solid ${t.inputBorder}`,fontSize:15,fontFamily:t.font,background:t.inputBg,color:t.text,boxSizing:"border-box",outline:"none",WebkitAppearance:"none",MozAppearance:"none",appearance:"none",lineHeight:"1",minHeight:46,display:"block"},
+        // så vi tvinger eksplisitt høyde i CSS (se <style>-blokken).
+        dateInp:{borderRadius:11,border:`1px solid ${t.inputBorder}`,fontSize:15,fontFamily:t.font,background:t.inputBg,color:t.text,outline:"none"},
         togOff:{padding:"10px 24px",borderRadius:10,border:`1px solid ${t.inputBorder}`,background:t.cardBg,fontSize:15,fontFamily:t.font,cursor:"pointer",color:t.textMuted},
         togOn:{padding:"10px 24px",borderRadius:10,border:`2px solid ${t.primary}`,background:t.primaryLight,fontSize:15,fontFamily:t.font,cursor:"pointer",color:t.primary,fontWeight:600},
         btnPriFull:{width:"100%",padding:"14px 20px",borderRadius:12,background:t.primary,color:t.name==="Mørk"?"#0f1a17":"#fff",border:"none",fontSize:16,fontWeight:600,fontFamily:t.font,cursor:"pointer",boxShadow:t.btnShadow},
@@ -946,7 +977,7 @@
             <h1 style={{fontFamily:t.titleFont,fontSize:32,fontWeight:700,color:t.text,margin:"14px 0 4px"}}>{L("app_name")}</h1>
             <p style={{fontSize:16,color:t.text,margin:"6px 0 2px",fontWeight:500,fontStyle:"italic",maxWidth:300}}>{slogan}</p>
             <p style={{fontSize:13,color:t.textMuted,margin:0}}>{L("app_tagline")}</p>
-            <p style={{fontSize:11,color:t.textMuted,margin:"6px 0 0",opacity:.6}}>v75</p>
+            <p style={{fontSize:11,color:t.textMuted,margin:"6px 0 0",opacity:.6}}>v76</p>
           </div>
           <div style={{...S.sec,width:"100%",maxWidth:340}}>
             <p style={{fontSize:15,color:t.textSec,margin:"0 0 16px",textAlign:"center",lineHeight:1.5}}>{L("auth_intro")}</p>
@@ -1481,7 +1512,7 @@
           </div>
         )}
         <div style={{marginTop:30,textAlign:"center"}}>
-          <p style={{fontSize:11,color:t.textMuted,opacity:.5,margin:0}}>v75</p>
+          <p style={{fontSize:11,color:t.textMuted,opacity:.5,margin:0}}>v76</p>
         </div>
         </div>
 
