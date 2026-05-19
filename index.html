@@ -27,6 +27,21 @@
     .photo-scroll>div{scroll-snap-align:start;flex-shrink:0}
     .spinner{width:32px;height:32px;border:3px solid #d4ddd4;border-top-color:#1a5c3a;border-radius:50%;animation:spin 1s linear infinite}
     @keyframes spin{to{transform:rotate(360deg)}}
+    /* Fiks iOS Safari date/time-input: tving samme høyde som vanlige felt */
+    input[type="date"],input[type="time"]{
+      -webkit-appearance:none;
+      appearance:none;
+      min-height:46px;
+    }
+    input[type="date"]::-webkit-date-and-time-value,
+    input[type="time"]::-webkit-date-and-time-value{
+      text-align:left;
+      min-height:1.2em;
+    }
+    input[type="date"]::-webkit-calendar-picker-indicator,
+    input[type="time"]::-webkit-calendar-picker-indicator{
+      opacity:0.5;
+    }
   </style>
 </head>
 <body>
@@ -769,6 +784,9 @@
         sec:{background:t.cardBg,borderRadius:14,padding:14,marginBottom:12,border:`1px solid ${t.cardBorder}`},
         secT:{fontSize:14,fontWeight:600,color:t.text,marginTop:0,marginBottom:10},
         inp:{width:"100%",padding:"11px 12px",borderRadius:11,border:`1px solid ${t.inputBorder}`,fontSize:16,fontFamily:t.font,background:t.inputBg,color:t.text,boxSizing:"border-box",outline:"none"},
+        // Date/time-input: iOS Safari ignorerer padding på shadow-DOM-en,
+        // så vi tvinger eksplisitt høyde + dropper -webkit-appearance.
+        dateInp:{width:"100%",height:46,padding:"0 12px",borderRadius:11,border:`1px solid ${t.inputBorder}`,fontSize:15,fontFamily:t.font,background:t.inputBg,color:t.text,boxSizing:"border-box",outline:"none",WebkitAppearance:"none",MozAppearance:"none",appearance:"none",lineHeight:"1",minHeight:46,display:"block"},
         togOff:{padding:"10px 24px",borderRadius:10,border:`1px solid ${t.inputBorder}`,background:t.cardBg,fontSize:15,fontFamily:t.font,cursor:"pointer",color:t.textMuted},
         togOn:{padding:"10px 24px",borderRadius:10,border:`2px solid ${t.primary}`,background:t.primaryLight,fontSize:15,fontFamily:t.font,cursor:"pointer",color:t.primary,fontWeight:600},
         btnPriFull:{width:"100%",padding:"14px 20px",borderRadius:12,background:t.primary,color:t.name==="Mørk"?"#0f1a17":"#fff",border:"none",fontSize:16,fontWeight:600,fontFamily:t.font,cursor:"pointer",boxShadow:t.btnShadow},
@@ -928,7 +946,7 @@
             <h1 style={{fontFamily:t.titleFont,fontSize:32,fontWeight:700,color:t.text,margin:"14px 0 4px"}}>{L("app_name")}</h1>
             <p style={{fontSize:16,color:t.text,margin:"6px 0 2px",fontWeight:500,fontStyle:"italic",maxWidth:300}}>{slogan}</p>
             <p style={{fontSize:13,color:t.textMuted,margin:0}}>{L("app_tagline")}</p>
-            <p style={{fontSize:11,color:t.textMuted,margin:"6px 0 0",opacity:.6}}>v74</p>
+            <p style={{fontSize:11,color:t.textMuted,margin:"6px 0 0",opacity:.6}}>v75</p>
           </div>
           <div style={{...S.sec,width:"100%",maxWidth:340}}>
             <p style={{fontSize:15,color:t.textSec,margin:"0 0 16px",textAlign:"center",lineHeight:1.5}}>{L("auth_intro")}</p>
@@ -1463,7 +1481,7 @@
           </div>
         )}
         <div style={{marginTop:30,textAlign:"center"}}>
-          <p style={{fontSize:11,color:t.textMuted,opacity:.5,margin:0}}>v74</p>
+          <p style={{fontSize:11,color:t.textMuted,opacity:.5,margin:0}}>v75</p>
         </div>
         </div>
 
@@ -2087,7 +2105,7 @@
 
         <Lbl t={L("form_river_label")} th={t}/><RiverInput value={form.river} onChange={v=>set("river",v)} allRivers={allRivers} placeholder={L("form_river_placeholder")} addLabel={L("form_add_river")} S={S} t={t}/>
         <Lbl t={L("form_beat_label")} th={t}/><input style={S.inp} placeholder={L("form_beat_placeholder")} value={form.beat||""} onChange={e=>set("beat",e.target.value)}/>
-        <div style={{display:"grid",gridTemplateColumns:"3fr 2fr",gap:8}}><div><Lbl t={L("form_date")} th={t}/><input style={{...S.inp,fontSize:15}} type="date" value={form.date} onChange={e=>set("date",e.target.value)}/></div><div><Lbl t={L("form_time")} th={t}/><input style={{...S.inp,fontSize:15}} type="time" value={form.time||""} onChange={e=>set("time",e.target.value)}/></div></div>
+        <div style={{display:"grid",gridTemplateColumns:"3fr 2fr",gap:8}}><div><Lbl t={L("form_date")} th={t}/><input style={S.dateInp} type="date" value={form.date} onChange={e=>set("date",e.target.value)}/></div><div><Lbl t={L("form_time")} th={t}/><input style={S.dateInp} type="time" value={form.time||""} onChange={e=>set("time",e.target.value)}/></div></div>
         <div style={{height:1,background:t.cardBorder,margin:"12px 0"}}/>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}><div><Lbl t={L("form_length")} th={t}/><NumInput placeholder="70" value={form.length} onChange={handleLength} S={S}/></div><div><Lbl t={L("form_weight")} th={t}/><NumInput placeholder="3,3" value={form.weight} onChange={handleWeight} S={S}/></div></div>
         {estimatedWt&&!weightManual&&<p style={{fontSize:13,color:t.textSec,margin:"4px 0 0",fontStyle:"italic"}}>{L("form_estimated_weight")} {estimatedWt} kg</p>}
