@@ -2,7 +2,7 @@
 
 A simple, fast Progressive Web App for logging your flyfishing catches. Track what you caught, where, and when — all from your phone or browser.
 
-🌐 **Live app:** [fangstlogg.jepson.no](https://jepson.fangstlogg.no)
+🌐 **Live app:** [fangstlogg.jepson.no](https://fangstlogg.jepson.no)
 
 ## Features
 
