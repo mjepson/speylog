@@ -28,8 +28,6 @@ Just visit [fangstlogg.jepson.no](https://fangstlogg.jepson.no) in your browser.
 1. Open the app
 2. Tap **New Catch** to log a fish
 3. Fill in species, size, and any notes
-4. Allow location access to automatically save where you caught it
-5. View your full log under **History**
 
 ## Tech
 
