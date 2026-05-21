@@ -303,6 +303,30 @@
       form_save_edit:{nb:"Lagre endringer",en:"Save changes"},
       form_saving:{nb:"Lagrer...",en:"Saving..."},
       form_add_river:{nb:"Legg til",en:"Add"},
+      // Conditions
+      cond_title:{nb:"Forhold",en:"Conditions"},
+      cond_optional:{nb:"valgfritt",en:"optional"},
+      cond_weather:{nb:"Vær",en:"Weather"},
+      cond_wind:{nb:"Vind",en:"Wind"},
+      cond_water_level:{nb:"Vannstand",en:"Water level"},
+      cond_water_color:{nb:"Vannfarge",en:"Water color"},
+      cond_air_temp:{nb:"Lufttemp",en:"Air temp"},
+      cond_water_temp:{nb:"Vanntemp",en:"Water temp"},
+      cond_weather_sunny:{nb:"Sol",en:"Sunny"},
+      cond_weather_partly:{nb:"Delvis",en:"Partly"},
+      cond_weather_cloudy:{nb:"Overskyet",en:"Cloudy"},
+      cond_weather_rain:{nb:"Regn",en:"Rain"},
+      cond_weather_showers:{nb:"Byger",en:"Showers"},
+      cond_wind_calm:{nb:"Stille",en:"Calm"},
+      cond_wind_light:{nb:"Lett",en:"Light"},
+      cond_wind_fresh:{nb:"Frisk",en:"Fresh"},
+      cond_wind_strong:{nb:"Sterk",en:"Strong"},
+      cond_level_low:{nb:"Lav",en:"Low"},
+      cond_level_medium:{nb:"Middels",en:"Medium"},
+      cond_level_high:{nb:"Høy",en:"High"},
+      cond_color_clear:{nb:"Klar",en:"Clear"},
+      cond_color_tinted:{nb:"Farget",en:"Tinted"},
+      cond_color_murky:{nb:"Grumsete",en:"Murky"},
       vis_private_desc:{nb:"Bare du ser denne fangsten",en:"Only you can see this catch"},
       vis_groups_desc_active:{nb:n=>`Synlig for medlemmer i dine ${n} gruppe${n!==1?"r":""}`,en:n=>`Visible to members of your ${n} group${n!==1?"s":""}`},
       vis_groups_desc_empty:{nb:"Du er ikke med i noen grupper ennå",en:"You're not a member of any groups yet"},
@@ -474,6 +498,13 @@
       filter:()=><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>,
       info:()=><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>,
       mail:()=><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>,
+      sun:()=><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="4"/><line x1="12" y1="2" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="2" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="22" y2="12"/><line x1="4.93" y1="4.93" x2="7.05" y2="7.05"/><line x1="16.95" y1="16.95" x2="19.07" y2="19.07"/><line x1="4.93" y1="19.07" x2="7.05" y2="16.95"/><line x1="16.95" y1="7.05" x2="19.07" y2="4.93"/></svg>,
+      cloudSun:()=><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3v1"/><path d="M5.6 5.6l.7.7"/><path d="M3 12h1"/><path d="M17 12a5 5 0 00-9.6-2"/><path d="M5 18a4 4 0 010-8 6 6 0 0111.4 1.5A4 4 0 0117 19H7"/></svg>,
+      cloud:()=><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M18 10a6 6 0 00-11.4-1.5A4 4 0 007 18h11a4 4 0 000-8z"/></svg>,
+      cloudRain:()=><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8a6 6 0 00-11.4-1.5A4 4 0 007 14h11a4 4 0 000-8z" transform="translate(0,-1)"/><line x1="8" y1="17" x2="8" y2="21"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="16" y1="17" x2="16" y2="21"/></svg>,
+      cloudDrizzle:()=><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8a6 6 0 00-11.4-1.5A4 4 0 007 14h11a4 4 0 000-8z" transform="translate(0,-1)"/><line x1="8" y1="18" x2="8" y2="19"/><line x1="8" y1="21" x2="8" y2="22"/><line x1="12" y1="19" x2="12" y2="20"/><line x1="12" y1="22" x2="12" y2="23"/><line x1="16" y1="18" x2="16" y2="19"/><line x1="16" y1="21" x2="16" y2="22"/></svg>,
+      chevDown:()=><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>,
+      chevUp:()=><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="18 15 12 9 6 15"/></svg>,
     };
 
     // ── Generate share image (original photo ratio, scaled to ~1080px wide) ──
@@ -953,7 +984,7 @@
             <h1 style={{fontFamily:t.titleFont,fontSize:32,fontWeight:700,color:t.text,margin:"14px 0 4px"}}>{L("app_name")}</h1>
             <p style={{fontSize:16,color:t.text,margin:"6px 0 2px",fontWeight:500,fontStyle:"italic",maxWidth:300}}>{slogan}</p>
             <p style={{fontSize:13,color:t.textMuted,margin:0}}>{L("app_tagline")}</p>
-            <p style={{fontSize:11,color:t.textMuted,margin:"6px 0 0",opacity:.6}}>v79</p>
+            <p style={{fontSize:11,color:t.textMuted,margin:"6px 0 0",opacity:.6}}>v80</p>
           </div>
           <div style={{...S.sec,width:"100%",maxWidth:340}}>
             <p style={{fontSize:15,color:t.textSec,margin:"0 0 16px",textAlign:"center",lineHeight:1.5}}>{L("auth_intro")}</p>
@@ -1163,6 +1194,7 @@
           released:form.released,
           description:form.description||null,
           photos:photoUrls,
+          conditions:(form.conditions&&Object.keys(form.conditions).length>0)?form.conditions:null,
         };
         const {data,error}=await sb.from("catches").insert(row).select().single();
         if(error){alert(L("error_prefix")+" "+error.message);return;}
@@ -1203,6 +1235,7 @@
           released:form.released,
           description:form.description||null,
           photos:photoUrls,
+          conditions:(form.conditions&&Object.keys(form.conditions).length>0)?form.conditions:null,
         };
         const {data,error}=await sb.from("catches").update(row).eq("id",form.id).select().single();
         if(error){alert(L("error_prefix")+" "+error.message);return;}
@@ -1552,7 +1585,7 @@
           </div>
         )}
         <div style={{marginTop:30,textAlign:"center"}}>
-          <p style={{fontSize:11,color:t.textMuted,opacity:.5,margin:0}}>v79</p>
+          <p style={{fontSize:11,color:t.textMuted,opacity:.5,margin:0}}>v80</p>
         </div>
         </div>
 
@@ -2112,6 +2145,143 @@
     function BStat({v,l,t}){return <div style={{background:t.cardBg,borderRadius:14,padding:"16px 10px",textAlign:"center",border:`1px solid ${t.cardBorder}`}}><span style={{display:"block",fontSize:24,fontWeight:700,color:t.primary,fontFamily:t.titleFont}}>{v}</span><span style={{display:"block",fontSize:12,color:t.textMuted,marginTop:3}}>{l}</span></div>;}
     function BDSec({title,d,n,t,S,mapKey}){const sorted=Object.entries(d).sort((a,b)=>b[1]-a[1]);return <div style={S.sec}><p style={S.secT}>{title}</p>{sorted.map(([k,v],i)=>{const pct=((v/n)*100).toFixed(0);const displayK=mapKey?mapKey(k):k;return(<div key={k} style={{marginBottom:8}}><div style={{display:"flex",justifyContent:"space-between",fontSize:14,marginBottom:3}}><span style={{color:t.text}}>{displayK}</span><span style={{color:t.textMuted}}>{v} ({pct}%)</span></div><div style={{height:7,background:t.chipBg,borderRadius:4,overflow:"hidden"}}><div style={{height:"100%",width:`${pct}%`,background:t.primary,borderRadius:4,transition:"width .4s"}}/></div></div>);})}</div>;}
 
+    // ── ConditionsSection ──
+    // Sammenleggbar seksjon for vær/vannforhold. Lagrer som JSON-objekt på catch.conditions.
+    // Husker siste valg (untatt temp) i localStorage som `fl_lastConditions`.
+    const LAST_COND_KEY="fl_lastConditions";
+
+    function WindIcon({strength}){
+      const lines=[{y:12,len:6,show:strength>=0},{y:8,len:10,show:strength>=1},{y:16,len:14,show:strength>=2},{y:4,len:18,show:strength>=3}];
+      return <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">{lines.map((l,i)=>l.show&&<line key={i} x1="3" y1={l.y} x2={3+l.len} y2={l.y}/>)}</svg>;
+    }
+    function WaterLevelIcon({level}){
+      const fillH=level==="low"?6:level==="medium"?12:18;
+      return <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="4" y="3" width="16" height="18" rx="2" stroke="currentColor" strokeWidth="2"/><rect x="4" y={3+(18-fillH)} width="16" height={fillH} fill="currentColor" rx="2" opacity="0.7"/></svg>;
+    }
+    function WaterColorIcon({color}){
+      const op=color==="clear"?0.15:color==="tinted"?0.5:0.95;
+      return <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="9" opacity={op}/><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" strokeWidth="2"/></svg>;
+    }
+    function CondChip({selected,onClick,icon,label,t}){
+      return <button type="button" onClick={onClick} aria-pressed={selected} style={{
+        display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:4,
+        padding:"8px 4px",minHeight:60,borderRadius:10,
+        border:selected?`2px solid ${t.primary}`:`1px solid ${t.inputBorder}`,
+        background:selected?t.primaryLight:t.inputBg,
+        color:selected?t.primary:t.textSec,
+        cursor:"pointer",transition:"all .15s ease",
+        fontFamily:t.font,fontSize:11,fontWeight:500,
+        WebkitTapHighlightColor:"transparent"
+      }}>
+        <span style={{display:"flex",alignItems:"center",justifyContent:"center"}}>{icon}</span>
+        <span style={{lineHeight:1}}>{label}</span>
+      </button>;
+    }
+    function CondRow({label,cols,children,t}){
+      return <div style={{marginBottom:14}}>
+        <div style={{fontFamily:t.font,fontSize:12,fontWeight:500,color:t.textSec,marginBottom:6,letterSpacing:.2}}>{label}</div>
+        <div style={{display:"grid",gridTemplateColumns:`repeat(${cols},1fr)`,gap:6}}>{children}</div>
+      </div>;
+    }
+    function CondTemp({label,value,onChange,t}){
+      return <div style={{flex:1}}>
+        <div style={{fontFamily:t.font,fontSize:12,fontWeight:500,color:t.textSec,marginBottom:6}}>{label}</div>
+        <div style={{position:"relative"}}>
+          <input type="number" inputMode="decimal" step="0.1" value={value??""} onChange={e=>onChange(e.target.value===""?null:parseFloat(e.target.value))} placeholder="–"
+            style={{width:"100%",padding:"11px 36px 11px 12px",borderRadius:11,border:`1px solid ${t.inputBorder}`,background:t.inputBg,color:t.text,fontFamily:t.font,fontSize:16,outline:"none",boxSizing:"border-box"}}/>
+          <span style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",color:t.textMuted,fontFamily:t.font,fontSize:14,pointerEvents:"none"}}>°C</span>
+        </div>
+      </div>;
+    }
+    function ConditionsSection({value,onChange,L,t}){
+      const[expanded,setExpanded]=useState(false);
+      const cond=value||{};
+      useEffect(()=>{
+        if(expanded&&Object.keys(cond).length===0){
+          try{
+            const last=localStorage.getItem(LAST_COND_KEY);
+            if(last){
+              const parsed=JSON.parse(last);
+              const{airTemp,waterTemp,...rest}=parsed;
+              if(Object.keys(rest).length>0)onChange(rest);
+            }
+          }catch(e){}
+        }
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      },[expanded]);
+      const update=(k,v)=>{
+        const next={...cond};
+        if(next[k]===v)delete next[k];else next[k]=v;
+        onChange(next);
+        try{
+          const store={...next};delete store.airTemp;delete store.waterTemp;
+          localStorage.setItem(LAST_COND_KEY,JSON.stringify(store));
+        }catch(e){}
+      };
+      const setTemp=(k,v)=>{
+        const next={...cond};
+        if(v===null)delete next[k];else next[k]=v;
+        onChange(next);
+      };
+      const filled=Object.values(cond).filter(v=>v!==null&&v!==undefined&&v!=="").length;
+      const weatherOpts=[
+        {key:"sunny",icon:I.sun(),label:L("cond_weather_sunny")},
+        {key:"partlyCloudy",icon:I.cloudSun(),label:L("cond_weather_partly")},
+        {key:"cloudy",icon:I.cloud(),label:L("cond_weather_cloudy")},
+        {key:"rain",icon:I.cloudRain(),label:L("cond_weather_rain")},
+        {key:"showers",icon:I.cloudDrizzle(),label:L("cond_weather_showers")},
+      ];
+      const windOpts=[
+        {key:"calm",strength:0,label:L("cond_wind_calm")},
+        {key:"lightBreeze",strength:1,label:L("cond_wind_light")},
+        {key:"fresh",strength:2,label:L("cond_wind_fresh")},
+        {key:"strong",strength:3,label:L("cond_wind_strong")},
+      ];
+      const levelOpts=[
+        {key:"low",label:L("cond_level_low")},
+        {key:"medium",label:L("cond_level_medium")},
+        {key:"high",label:L("cond_level_high")},
+      ];
+      const colorOpts=[
+        {key:"clear",label:L("cond_color_clear")},
+        {key:"tinted",label:L("cond_color_tinted")},
+        {key:"murky",label:L("cond_color_murky")},
+      ];
+      return <div style={{marginTop:8,borderRadius:12,border:`1px solid ${t.cardBorder}`,background:t.cardBg,overflow:"hidden"}}>
+        <button type="button" onClick={()=>setExpanded(!expanded)} aria-expanded={expanded} style={{
+          width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",
+          padding:"14px 16px",background:"transparent",border:"none",color:t.text,
+          cursor:"pointer",fontFamily:t.font,WebkitTapHighlightColor:"transparent"
+        }}>
+          <div style={{display:"flex",alignItems:"center",gap:10}}>
+            <span style={{fontSize:16,fontWeight:500}}>{L("cond_title")}</span>
+            {filled>0
+              ? <span style={{fontSize:12,fontWeight:600,color:t.primary,background:t.primaryLight,padding:"2px 8px",borderRadius:10}}>{filled}</span>
+              : <span style={{fontSize:12,color:t.textMuted,fontWeight:400}}>{L("cond_optional")}</span>}
+          </div>
+          <span style={{color:t.textSec,display:"flex"}}>{expanded?I.chevUp():I.chevDown()}</span>
+        </button>
+        {expanded&&<div style={{padding:"4px 16px 16px 16px"}}>
+          <CondRow label={L("cond_weather")} cols={5} t={t}>
+            {weatherOpts.map(o=><CondChip key={o.key} selected={cond.weather===o.key} onClick={()=>update("weather",o.key)} icon={o.icon} label={o.label} t={t}/>)}
+          </CondRow>
+          <CondRow label={L("cond_wind")} cols={4} t={t}>
+            {windOpts.map(o=><CondChip key={o.key} selected={cond.wind===o.key} onClick={()=>update("wind",o.key)} icon={<WindIcon strength={o.strength}/>} label={o.label} t={t}/>)}
+          </CondRow>
+          <CondRow label={L("cond_water_level")} cols={3} t={t}>
+            {levelOpts.map(o=><CondChip key={o.key} selected={cond.waterLevel===o.key} onClick={()=>update("waterLevel",o.key)} icon={<WaterLevelIcon level={o.key}/>} label={o.label} t={t}/>)}
+          </CondRow>
+          <CondRow label={L("cond_water_color")} cols={3} t={t}>
+            {colorOpts.map(o=><CondChip key={o.key} selected={cond.waterColor===o.key} onClick={()=>update("waterColor",o.key)} icon={<WaterColorIcon color={o.key}/>} label={o.label} t={t}/>)}
+          </CondRow>
+          <div style={{display:"flex",gap:10,marginTop:4}}>
+            <CondTemp label={L("cond_air_temp")} value={cond.airTemp} onChange={v=>setTemp("airTemp",v)} t={t}/>
+            <CondTemp label={L("cond_water_temp")} value={cond.waterTemp} onChange={v=>setTemp("waterTemp",v)} t={t}/>
+          </div>
+        </div>}
+      </div>;
+    }
+
     // ── FormView ──
     function FormView({L,lang,onSave,onCancel,initial,initialGroupIds,isEdit,prefs,profile,myGroups,allRivers,allFlies,S,t}){
       const fileRef=useRef();
@@ -2123,10 +2293,10 @@
           const vis=initial.visibility||(initial.is_public?"public":"private");
           // Hvis vi får inn initialGroupIds (ved redigering), bruk dem; ellers default til alle grupper
           const selected=initialGroupIds&&initialGroupIds.length>0?initialGroupIds:allGroupIds;
-          return{...initial,photos:initial.photos||[],visibility:vis,selectedGroupIds:selected,fly_pattern:initial.fly_pattern||""};
+          return{...initial,photos:initial.photos||[],visibility:vis,selectedGroupIds:selected,fly_pattern:initial.fly_pattern||"",conditions:initial.conditions||{}};
         }
         const defaultVis=profile?.default_visibility||(profile?.default_public?"public":"private");
-        return{river:prefs?.lastRiver||"",beat:"",date:new Date().toISOString().split("T")[0],time:"",length:"",weight:"",equipment:prefs?.lastEquipment||"Flue",fly_pattern:"",species:"Laks",released:true,photos:[],description:"",visibility:defaultVis,selectedGroupIds:allGroupIds};
+        return{river:prefs?.lastRiver||"",beat:"",date:new Date().toISOString().split("T")[0],time:"",length:"",weight:"",equipment:prefs?.lastEquipment||"Flue",fly_pattern:"",species:"Laks",released:true,photos:[],description:"",visibility:defaultVis,selectedGroupIds:allGroupIds,conditions:{}};
       });
       const[newPhotoFiles,setNewPhotoFiles]=useState([]);
       const[newPhotoPreviews,setNewPhotoPreviews]=useState([]);
@@ -2256,6 +2426,8 @@
             )}
           </div>
         )}
+
+        <ConditionsSection value={form.conditions} onChange={v=>set("conditions",v)} L={L} t={t}/>
 
         <Lbl t={L("form_note")} th={t}/><textarea style={{...S.inp,minHeight:70,resize:"vertical"}} placeholder={L("form_note_placeholder")} value={form.description||""} onChange={e=>set("description",e.target.value)}/>
         <button style={{...S.btnPriFull,opacity:(valid&&!saving)?1:.45,marginTop:20}} disabled={!valid||saving} onClick={submit}>
