@@ -195,13 +195,18 @@
       // Om-modal
       about_title:{nb:"Om Speylog",en:"About Speylog"},
       about_body:{
-        nb:"Speylog er en fangstlogg laget for fluefiskere som setter ut igjen. Registrer hver fangst med bilder, vekt, lengde, redskap og notater — og hold oversikten på tvers av sesonger, elver og turer.\n\nDu kan dele fangster privat med deg selv, med spesifikke grupper av fiskekamerater, eller åpent i fellesfeeden. Du bestemmer selv hvem som ser hva.",
-        en:"Speylog is a fishing log built for fly anglers who release. Record each catch with photos, weight, length, tackle, and notes — and keep track across seasons, rivers, and trips.\n\nYou can share catches privately with yourself, with specific groups of fishing buddies, or openly in the community feed. You decide who sees what.",
+        nb:"Speylog er en fangstlogg laget for fluefiskere som setter ut igjen. Registrer hver fangst med bilder, vekt, lengde, redskap og notater — og hold oversikten på tvers av sesonger, elver og turer.\n\nDu kan dele fangster privat med deg selv, med spesifikke grupper av fiskekamerater, eller åpent i fellesfeeden. Du kan også følge andre fiskere for å holde oversikt over fangstene deres. Du bestemmer selv hvem som ser hva.",
+        en:"Speylog is a fishing log built for fly anglers who release. Record each catch with photos, weight, length, tackle, and notes — and keep track across seasons, rivers, and trips.\n\nYou can share catches privately with yourself, with specific groups of fishing buddies, or openly in the community feed. You can also follow other anglers to keep up with their catches. You decide who sees what.",
       },
       about_section_groups:{nb:"Grupper",en:"Groups"},
       about_section_groups_body:{
         nb:"Opprett private grupper og inviter fiskekameratene dine med en lenke. Da kan dere dele fangster bare innad i gruppen.",
         en:"Create private groups and invite your fishing buddies with a link. Then you can share catches just within the group.",
+      },
+      about_section_follow:{nb:"Følg",en:"Follow"},
+      about_section_follow_body:{
+        nb:"Trykk på en fisker i fellesfeeden for å se profilen og følge dem. I Felles kan du filtrere på «Følger» for å se de offentlige fangstene til dem du følger.",
+        en:"Tap an angler in the community feed to view their profile and follow them. In the Public tab you can filter by \"Following\" to see public catches from people you follow.",
       },
       about_section_privacy:{nb:"Personvern",en:"Privacy"},
       about_section_privacy_body:{
@@ -1056,7 +1061,7 @@
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
             speylog.com
           </a>
-          <p style={{fontSize:11,color:t.textMuted,margin:"10px 0 0",opacity:.5}}>v85</p>
+          <p style={{fontSize:11,color:t.textMuted,margin:"10px 0 0",opacity:.5}}>v87</p>
         </div>
       );
     }
@@ -1400,7 +1405,15 @@
 
       // Ny bruker (eller konto uten navn): be om navn før appen vises.
       // Navn samles her i stedet for på login, så login-skjermen holdes ren.
-      if(!profile||!profile.display_name||!profile.display_name.trim()){
+      // Ny bruker (eller konto med auto-generert navn): be om navn før appen vises.
+      // Supabase kan sette display_name til e-postens lokaldel automatisk ved OTP-
+      // opprettelse, så vi behandler et navn som er lik e-posten (eller prefikset
+      // før @) som "mangler navn" og ber brukeren velge et ekte navn.
+      const _email=(session.user?.email||"").toLowerCase();
+      const _emailLocal=_email.split("@")[0];
+      const _dn=(profile?.display_name||"").trim();
+      const _dnLooksAuto=_dn!=="" && (_dn.toLowerCase()===_email || _dn.toLowerCase()===_emailLocal);
+      if(!profile||_dn===""||_dnLooksAuto){
         return <NameCaptureView L={L} t={t} S={S} session={session} onSaved={(p)=>setProfile(p)} onSignOut={signOut}/>;
       }
 
@@ -1452,6 +1465,10 @@
           <div style={{padding:"12px 14px",background:t.chipBg,borderRadius:10,marginBottom:10}}>
             <p style={{fontSize:13,fontWeight:700,color:t.text,margin:"0 0 4px"}}>{L("about_section_groups")}</p>
             <p style={{fontSize:13,color:t.textSec,margin:0,lineHeight:1.5}}>{L("about_section_groups_body")}</p>
+          </div>
+          <div style={{padding:"12px 14px",background:t.chipBg,borderRadius:10,marginBottom:10}}>
+            <p style={{fontSize:13,fontWeight:700,color:t.text,margin:"0 0 4px"}}>{L("about_section_follow")}</p>
+            <p style={{fontSize:13,color:t.textSec,margin:0,lineHeight:1.5}}>{L("about_section_follow_body")}</p>
           </div>
           <div style={{padding:"12px 14px",background:t.chipBg,borderRadius:10,marginBottom:16}}>
             <p style={{fontSize:13,fontWeight:700,color:t.text,margin:"0 0 4px"}}>{L("about_section_privacy")}</p>
@@ -1697,7 +1714,7 @@
           </div>
         )}
         <div style={{marginTop:30,textAlign:"center"}}>
-          <p style={{fontSize:11,color:t.textMuted,opacity:.5,margin:0}}>v85</p>
+          <p style={{fontSize:11,color:t.textMuted,opacity:.5,margin:0}}>v87</p>
         </div>
         </div>
 
