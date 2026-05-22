@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="theme-color" content="#0f1a17">
-  <title>Fangstlogg · Admin</title>
+  <title>Speylog · Admin</title>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
@@ -498,6 +498,12 @@ async function loadData() {
   const { data: groups } = await sb.from('groups').select('*');
   const { data: members } = await sb.from('group_members').select('*');
 
+  // Fetch follows. NB: med anon-nøkkel + RLS ser admin bare follows-rader
+  // den selv er involvert i, med mindre det finnes en admin-policy på
+  // follows. For full oversikt over alle følge-relasjoner trengs en
+  // admin RLS-policy på follows-tabellen.
+  const { data: follows } = await sb.from('follows').select('*');
+
   // Build memberships lookups
   const membersByGroup = {};
   const groupsByUser = {};
@@ -540,7 +546,16 @@ async function loadData() {
     u.catches.sort((a, b) => new Date(b.date) - new Date(a.date));
     u.totalWeight = u.catches.reduce((s, c) => s + (parseFloat(c.weight) || 0), 0);
     u.lastCatch = u.catches.length > 0 ? u.catches[0].date : null;
+    u.following = 0;
+    u.followers = 0;
   });
+
+  // Følge-relasjoner per bruker (basert på det RLS eksponerer)
+  (follows || []).forEach(f => {
+    if (usersMap[f.follower_id]) usersMap[f.follower_id].following++;
+    if (usersMap[f.following_id]) usersMap[f.following_id].followers++;
+  });
+  state.followsCount = (follows || []).length;
 
   state.users = Object.values(usersMap);
 }
@@ -586,7 +601,14 @@ function renderList() {
     let av, bv;
     if (state.sortCol === 'catches') { av = a.catches.length; bv = b.catches.length; }
     else if (state.sortCol === 'weight') { av = a.totalWeight; bv = b.totalWeight; }
-    else if (state.sortCol === 'lastCatch') { av = a.lastCatch || ''; bv = b.lastCatch || ''; }
+    else if (state.sortCol === 'lastCatch') {
+      av = a.lastCatch ? new Date(a.lastCatch).getTime() : 0;
+      bv = b.lastCatch ? new Date(b.lastCatch).getTime() : 0;
+    }
+    else if (state.sortCol === 'joined') {
+      av = a.joined ? new Date(a.joined).getTime() : 0;
+      bv = b.joined ? new Date(b.joined).getTime() : 0;
+    }
     else { av = a.name || ''; bv = b.name || ''; }
     const cmp = typeof av === 'string' ? av.localeCompare(bv) : av - bv;
     return state.sortAsc ? cmp : -cmp;
@@ -611,7 +633,7 @@ function renderList() {
   app.innerHTML = `
     <div class="header">
       <div>
-        <h1>Fangstlogg</h1>
+        <h1>Speylog</h1>
         <div class="sub">Admin · Brukeradministrasjon</div>
       </div>
       <div class="dot-live"></div>
@@ -642,6 +664,11 @@ function renderList() {
           <div class="accent" style="background: var(--blue)"></div>
           <div class="label">Grupper</div>
           <div class="value">${state.groups.length}</div>
+        </div>
+        <div class="stat-card">
+          <div class="accent" style="background: var(--primary)"></div>
+          <div class="label">Følginger</div>
+          <div class="value">${state.followsCount || 0}</div>
         </div>
         <div class="stat-card">
           <div class="accent" style="background: var(--primary)"></div>
@@ -694,10 +721,10 @@ function renderList() {
         <div class="table-header">
           <span onclick="toggleSort('name')">Bruker${arrow('name')}</span>
           <span class="col-role">Brukernavn</span>
-          <span>Siste fangst</span>
+          <span onclick="toggleSort('lastCatch')">Siste fangst${arrow('lastCatch')}</span>
           <span onclick="toggleSort('catches')">Fangster${arrow('catches')}</span>
           <span class="col-weight" onclick="toggleSort('weight')">Totalvekt${arrow('weight')}</span>
-          <span onclick="toggleSort('lastCatch')">Ble med${arrow('lastCatch')}</span>
+          <span onclick="toggleSort('joined')">Ble med${arrow('joined')}</span>
         </div>
         ${filtered.length === 0 ? `<div class="empty-state">Ingen brukere funnet</div>` :
           filtered.map(u => `
@@ -742,7 +769,7 @@ function renderDetail() {
   app.innerHTML = `
     <div class="header">
       <div>
-        <h1>Fangstlogg</h1>
+        <h1>Speylog</h1>
         <div class="sub">Admin · Brukerdetaljer</div>
       </div>
       <div class="dot-live"></div>
@@ -808,7 +835,7 @@ function renderDetail() {
 
       <div class="catch-table">
         <div class="catch-table-header">
-          <h3>Fangstlogg</h3>
+          <h3>Speylog</h3>
           <span class="count">${catches.length} registreringer</span>
         </div>
         <div class="catch-cols">
@@ -861,7 +888,7 @@ function renderGroupDetail() {
   app.innerHTML = `
     <div class="header">
       <div>
-        <h1>Fangstlogg</h1>
+        <h1>Speylog</h1>
         <div class="sub">Admin · Gruppedetaljer</div>
       </div>
       <div class="dot-live"></div>
