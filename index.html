@@ -394,6 +394,7 @@
       // Følging (bokmerke)
       follow:{nb:"Følg",en:"Follow"},
       following:{nb:"Følger",en:"Following"},
+      see_profile:{nb:"Se profil",en:"View profile"},
       unfollow:{nb:"Slutt å følge",en:"Unfollow"},
       follow_stat:{nb:"Følger",en:"Following"},
       profile_following_title:{nb:"Profiler du følger",en:"Profiles you follow"},
@@ -1006,7 +1007,7 @@
             <h1 style={{fontFamily:t.titleFont,fontSize:32,fontWeight:700,color:t.text,margin:"14px 0 4px"}}>{L("app_name")}</h1>
             <p style={{fontSize:16,color:t.text,margin:"6px 0 2px",fontWeight:500,fontStyle:"italic",maxWidth:300}}>{slogan}</p>
             <p style={{fontSize:13,color:t.textMuted,margin:0}}>{L("app_tagline")}</p>
-            <p style={{fontSize:11,color:t.textMuted,margin:"6px 0 0",opacity:.6}}>v82</p>
+            <p style={{fontSize:11,color:t.textMuted,margin:"6px 0 0",opacity:.6}}>v83</p>
           </div>
           <div style={{...S.sec,width:"100%",maxWidth:340}}>
             <p style={{fontSize:15,color:t.textSec,margin:"0 0 16px",textAlign:"center",lineHeight:1.5}}>{L("auth_intro")}</p>
@@ -1356,7 +1357,7 @@
           {view==="profile"&&<ProfileView L={L} lang={lang} switchLang={switchLang} session={session} profile={profile} catches={catches} myGroups={myGroups} onGroupsChange={loadMyGroups} following={following} onViewUser={(uid)=>{if(uid&&uid!==session.user.id){setViewUserId(uid);setView("userProfile");}}} S={S} t={t} themeKey={themeKey} switchTheme={switchTheme} onBack={()=>setView("list")} onUpdate={(p)=>setProfile(p)} onSignOut={signOut}/>}
           {view==="userProfile"&&viewUserId&&<UserProfileView L={L} lang={lang} userId={viewUserId} publicFeed={publicFeed} isFollowing={isFollowing(viewUserId)} onFollow={()=>followUser(viewUserId)} onUnfollow={()=>unfollowUser(viewUserId)} S={S} t={t} onBack={()=>setView(tab==="mine"?"list":"list")} onSelect={c=>{setSelected(c);setView("detail")}} onExpandPhotos={(c,startIdx)=>setLightbox({photos:c.photos,index:startIdx||0})}/>}
           {view==="add"&&<FormView L={L} lang={lang} allRivers={allRivers} allFlies={allFlies} prefs={prefs} profile={profile} myGroups={myGroups} S={S} t={t} onSave={addCatch} onCancel={()=>setView("list")}/>}
-          {view==="detail"&&selected&&<DetailView L={L} lang={lang} c={selected} session={session} profile={profile} myGroups={myGroups} catchGroupIds={catchGroupsMap[selected.id]||[]} S={S} t={t} onBack={()=>setView("list")} onEdit={()=>{setEditing({...selected});setView("edit")}} onDelete={()=>setDelModal(selected.id)}/>}
+          {view==="detail"&&selected&&<DetailView L={L} lang={lang} c={selected} session={session} profile={profile} myGroups={myGroups} catchGroupIds={catchGroupsMap[selected.id]||[]} isFollowing={isFollowing(selected.user_id)} onFollow={()=>followUser(selected.user_id)} onUnfollow={()=>unfollowUser(selected.user_id)} onViewUser={(uid)=>{if(uid&&uid!==session.user.id){setViewUserId(uid);setView("userProfile");}}} S={S} t={t} onBack={()=>setView("list")} onEdit={()=>{setEditing({...selected});setView("edit")}} onDelete={()=>setDelModal(selected.id)}/>}
           {view==="edit"&&editing&&<FormView L={L} lang={lang} allRivers={allRivers} allFlies={allFlies} initial={editing} initialGroupIds={catchGroupsMap[editing.id]||[]} profile={profile} myGroups={myGroups} S={S} t={t} onSave={updateCatch} onCancel={()=>setView("detail")} isEdit/>}
           {delModal&&<div style={S.overlay}><div style={S.modal}>
             <p style={{fontSize:17,fontWeight:600,margin:"0 0 6px",color:t.text}}>{L("delete_catch_title")}</p>
@@ -1639,7 +1640,7 @@
           </div>
         )}
         <div style={{marginTop:30,textAlign:"center"}}>
-          <p style={{fontSize:11,color:t.textMuted,opacity:.5,margin:0}}>v82</p>
+          <p style={{fontSize:11,color:t.textMuted,opacity:.5,margin:0}}>v83</p>
         </div>
         </div>
 
@@ -2188,7 +2189,7 @@
     }
 
     // ── DetailView ──
-    function DetailView({L,lang,c,session,profile,myGroups,catchGroupIds,S,t,onBack,onEdit,onDelete}){
+    function DetailView({L,lang,c,session,profile,myGroups,catchGroupIds,isFollowing,onFollow,onUnfollow,onViewUser,S,t,onBack,onEdit,onDelete}){
       const swipeRef=useEdgeSwipeBack(onBack);
       const[lightbox,setLightbox]=useState(null);
       const[sharing,setSharing]=useState(false);
@@ -2215,9 +2216,23 @@
         </div>
         {photos.length===1&&<div style={{borderRadius:14,overflow:"hidden",marginBottom:14,aspectRatio:"3/4",cursor:"pointer"}} onClick={()=>setLightbox(0)}><img src={photos[0]} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/></div>}
         {photos.length>1&&<div className="photo-scroll" style={{marginBottom:14}}>{photos.map((p,i)=>(<div key={i} style={{width:"80%",aspectRatio:"3/4",borderRadius:14,overflow:"hidden",cursor:"pointer"}} onClick={()=>setLightbox(i)}><img src={p} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/></div>))}</div>}
-        {!isOwn&&ownerName&&<div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
-          <Avatar url={avatarUrl} name={ownerName} seed={seed} size={36} t={t}/>
-          <span style={{fontSize:15,fontWeight:600,color:t.text}}>{ownerName}</span>
+        {!isOwn&&ownerName&&<div style={{display:"flex",alignItems:"center",gap:11,marginBottom:14,padding:"4px 0"}}>
+          <div onClick={()=>onViewUser&&onViewUser(c.user_id)} style={{display:"flex",alignItems:"center",gap:11,flex:1,minWidth:0,cursor:"pointer"}}>
+            <Avatar url={avatarUrl} name={ownerName} seed={seed} size={40} t={t}/>
+            <div style={{minWidth:0}}>
+              <p style={{fontSize:16,fontWeight:600,color:t.text,margin:0,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{ownerName}</p>
+              <p style={{fontSize:12,color:t.textMuted,margin:"1px 0 0"}}>{L("see_profile")}</p>
+            </div>
+          </div>
+          {isFollowing?(
+            <button onClick={onUnfollow} style={{display:"inline-flex",alignItems:"center",gap:5,padding:"9px 14px",borderRadius:10,background:"transparent",color:t.textSec,border:`1px solid ${t.cardBorder}`,fontSize:14,fontWeight:500,fontFamily:t.font,cursor:"pointer",flexShrink:0}}>
+              {I.rel(true)} {L("following")}
+            </button>
+          ):(
+            <button onClick={onFollow} style={{display:"inline-flex",alignItems:"center",gap:5,padding:"9px 16px",borderRadius:10,background:t.primary,color:t.name==="Mørk"?"#0f1a17":"#fff",border:"none",fontSize:14,fontWeight:600,fontFamily:t.font,cursor:"pointer",flexShrink:0}}>
+              <span style={{fontSize:16,lineHeight:1}}>+</span> {L("follow")}
+            </button>
+          )}
         </div>}
         <h2 style={{fontFamily:t.titleFont,fontSize:24,fontWeight:700,color:t.text,margin:"0 0 4px"}}>{trSpecies(c.species,lang)}</h2>
         <p style={{fontSize:16,color:t.textSec,margin:"0 0 2px",fontWeight:500}}>{c.river}{c.beat?` — ${c.beat}`:""}</p>
