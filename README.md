@@ -2,7 +2,7 @@
 
 A simple, fast Progressive Web App for logging your flyfishing catches. Track what you caught, where, and when — all from your phone or browser.
 
-🌐 **Live app:** [fangstlogg.jepson.no](https://fangstlogg.jepson.no)
+🌐 **Live app:** [speylog.com](https://speylog.com)
 
 ## Features
 
@@ -12,10 +12,6 @@ A simple, fast Progressive Web App for logging your flyfishing catches. Track wh
 - 📱 **Installable** — works as a PWA on iOS, Android, and desktop
 - 🔌 **Offline-ready** — log catches even without an internet connection
 - ⚡ **Lightweight** — no frameworks, just fast vanilla web tech
-
-## Getting Started
-
-Just visit [fangstlogg.jepson.no](https://fangstlogg.jepson.no) in your browser. No account or installation required.
 
 ### Install as an app
 
