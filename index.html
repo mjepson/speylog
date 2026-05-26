@@ -1069,7 +1069,7 @@
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
             speylog.com
           </a>
-          <p style={{fontSize:11,color:t.textMuted,margin:"10px 0 0",opacity:.5}}>v93</p>
+          <p style={{fontSize:11,color:t.textMuted,margin:"10px 0 0",opacity:.5}}>v94</p>
         </div>
       );
     }
@@ -1104,6 +1104,7 @@
       const[fY,setFY]=useState("Alle");
       const[hideOwnInFeed,setHideOwnInFeed]=useState(lsGet("fl_hideOwnInFeed")||false);
       const[feedFilter,setFeedFilter]=useState(lsGet("fl_feedFilter")||"all"); // 'all' | 'public' | 'following' | group_id
+      const[feedLastSeen,setFeedLastSeen]=useState(lsGet("fl_feedLastSeen")||null);
       const[delModal,setDelModal]=useState(null);
       const[lightbox,setLightbox]=useState(null);
       const allRivers=[...new Set([...DEFAULT_RIVERS,...customRivers])].sort((a,b)=>a.localeCompare(b,"nb"));
@@ -1226,6 +1227,30 @@
         // ellers er det en gruppe-id
         if(!myGroups.some(g=>g.id===feedFilter)){setFeedFilter("all");lsSet("fl_feedFilter","all");}
       },[feedFilter,following,myGroups]);
+
+      // Antall nye fangster i feeden siden sist brukeren åpnet Felles-fanen.
+      // Bruker created_at hvis den finnes (når raden ble lagret), ellers date.
+      // Egne fangster teller ikke — du vet at de er der.
+      // feedLastSeen===null (helt ny bruker / aldri besøkt Felles) => ingen badge,
+      // så man ikke møtes av «42 nye» på første åpning.
+      const feedNewCount=(()=>{
+        if(!feedLastSeen)return 0;
+        const seen=new Date(feedLastSeen).getTime();
+        return publicFeed.filter(c=>{
+          if(c.user_id===session.user.id)return false;
+          const ts=new Date(c.created_at||c.date).getTime();
+          return ts>seen;
+        }).length;
+      })();
+
+      // Når brukeren går til Felles-fanen: marker alt som sett (nullstiller badge).
+      useEffect(()=>{
+        if(tab==="feed"){
+          const now=new Date().toISOString();
+          setFeedLastSeen(now);
+          lsSet("fl_feedLastSeen",now);
+        }
+      },[tab]);
 
       const[inviteModal,setInviteModal]=useState(null); // {code, group} eller null
       useEffect(()=>{loadCatches();},[]);
@@ -1425,7 +1450,7 @@
 
       return (
         <div style={S.app}>
-          {view==="list"&&<ListView L={L} lang={lang} catches={filtered} total={catches.length} fp={fp} S={S} t={t} tab={tab} setTab={setTab} viewMode={viewMode} switchViewMode={switchViewMode} hideOwnInFeed={hideOwnInFeed} toggleHideOwnInFeed={toggleHideOwnInFeed} myGroups={myGroups} following={following} feedFilter={feedFilter} setFeedFilter={(v)=>{setFeedFilter(v);lsSet("fl_feedFilter",v);}} session={session} profile={profile} initialScrollY={listScrollY} onSelect={c=>{setListScrollY(window.scrollY);setSelected(c);setView("detail")}} onViewUser={(uid)=>{if(uid&&uid!==session.user.id){setViewUserId(uid);setView("userProfile");}}} onAdd={()=>setView("add")} onStats={()=>setView("stats")} onProfile={()=>setView("profile")} onRefresh={loadCatches} onExpandPhotos={(c,startIdx)=>setLightbox({photos:c.photos,index:startIdx||0})}/>}
+          {view==="list"&&<ListView L={L} lang={lang} catches={filtered} total={catches.length} fp={fp} S={S} t={t} tab={tab} setTab={setTab} viewMode={viewMode} switchViewMode={switchViewMode} hideOwnInFeed={hideOwnInFeed} toggleHideOwnInFeed={toggleHideOwnInFeed} myGroups={myGroups} following={following} feedFilter={feedFilter} setFeedFilter={(v)=>{setFeedFilter(v);lsSet("fl_feedFilter",v);}} feedNewCount={feedNewCount} session={session} profile={profile} initialScrollY={listScrollY} onSelect={c=>{setListScrollY(window.scrollY);setSelected(c);setView("detail")}} onViewUser={(uid)=>{if(uid&&uid!==session.user.id){setViewUserId(uid);setView("userProfile");}}} onAdd={()=>setView("add")} onStats={()=>setView("stats")} onProfile={()=>setView("profile")} onRefresh={loadCatches} onExpandPhotos={(c,startIdx)=>setLightbox({photos:c.photos,index:startIdx||0})}/>}
           {view==="stats"&&<StatsView L={L} lang={lang} catches={catches} fp={fp} S={S} t={t} onBack={()=>setView("list")}/>}
           {view==="profile"&&<ProfileView L={L} lang={lang} switchLang={switchLang} session={session} profile={profile} catches={catches} myGroups={myGroups} onGroupsChange={loadMyGroups} following={following} onViewUser={(uid)=>{if(uid&&uid!==session.user.id){setViewUserId(uid);setView("userProfile");}}} S={S} t={t} themeKey={themeKey} switchTheme={switchTheme} onBack={()=>setView("list")} onUpdate={(p)=>setProfile(p)} onSignOut={signOut}/>}
           {view==="userProfile"&&viewUserId&&<UserProfileView L={L} lang={lang} userId={viewUserId} publicFeed={publicFeed} isFollowing={isFollowing(viewUserId)} onFollow={()=>followUser(viewUserId)} onUnfollow={()=>unfollowUser(viewUserId)} S={S} t={t} onBack={()=>setView(tab==="mine"?"list":"list")} onSelect={c=>{setSelected(c);setView("detail")}} onExpandPhotos={(c,startIdx)=>setLightbox({photos:c.photos,index:startIdx||0})}/>}
@@ -1593,7 +1618,7 @@
     }
 
     // ── ListView ──
-    function ListView({L,lang,catches,total,fp,S,t,tab,setTab,viewMode,switchViewMode,hideOwnInFeed,toggleHideOwnInFeed,myGroups,following,feedFilter,setFeedFilter,session,profile,initialScrollY,onSelect,onViewUser,onAdd,onStats,onProfile,onRefresh,onExpandPhotos}){
+    function ListView({L,lang,catches,total,fp,S,t,tab,setTab,viewMode,switchViewMode,hideOwnInFeed,toggleHideOwnInFeed,myGroups,following,feedFilter,setFeedFilter,feedNewCount,session,profile,initialScrollY,onSelect,onViewUser,onAdd,onStats,onProfile,onRefresh,onExpandPhotos}){
       const sorted=[...catches].sort((a,b)=>new Date(b.date)-new Date(a.date));
       const[filterModalOpen,setFilterModalOpen]=useState(false);
       const[welcomeDismissed,setWelcomeDismissed]=useState(lsGet("fl_dismissedWelcome")||false);
@@ -1664,7 +1689,12 @@
         <div style={{display:"flex",gap:8,marginBottom:14,alignItems:"center"}}>
           <div style={{...S.tabBar,marginBottom:0,flex:1}}>
             <button style={tab==="mine"?S.tabActive:S.tab} onClick={()=>setTab("mine")}>{L("tab_mine")}</button>
-            <button style={tab==="feed"?S.tabActive:S.tab} onClick={()=>setTab("feed")}>{L("tab_feed")}</button>
+            <button style={{...(tab==="feed"?S.tabActive:S.tab),position:"relative"}} onClick={()=>setTab("feed")}>
+              {L("tab_feed")}
+              {tab!=="feed"&&feedNewCount>0&&(
+                <span style={{position:"absolute",top:4,right:8,minWidth:17,height:17,padding:"0 5px",borderRadius:9,background:t.primary,color:t.name==="Mørk"?"#0f1a17":"#fff",fontSize:11,fontWeight:700,lineHeight:"17px",textAlign:"center",boxShadow:`0 0 0 2px ${t.chipBg}`}}>{feedNewCount>9?"9+":feedNewCount}</span>
+              )}
+            </button>
           </div>
           <button onClick={()=>setFilterModalOpen(true)} style={{position:"relative",width:42,height:42,borderRadius:11,background:hasActiveFilter?t.primaryLight:t.cardBg,color:hasActiveFilter?t.primary:t.primary,border:`1px solid ${hasActiveFilter?t.primary:t.cardBorder}`,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",flexShrink:0}}>
             {I.filter()}
@@ -1718,7 +1748,7 @@
           </div>
         )}
         <div style={{marginTop:30,textAlign:"center"}}>
-          <p style={{fontSize:11,color:t.textMuted,opacity:.5,margin:0}}>v93</p>
+          <p style={{fontSize:11,color:t.textMuted,opacity:.5,margin:0}}>v94</p>
         </div>
         </div>
 
