@@ -18,7 +18,7 @@
   <link rel="manifest" href="/manifest.json">
   <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
   <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192x192.png">
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&family=Playfair+Display:wght@500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&family=Playfair+Display:wght@500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
   <style>
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
     html,body,#root{height:100%}
@@ -46,6 +46,10 @@
     .photo-scroll>div{scroll-snap-align:start;flex-shrink:0}
     .spinner{width:32px;height:32px;border:3px solid #d4ddd4;border-top-color:#1a5c3a;border-radius:50%;animation:spin 1s linear infinite}
     @keyframes spin{to{transform:rotate(360deg)}}
+    .spey-press{transition:transform .14s cubic-bezier(.4,1.3,.5,1),filter .14s;-webkit-tap-highlight-color:transparent}
+    .spey-press:active{transform:scale(.985)}
+    @keyframes speySheetIn{from{transform:translateY(101%)}to{transform:translateY(0)}}
+    @keyframes speyFadeIn{from{opacity:0}to{opacity:1}}
     /* Date/time-inputene er skjult bak en custom display-div (se DateTimeInput-komponenten),
        men vi nuker fortsatt iOS sin standard appearance for sikkerhets skyld. */
     input[type="date"],input[type="time"]{
@@ -493,10 +497,12 @@
     }
 
     // ── Themes ──
+    // Two green themes. Each carries a `dark` flag, a `primaryInk` (text colour
+    // for on-primary surfaces), plus extended tokens used by the redesigned
+    // catch cards: cardElev, borderSoft, primaryDim, chipBorder, onPhoto, glow, mono.
     const THEMES={
-      forest:{name:"Skog",font:"'DM Sans', sans-serif",titleFont:"'Playfair Display', serif",bg:"linear-gradient(180deg,#f6f9f4,#eef2eb)",cardBg:"#fff",cardBorder:"#e8ede6",primary:"#1a5c3a",primaryLight:"#eef7f0",accent:"#2d7a4f",text:"#1a3a2a",textSec:"#5a7a5c",textMuted:"#8a9e8b",inputBg:"#fff",inputBorder:"#d4ddd4",chipBg:"#f0f5ee",chipText:"#4a6a4c",filterBg:"#fff",danger:"#dc2626",released:"#16a34a",kept:"#b91c1c",shadow:"0 1px 3px rgba(0,0,0,.05)",btnShadow:"0 2px 8px rgba(26,92,58,.3)"},
-      dark:{name:"Mørk",font:"'Outfit', sans-serif",titleFont:"'Outfit', sans-serif",bg:"linear-gradient(180deg,#0f1a17,#162320)",cardBg:"#1c2e28",cardBorder:"#2a4038",primary:"#5ee6a0",primaryLight:"#1c3a2e",accent:"#5ee6a0",text:"#e8f0ec",textSec:"#9bb5a8",textMuted:"#5f7d6e",inputBg:"#1c2e28",inputBorder:"#2a4038",chipBg:"#243832",chipText:"#8fc4a5",filterBg:"#1c2e28",danger:"#f87171",released:"#5ee6a0",kept:"#f87171",shadow:"0 2px 6px rgba(0,0,0,.3)",btnShadow:"0 2px 12px rgba(94,230,160,.2)"},
-      coastal:{name:"Kyst",font:"'DM Sans', sans-serif",titleFont:"'Source Serif 4', serif",bg:"linear-gradient(180deg,#faf8f4,#f0ece4)",cardBg:"#fff",cardBorder:"#e6dfd5",primary:"#2563a8",primaryLight:"#e8f0fa",accent:"#1d4f7a",text:"#1a2a3a",textSec:"#5a6a7a",textMuted:"#8a96a2",inputBg:"#fff",inputBorder:"#d4d0c8",chipBg:"#eef2f7",chipText:"#3a5a7a",filterBg:"#fff",danger:"#dc2626",released:"#16a34a",kept:"#b91c1c",shadow:"0 1px 4px rgba(0,0,0,.06)",btnShadow:"0 2px 8px rgba(37,99,168,.25)"},
+      dark:{name:{nb:"Mørk",en:"Dark"},dark:true,font:"'Outfit', sans-serif",titleFont:"'Outfit', sans-serif",mono:"'JetBrains Mono', monospace",bg:"radial-gradient(120% 80% at 50% -10%, #16241f 0%, #0d1714 55%, #0a1310 100%)",solidBg:"#0a1310",cardBg:"#16241f",cardElev:"#1b2d26",cardBorder:"#273a32",borderSoft:"#1f3029",primary:"#5ee6a0",primaryLight:"#163328",primaryDim:"#1a3a2c",primaryInk:"#0a1310",accent:"#5ee6a0",text:"#e8f0ec",textSec:"#9bb5a8",textMuted:"#5f7d6e",inputBg:"#16241f",inputBorder:"#273a32",chipBg:"#1d2e28",chipBorder:"#2a4038",chipText:"#bcd6c8",filterBg:"#16241f",danger:"#f87171",released:"#5ee6a0",kept:"#f8917e",onPhoto:"#ffffff",glow:"rgba(94,230,160,.30)",shadow:"0 6px 20px rgba(0,0,0,.28)",btnShadow:"0 4px 18px rgba(94,230,160,.25)"},
+      daylight:{name:{nb:"Dagslys",en:"Daylight"},dark:false,font:"'Outfit', sans-serif",titleFont:"'Outfit', sans-serif",mono:"'JetBrains Mono', monospace",bg:"linear-gradient(180deg,#f6f9f4,#eef2eb)",solidBg:"#f6f9f4",cardBg:"#ffffff",cardElev:"#f3f7f1",cardBorder:"#e2eadf",borderSoft:"#edf2ea",primary:"#1a8a52",primaryLight:"#e2f3e8",primaryDim:"#e2f3e8",primaryInk:"#ffffff",accent:"#1a8a52",text:"#16271d",textSec:"#5a7a64",textMuted:"#92a596",inputBg:"#ffffff",inputBorder:"#d9e4d6",chipBg:"#eef5ee",chipBorder:"#dde8dd",chipText:"#3f6149",filterBg:"#ffffff",danger:"#c0492f",released:"#1a8a52",kept:"#c0492f",onPhoto:"#ffffff",glow:"rgba(26,138,82,.22)",shadow:"0 1px 3px rgba(0,0,0,.06)",btnShadow:"0 4px 16px rgba(26,138,82,.22)"},
     };
 
     // ── Icons ──
@@ -519,6 +525,8 @@
       lock:()=><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>,
       list:()=><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>,
       grid:()=><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="14" x2="21" y2="14"/></svg>,
+      gallery:()=><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="9" r="1.4"/><path d="M3 16l4-3 4 3 3-2.5 6 4.5"/></svg>,
+      photos:(s=14)=><svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="5" width="18" height="14" rx="2.5"/><circle cx="8.5" cy="10" r="1.3"/><path d="M3 16l5-4 4 3 4-4 5 5"/></svg>,
       expand:()=><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>,
       share:()=><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>,
       filter:()=><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>,
@@ -755,8 +763,8 @@
 
     // ── AppLogo: themed SVG logo (fly fishing lure) ──
     function AppLogo({size=96,t}){
-      const isDark=t.name==="Mørk";
-      const bg=isDark?"#162320":t.name==="Kyst"?"#f0ece4":"#eef2eb";
+      const isDark=t.dark;
+      const bg=isDark?"#162320":"#eef2eb";
       const fg=t.primary;
       const radius=Math.round(size*0.22);
       return (
@@ -888,7 +896,7 @@
         topBar:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10},
         backBtn:{display:"flex",alignItems:"center",justifyContent:"center",background:"none",border:"none",color:t.primary,cursor:"pointer",padding:8,marginLeft:-8},
         smBtn:{width:34,height:34,borderRadius:17,background:t.cardBg,color:t.primary,border:`1px solid ${t.cardBorder}`,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"},
-        circPri:{width:44,height:44,borderRadius:22,background:t.primary,color:t.name==="Mørk"?"#0f1a17":"#fff",border:"none",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",boxShadow:t.btnShadow},
+        circPri:{width:44,height:44,borderRadius:22,background:t.primary,color:t.primaryInk,border:"none",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",boxShadow:t.btnShadow},
         circBtn:{width:44,height:44,borderRadius:22,background:t.cardBg,color:t.primary,border:`1px solid ${t.cardBorder}`,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"},
         sel:{flex:1,minWidth:90,padding:"8px 10px",borderRadius:10,border:`1px solid ${t.inputBorder}`,background:t.filterBg,fontSize:14,fontFamily:t.font,color:t.text},
         card:{display:"flex",gap:10,background:t.cardBg,borderRadius:14,padding:10,boxShadow:t.shadow,cursor:"pointer",border:`1px solid ${t.cardBorder}`},
@@ -900,8 +908,8 @@
         inp:{width:"100%",padding:"11px 12px",borderRadius:11,border:`1px solid ${t.inputBorder}`,fontSize:16,fontFamily:t.font,background:t.inputBg,color:t.text,boxSizing:"border-box",outline:"none"},
         togOff:{padding:"10px 24px",borderRadius:10,border:`1px solid ${t.inputBorder}`,background:t.cardBg,fontSize:15,fontFamily:t.font,cursor:"pointer",color:t.textMuted},
         togOn:{padding:"10px 24px",borderRadius:10,border:`2px solid ${t.primary}`,background:t.primaryLight,fontSize:15,fontFamily:t.font,cursor:"pointer",color:t.primary,fontWeight:600},
-        btnPriFull:{width:"100%",padding:"14px 20px",borderRadius:12,background:t.primary,color:t.name==="Mørk"?"#0f1a17":"#fff",border:"none",fontSize:16,fontWeight:600,fontFamily:t.font,cursor:"pointer",boxShadow:t.btnShadow},
-        btnPri:{padding:"11px 18px",borderRadius:11,background:t.primary,color:t.name==="Mørk"?"#0f1a17":"#fff",border:"none",fontSize:15,fontWeight:600,fontFamily:t.font,cursor:"pointer",boxShadow:t.btnShadow},
+        btnPriFull:{width:"100%",padding:"14px 20px",borderRadius:12,background:t.primary,color:t.primaryInk,border:"none",fontSize:16,fontWeight:600,fontFamily:t.font,cursor:"pointer",boxShadow:t.btnShadow},
+        btnPri:{padding:"11px 18px",borderRadius:11,background:t.primary,color:t.primaryInk,border:"none",fontSize:15,fontWeight:600,fontFamily:t.font,cursor:"pointer",boxShadow:t.btnShadow},
         btnSec:{padding:"11px 18px",borderRadius:11,background:t.cardBg,color:t.primary,border:`1px solid ${t.cardBorder}`,fontSize:15,fontWeight:500,fontFamily:t.font,cursor:"pointer"},
         btnDng:{padding:"11px 18px",borderRadius:11,background:t.danger,color:"#fff",border:"none",fontSize:15,fontWeight:600,fontFamily:t.font,cursor:"pointer"},
         overlay:{position:"fixed",inset:0,background:"rgba(0,0,0,.5)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:100,padding:20},
@@ -920,9 +928,9 @@
     function App(){
       const[session,setSession]=useState(null);
       const[loading,setLoading]=useState(true);
-      const[themeKey,setThemeKey]=useState(lsGet("fl_theme")||"dark");
+      const[themeKey,setThemeKey]=useState(()=>{const s=lsGet("fl_theme");return THEMES[s]?s:"dark";});
       const[lang,setLang]=useState(detectLang());
-      const t=THEMES[themeKey];
+      const t=THEMES[themeKey]||THEMES.dark;
       const S=makeStyles(t);
       const L=(key,...args)=>{
         const entry=STRINGS[key];
@@ -933,7 +941,7 @@
       };
 
       useEffect(()=>{
-        const bgColor=themeKey==="dark"?"#0f1a17":themeKey==="coastal"?"#faf8f4":"#f6f9f4";
+        const bgColor=(THEMES[themeKey]||THEMES.dark).solidBg;
         document.body.style.background=bgColor;
         document.documentElement.style.background=bgColor;
         const meta=document.querySelector('meta[name="theme-color"]');
@@ -1069,7 +1077,7 @@
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
             speylog.com
           </a>
-          <p style={{fontSize:11,color:t.textMuted,margin:"10px 0 0",opacity:.5}}>v94</p>
+          <p style={{fontSize:11,color:t.textMuted,margin:"10px 0 0",opacity:.5}}>v95</p>
         </div>
       );
     }
@@ -1692,7 +1700,7 @@
             <button style={{...(tab==="feed"?S.tabActive:S.tab),position:"relative"}} onClick={()=>setTab("feed")}>
               {L("tab_feed")}
               {tab!=="feed"&&feedNewCount>0&&(
-                <span style={{position:"absolute",top:4,right:8,minWidth:17,height:17,padding:"0 5px",borderRadius:9,background:t.primary,color:t.name==="Mørk"?"#0f1a17":"#fff",fontSize:11,fontWeight:700,lineHeight:"17px",textAlign:"center",boxShadow:`0 0 0 2px ${t.chipBg}`}}>{feedNewCount>9?"9+":feedNewCount}</span>
+                <span style={{position:"absolute",top:4,right:8,minWidth:17,height:17,padding:"0 5px",borderRadius:9,background:t.primary,color:t.primaryInk,fontSize:11,fontWeight:700,lineHeight:"17px",textAlign:"center",boxShadow:`0 0 0 2px ${t.chipBg}`}}>{feedNewCount>9?"9+":feedNewCount}</span>
               )}
             </button>
           </div>
@@ -1700,8 +1708,8 @@
             {I.filter()}
             {hasActiveFilter&&<span style={{position:"absolute",top:6,right:6,width:7,height:7,borderRadius:4,background:t.primary,boxShadow:`0 0 0 2px ${t.cardBg}`}}/>}
           </button>
-          <button onClick={()=>switchViewMode(viewMode==="compact"?"large":"compact")} style={{width:42,height:42,borderRadius:11,background:t.cardBg,color:t.primary,border:`1px solid ${t.cardBorder}`,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",flexShrink:0}}>
-            {viewMode==="compact"?I.grid():I.list()}
+          <button onClick={()=>switchViewMode({compact:"large",large:"gallery",gallery:"compact"}[viewMode]||"large")} style={{width:42,height:42,borderRadius:11,background:t.cardBg,color:t.primary,border:`1px solid ${t.cardBorder}`,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",flexShrink:0}} title={viewMode}>
+            {viewMode==="compact"?I.list():viewMode==="gallery"?I.gallery():I.grid()}
           </button>
         </div>
         {tab==="feed"&&(myGroups.length>0||(following&&following.length>0))&&(
@@ -1739,24 +1747,29 @@
             </div>
           </div>
         )}
-        {sorted.length===0?(<div style={{textAlign:"center",padding:"50px 20px"}}>{I.fish(44,t.textMuted)}<p style={{marginTop:10,color:t.textMuted,fontSize:15}}>{tab==="mine"?(total===0?L("empty_no_catches_yet"):L("empty_no_results")):L("empty_no_feed")}</p></div>):(
-          <div style={{display:"flex",flexDirection:"column",gap:viewMode==="large"?14:8}}>
-            {sorted.map(c=>viewMode==="large"
-              ? <CatchCardLarge key={c.id} L={L} lang={lang} c={c} S={S} t={t} showOwner={tab==="feed"} currentUserId={session.user.id} onClick={()=>onSelect(c)} onViewUser={onViewUser} onExpandPhotos={(idx)=>onExpandPhotos(c,idx)}/>
-              : <CatchCard key={c.id} L={L} lang={lang} c={c} S={S} t={t} showOwner={tab==="feed"} currentUserId={session.user.id} onClick={()=>onSelect(c)} onViewUser={onViewUser}/>
+        {sorted.length===0?(<div style={{textAlign:"center",padding:"50px 20px"}}>{I.fish(44,t.textMuted)}<p style={{marginTop:10,color:t.textMuted,fontSize:15}}>{tab==="mine"?(total===0?L("empty_no_catches_yet"):L("empty_no_results")):L("empty_no_feed")}</p></div>):viewMode==="compact"?(
+          <div style={{background:t.cardBg,border:`1px solid ${t.cardBorder}`,borderRadius:16,padding:"2px 12px",boxShadow:t.shadow}}>
+            {sorted.map((c,i)=><CatchCard key={c.id} L={L} lang={lang} c={c} S={S} t={t} showOwner={tab==="feed"} currentUserId={session.user.id} onClick={()=>onSelect(c)} onViewUser={onViewUser} last={i===sorted.length-1}/>)}
+          </div>
+        ):(
+          <div style={{display:"flex",flexDirection:"column",gap:viewMode==="gallery"?16:14}}>
+            {sorted.map(c=>viewMode==="gallery"
+              ? <CatchCardGallery key={c.id} L={L} lang={lang} c={c} S={S} t={t} showOwner={tab==="feed"} currentUserId={session.user.id} onClick={()=>onSelect(c)} onViewUser={onViewUser} onExpandPhotos={(idx)=>onExpandPhotos(c,idx)}/>
+              : <CatchCardLarge key={c.id} L={L} lang={lang} c={c} S={S} t={t} showOwner={tab==="feed"} currentUserId={session.user.id} onClick={()=>onSelect(c)} onViewUser={onViewUser} onExpandPhotos={(idx)=>onExpandPhotos(c,idx)}/>
             )}
           </div>
         )}
         <div style={{marginTop:30,textAlign:"center"}}>
-          <p style={{fontSize:11,color:t.textMuted,opacity:.5,margin:0}}>v94</p>
+          <p style={{fontSize:11,color:t.textMuted,opacity:.5,margin:0}}>v95</p>
         </div>
         </div>
 
-        {filterModalOpen&&<div style={S.overlay} onClick={()=>setFilterModalOpen(false)}>
-          <div style={{...S.modal,maxWidth:340,padding:"20px 18px"}} onClick={e=>e.stopPropagation()}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
-              <p style={{fontSize:17,fontWeight:600,margin:0,color:t.text}}>{L("filter_title")}</p>
-              <button onClick={()=>setFilterModalOpen(false)} style={{background:"none",border:"none",color:t.textMuted,cursor:"pointer",display:"flex",padding:4}}>{I.x()}</button>
+        {filterModalOpen&&<div style={{...S.overlay,alignItems:"flex-end",padding:0,animation:"speyFadeIn .25s ease"}} onClick={()=>setFilterModalOpen(false)}>
+          <div style={{...S.modal,maxWidth:"none",width:"100%",borderRadius:"22px 22px 0 0",padding:"10px 18px calc(20px + env(safe-area-inset-bottom))",maxHeight:"86vh",overflowY:"auto",boxShadow:"0 -10px 40px rgba(0,0,0,.4)",animation:"speySheetIn .32s cubic-bezier(.32,.72,.3,1)"}} onClick={e=>e.stopPropagation()}>
+            <div style={{width:38,height:4,borderRadius:2,background:t.cardBorder,margin:"0 auto 14px"}}/>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+              <p style={{fontSize:20,fontWeight:700,margin:0,color:t.text,fontFamily:t.titleFont,letterSpacing:"-0.01em"}}>{L("filter_title")}</p>
+              <button onClick={()=>setFilterModalOpen(false)} style={{background:t.cardElev,border:`1px solid ${t.cardBorder}`,color:t.textSec,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",width:32,height:32,borderRadius:16}}>{I.x()}</button>
             </div>
             <Lbl t={L("filter_river")} th={t}/>
             <select style={S.inp} value={fp.fR} onChange={e=>fp.setFR(e.target.value)}>
@@ -1804,50 +1817,68 @@
       </div>);
     }
 
-    function CatchCard({L,lang,c,S,t,showOwner,currentUserId,onClick,onViewUser}){
-      const photos=c.photos||[];
-      const thumb=photos.length>0?photos[0]:null;
+    // ── Shared card helpers (redesign) ──
+    const SPECIES_COLOR={"Sjøørret":"#9ab8d6","Brunørret":"#cf9f5e","Regnbueørret":"#d68aa6"};
+    function speciesColor(sp,t){return SPECIES_COLOR[sp]||t.primary;}
+    function flyLabel(c,lang){return c.equipment==="Flue"&&c.fly_pattern?`${trEquipment(c.equipment,lang)} · ${c.fly_pattern}`:trEquipment(c.equipment,lang);}
+    function shortDate(iso,lang){const d=new Date(iso);return (lang==="en"?MONTHS_EN:MONTHS_NB)[d.getMonth()]+" "+d.getDate();}
+    function catchTitle(c,lang){return `${trSpecies(c.species,lang)} · ${c.river}${c.beat?` · ${c.beat}`:""}`;}
+    // metric chip — mono numerals; `onPhoto` switches to a translucent glass style
+    function Metric({value,unit,t,onPhoto}){
+      const base=onPhoto
+        ?{background:"rgba(10,18,15,.42)",border:"1px solid rgba(255,255,255,.16)",color:"#fff",backdropFilter:"blur(8px)"}
+        :{background:t.chipBg,border:`1px solid ${t.chipBorder}`,color:t.chipText};
+      return <span style={{...base,display:"inline-flex",alignItems:"center",gap:5,padding:"4px 9px",borderRadius:8,whiteSpace:"nowrap",lineHeight:1.1}}>
+        <span style={{fontFamily:t.mono,fontWeight:700,letterSpacing:"-0.03em",fontSize:12}}>{value}</span>
+        <span style={{opacity:.62,fontWeight:600,fontSize:11}}>{unit}</span>
+      </span>;
+    }
+    function TextChip({children,t,onPhoto}){
+      const base=onPhoto
+        ?{background:"rgba(10,18,15,.42)",border:"1px solid rgba(255,255,255,.16)",color:"#fff",backdropFilter:"blur(8px)"}
+        :{background:t.chipBg,border:`1px solid ${t.chipBorder}`,color:t.chipText};
+      return <span style={{...base,display:"inline-flex",alignItems:"center",fontSize:12.5,fontWeight:600,padding:"4px 9px",borderRadius:8,whiteSpace:"nowrap",lineHeight:1.1}}>{children}</span>;
+    }
+    function StatusTag({released,t,onPhoto,L}){
+      const col=onPhoto?(released?"#aef4cd":"#ffc4b6"):(released?t.released:t.kept);
+      return <span style={{display:"inline-flex",alignItems:"center",gap:4,fontSize:12.5,fontWeight:700,color:col,textShadow:onPhoto?"0 1px 2px rgba(0,0,0,.5)":"none"}}>{I.rel(released)}{released?"C&R":L("detail_kept")}</span>;
+    }
+    // visibility — plain (on card bg) vs glass (on photo)
+    function VisInline({vis,t,L}){
+      if(vis==="public")return <span style={{fontSize:12,fontWeight:600,color:t.textSec,display:"inline-flex",alignItems:"center",gap:5}}>{I.world()} {L("visibility_public_short")}</span>;
+      if(vis==="groups")return <span style={{fontSize:12,fontWeight:600,color:t.textSec,display:"inline-flex",alignItems:"center",gap:5}}>{I.lock()} {L("visibility_groups_short")}</span>;
+      return <span/>;
+    }
+    function VisGlass({vis,t,L}){
+      const base={fontSize:11.5,color:"#fff",display:"inline-flex",alignItems:"center",gap:5,background:"rgba(10,18,15,.42)",border:"1px solid rgba(255,255,255,.16)",padding:"3px 9px",borderRadius:20,backdropFilter:"blur(8px)",fontWeight:600};
+      if(vis==="public")return <span style={base}>{I.world()} {L("visibility_public_short")}</span>;
+      if(vis==="groups")return <span style={base}>{I.lock()} {L("visibility_groups_short")}</span>;
+      return <span/>;
+    }
+
+    function CatchCard({L,lang,c,S,t,showOwner,currentUserId,onClick,onViewUser,last}){
       const isOwn=c.user_id===currentUserId;
       const ownerName=c.profiles?.display_name||c.profiles?.username||"";
-      const avatarUrl=c.profiles?.avatar_url;
       const seed=c.profiles?.username||c.user_id;
-      const displayedName=isOwn?(ownerName?`${ownerName} ${L("you_suffix")}`:L("you")):ownerName;
-      return(<div style={S.card} onClick={onClick}>
-        {thumb?<LazyImage src={thumb} style={S.thumb}/>:<div style={S.thumbNone}>{I.fish(24,t.textMuted)}</div>}
+      const avatarUrl=c.profiles?.avatar_url;
+      const displayedName=isOwn?L("you"):ownerName;
+      const hasSize=c.weight!=null||c.length!=null;
+      return(<div onClick={onClick} className="spey-press" style={{display:"flex",alignItems:"center",gap:12,cursor:"pointer",padding:"11px 4px",borderBottom:last?"none":`1px solid ${t.borderSoft}`}}>
+        <span style={{width:3,alignSelf:"stretch",minHeight:34,borderRadius:3,background:speciesColor(c.species,t),flexShrink:0}}/>
+        {showOwner&&<Avatar url={avatarUrl} name={ownerName} seed={seed} size={30} t={t}/>}
         <div style={{flex:1,minWidth:0}}>
-          {showOwner?(
-            <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:3}}>
-              {(()=>{
-                const clickable=onViewUser&&c.user_id!==currentUserId;
-                const ownerEl=(
-                  <div style={{display:"flex",alignItems:"center",gap:7,minWidth:0,flex:1,cursor:clickable?"pointer":"default"}} onClick={clickable?(e)=>{e.stopPropagation();onViewUser(c.user_id);}:undefined}>
-                    <Avatar url={avatarUrl} name={ownerName} seed={seed} size={26} t={t}/>
-                    <span style={{fontSize:14,fontWeight:600,color:t.text,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",flex:1}}>{displayedName}</span>
-                  </div>
-                );
-                return ownerEl;
-              })()}
-              <span style={{fontSize:12,color:t.textMuted,flexShrink:0}}>{fmtDateLang(c.date,lang)}</span>
-            </div>
-          ):(
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:3}}>
-              <span style={{fontSize:12,color:t.textMuted}}>{fmtDateLang(c.date,lang)}</span>
-              {(()=>{
-                const vis=c.visibility||(c.is_public?"public":"private");
-                if(vis==="public")return <span style={{fontSize:11,color:t.primary,display:"inline-flex",alignItems:"center",gap:3}}>{I.world()} {L("visibility_public_short")}</span>;
-                if(vis==="groups")return <span style={{fontSize:11,color:t.primary,display:"inline-flex",alignItems:"center",gap:3}}>● {L("visibility_groups_short")}</span>;
-                return null;
-              })()}
-            </div>
-          )}
-          <div style={{fontSize:14,color:t.textSec,marginBottom:6,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{trSpecies(c.species,lang)} · {c.river}{c.beat?` · ${c.beat}`:""}</div>
-          <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
-            {c.weight!=null&&<span style={S.chip}>{c.weight} kg</span>}
-            {c.length!=null&&<span style={S.chip}>{c.length} cm</span>}
-            <span style={S.chip}>{c.equipment==="Flue"&&c.fly_pattern?`${trEquipment(c.equipment,lang)} · ${c.fly_pattern}`:trEquipment(c.equipment,lang)}</span>
-            <span style={{...S.chip,display:"inline-flex",alignItems:"center",gap:3,color:c.released?t.released:t.kept}}>{I.rel(c.released)}{c.released?"C&R":L("detail_kept")}</span>
-            {photos.length>1&&<span style={S.chip}>{L("pictures_count",photos.length)}</span>}
+          <div style={{fontSize:14.5,fontWeight:700,color:t.text,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{catchTitle(c,lang)}</div>
+          <div style={{display:"flex",alignItems:"center",gap:8,marginTop:3,fontSize:12.5,color:t.textSec,fontFamily:t.mono,letterSpacing:"-0.02em",whiteSpace:"nowrap",overflow:"hidden"}}>
+            {showOwner&&<span style={{color:t.textMuted,fontFamily:t.font,maxWidth:120,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{displayedName}</span>}
+            {showOwner&&<span style={{color:t.textMuted,flexShrink:0}}>·</span>}
+            {c.weight!=null&&<span style={{flexShrink:0}}>{c.weight} kg</span>}
+            {c.length!=null&&<span style={{color:t.textMuted,flexShrink:0}}>{c.length} cm</span>}
+            {!hasSize&&<span style={{color:t.textMuted,fontFamily:t.font,flexShrink:1,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{flyLabel(c,lang)}</span>}
           </div>
+        </div>
+        <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:5,flexShrink:0}}>
+          <span style={{fontSize:12,color:t.textMuted,fontFamily:t.mono}}>{shortDate(c.date,lang)}</span>
+          <StatusTag released={c.released} t={t} L={L}/>
         </div>
       </div>);
     }
@@ -1858,52 +1889,95 @@
       const ownerName=c.profiles?.display_name||c.profiles?.username||"";
       const avatarUrl=c.profiles?.avatar_url;
       const seed=c.profiles?.username||c.user_id;
-      const displayedName=isOwn?(ownerName?`${ownerName} ${L("you_suffix")}`:L("you")):ownerName;
+      const displayedName=isOwn?L("you"):ownerName;
       const hasPhotos=photos.length>0;
+      const vis=c.visibility||(c.is_public?"public":"private");
 
-      const chips=(
-        <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
-          {c.weight!=null&&<span style={{...S.chip,background:"rgba(255,255,255,.22)",color:"#fff",backdropFilter:"blur(8px)",fontWeight:600}}>{c.weight} kg</span>}
-          {c.length!=null&&<span style={{...S.chip,background:"rgba(255,255,255,.22)",color:"#fff",backdropFilter:"blur(8px)",fontWeight:600}}>{c.length} cm</span>}
-          <span style={{...S.chip,background:"rgba(255,255,255,.22)",color:"#fff",backdropFilter:"blur(8px)",fontWeight:600}}>{c.equipment==="Flue"&&c.fly_pattern?`${trEquipment(c.equipment,lang)} · ${c.fly_pattern}`:trEquipment(c.equipment,lang)}</span>
-          <span style={{...S.chip,display:"inline-flex",alignItems:"center",gap:3,background:"rgba(255,255,255,.22)",color:c.released?"#a7f3d0":"#fecaca",backdropFilter:"blur(8px)",fontWeight:600}}>{I.rel(c.released)}{c.released?"C&R":L("detail_kept")}</span>
+      // ── photo-less → flat logbook card (no empty photo box) ──
+      if(!hasPhotos){
+        return(<div onClick={onClick} className="spey-press" style={{position:"relative",overflow:"hidden",background:t.cardBg,border:`1px solid ${t.cardBorder}`,borderRadius:18,padding:"14px 16px 15px",cursor:"pointer",boxShadow:t.shadow}}>
+          <span style={{position:"absolute",left:0,top:14,bottom:14,width:3,borderRadius:"0 3px 3px 0",background:speciesColor(c.species,t)}}/>
+          <div style={{position:"absolute",right:-6,bottom:-16,opacity:.55,transform:"rotate(-8deg)",pointerEvents:"none",color:t.borderSoft}}>{I.fish(92,t.borderSoft)}</div>
+          <div style={{position:"relative"}}>
+            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:11}}>
+              {showOwner?<div style={{display:"flex",alignItems:"center",gap:8,minWidth:0,flex:1}}><Avatar url={avatarUrl} name={ownerName} seed={seed} size={28} t={t}/><span style={{fontSize:14,fontWeight:600,color:t.text,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{displayedName}</span></div>:<VisInline vis={vis} t={t} L={L}/>}
+              <span style={{marginLeft:"auto",fontSize:12.5,fontWeight:600,color:t.textMuted,fontFamily:t.mono,flexShrink:0}}>{shortDate(c.date,lang)}</span>
+            </div>
+            <div style={{display:"flex",alignItems:"center",gap:9,marginBottom:12,minWidth:0}}>
+              <span style={{width:9,height:9,borderRadius:5,background:speciesColor(c.species,t),flexShrink:0}}/>
+              <span style={{flex:1,minWidth:0,fontSize:18,fontWeight:700,color:t.text,letterSpacing:"-0.015em",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{catchTitle(c,lang)}</span>
+            </div>
+            <div style={{display:"flex",alignItems:"center",gap:7,flexWrap:"wrap"}}>
+              {c.weight!=null&&<Metric value={c.weight} unit="kg" t={t}/>}
+              {c.length!=null&&<Metric value={c.length} unit="cm" t={t}/>}
+              <TextChip t={t}>{flyLabel(c,lang)}</TextChip>
+              <span style={{marginLeft:"auto"}}><StatusTag released={c.released} t={t} L={L}/></span>
+            </div>
+          </div>
+        </div>);
+      }
+
+      // ── banner card (photo on top, metrics strip below) ──
+      return(<div onClick={onClick} className="spey-press" style={{background:t.cardBg,border:`1px solid ${t.cardBorder}`,borderRadius:18,overflow:"hidden",cursor:"pointer",boxShadow:t.shadow}}>
+        <div style={{position:"relative",width:"100%",aspectRatio:"16/10",background:t.cardElev,overflow:"hidden"}}>
+          {photos.length===1?<img src={photos[0]} alt="" style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover",display:"block"}}/>:<SwipeableImages photos={photos} onExpand={onExpandPhotos} t={t} style={{position:"absolute",inset:0}}/>}
+          <div style={{position:"absolute",inset:0,pointerEvents:"none",background:"linear-gradient(180deg,rgba(0,0,0,.5) 0%,rgba(0,0,0,0) 32%,rgba(0,0,0,0) 55%,rgba(0,0,0,.66) 100%)"}}/>
+          <div style={{position:"absolute",top:0,left:0,right:0,padding:"12px 13px",display:"flex",alignItems:"center",gap:8,zIndex:2}}>
+            {showOwner?(()=>{const clickable=onViewUser&&c.user_id!==currentUserId;return <div style={{display:"flex",alignItems:"center",gap:8,minWidth:0,flex:1,pointerEvents:clickable?"auto":"none",cursor:clickable?"pointer":"default"}} onClick={clickable?(e)=>{e.stopPropagation();onViewUser(c.user_id);}:undefined}><Avatar url={avatarUrl} name={ownerName} seed={seed} size={30} t={t}/><span style={{fontSize:14.5,fontWeight:600,color:"#fff",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",textShadow:"0 1px 3px rgba(0,0,0,.55)"}}>{displayedName}</span></div>;})():<VisGlass vis={vis} t={t} L={L}/>}
+            <span style={{marginLeft:"auto",fontSize:12.5,fontWeight:600,color:"#fff",textShadow:"0 1px 3px rgba(0,0,0,.55)",flexShrink:0,pointerEvents:"none"}}>{shortDate(c.date,lang)}</span>
+          </div>
+          {photos.length>1&&<span style={{position:"absolute",top:46,right:13,display:"inline-flex",alignItems:"center",gap:4,fontSize:11.5,fontWeight:600,color:"#fff",background:"rgba(10,18,15,.42)",border:"1px solid rgba(255,255,255,.16)",backdropFilter:"blur(8px)",padding:"3px 8px",borderRadius:20,pointerEvents:"none",zIndex:2}}>{I.photos(13)}{photos.length}</span>}
+          <div style={{position:"absolute",left:0,right:0,bottom:0,padding:"0 14px 12px",pointerEvents:"none",zIndex:2}}>
+            <div style={{display:"flex",alignItems:"center",gap:8,minWidth:0}}>
+              <span style={{width:9,height:9,borderRadius:5,background:speciesColor(c.species,t),flexShrink:0,boxShadow:"0 1px 3px rgba(0,0,0,.4)"}}/>
+              <span style={{flex:1,minWidth:0,fontSize:19,fontWeight:700,color:"#fff",letterSpacing:"-0.015em",textShadow:"0 1px 4px rgba(0,0,0,.6)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{catchTitle(c,lang)}</span>
+            </div>
+          </div>
         </div>
-      );
+        <div style={{padding:"11px 13px 13px",display:"flex",alignItems:"center",gap:7,flexWrap:"wrap"}}>
+          {c.weight!=null&&<Metric value={c.weight} unit="kg" t={t}/>}
+          {c.length!=null&&<Metric value={c.length} unit="cm" t={t}/>}
+          <TextChip t={t}>{flyLabel(c,lang)}</TextChip>
+          <span style={{marginLeft:"auto"}}><StatusTag released={c.released} t={t} L={L}/></span>
+        </div>
+      </div>);
+    }
 
-      return(<div onClick={onClick} style={{position:"relative",borderRadius:16,overflow:"hidden",cursor:"pointer",aspectRatio:"3/4",background:t.cardBg,border:`1px solid ${t.cardBorder}`,boxShadow:t.shadow}}>
+    // ── CatchCardGallery — immersive full-bleed (4/5) ──
+    function CatchCardGallery({L,lang,c,S,t,showOwner,currentUserId,onClick,onViewUser,onExpandPhotos}){
+      const photos=c.photos||[];
+      const isOwn=c.user_id===currentUserId;
+      const ownerName=c.profiles?.display_name||c.profiles?.username||"";
+      const avatarUrl=c.profiles?.avatar_url;
+      const seed=c.profiles?.username||c.user_id;
+      const displayedName=isOwn?L("you"):ownerName;
+      const hasPhotos=photos.length>0;
+      const vis=c.visibility||(c.is_public?"public":"private");
+      return(<div onClick={onClick} className="spey-press" style={{position:"relative",borderRadius:20,overflow:"hidden",cursor:"pointer",aspectRatio:"4/5",background:t.cardElev,border:`1px solid ${t.cardBorder}`,boxShadow:t.shadow}}>
         {hasPhotos?(
-          photos.length===1?(
-            <img src={photos[0]} alt="" style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover",display:"block"}}/>
-          ):(
-            <SwipeableImages photos={photos} onExpand={onExpandPhotos} t={t} style={{position:"absolute",inset:0}}/>
-          )
+          photos.length===1?<img src={photos[0]} alt="" style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover",display:"block"}}/>:<SwipeableImages photos={photos} onExpand={onExpandPhotos} t={t} style={{position:"absolute",inset:0}}/>
         ):(
-          <div style={{width:"100%",height:"100%",display:"flex",alignItems:"center",justifyContent:"center",background:t.chipBg}}>{I.fish(80,t.textMuted)}</div>
+          <div style={{position:"absolute",inset:0,background:`radial-gradient(120% 90% at 50% 0%, ${t.cardElev}, ${t.cardBg})`,display:"flex",alignItems:"center",justifyContent:"center"}}>
+            <div style={{transform:"rotate(-8deg)",marginTop:-40,opacity:.6}}>{I.fish(110,t.borderSoft)}</div>
+          </div>
         )}
-        <div style={{position:"absolute",top:0,left:0,right:0,padding:"12px 14px",background:hasPhotos?"linear-gradient(180deg,rgba(0,0,0,.55),rgba(0,0,0,0))":"transparent",display:"flex",justifyContent:"space-between",alignItems:"center",gap:8,pointerEvents:"none",zIndex:2}}>
-          {showOwner?(
-            (()=>{
-              const clickable=onViewUser&&c.user_id!==currentUserId;
-              return (
-                <div style={{display:"flex",alignItems:"center",gap:8,minWidth:0,flex:1,pointerEvents:clickable?"auto":"none",cursor:clickable?"pointer":"default"}} onClick={clickable?(e)=>{e.stopPropagation();onViewUser(c.user_id);}:undefined}>
-                  <Avatar url={avatarUrl} name={ownerName} seed={seed} size={32} t={t}/>
-                  <span style={{fontSize:15,fontWeight:600,color:hasPhotos?"#fff":t.text,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",textShadow:hasPhotos?"0 1px 2px rgba(0,0,0,.5)":"none"}}>{displayedName}</span>
-                </div>
-              );
-            })()
-          ):(
-            (()=>{
-              const vis=c.visibility||(c.is_public?"public":"private");
-              if(vis==="public")return <span style={{fontSize:12,color:"#fff",display:"inline-flex",alignItems:"center",gap:4,background:"rgba(0,0,0,.45)",padding:"4px 10px",borderRadius:12,backdropFilter:"blur(8px)",fontWeight:500}}>{I.world()} {L("visibility_public_short")}</span>;
-              if(vis==="groups")return <span style={{fontSize:12,color:"#fff",display:"inline-flex",alignItems:"center",gap:4,background:"rgba(0,0,0,.45)",padding:"4px 10px",borderRadius:12,backdropFilter:"blur(8px)",fontWeight:500}}>{L("visibility_groups_short")}</span>;
-              return <div/>;
-            })()
-          )}
-          <span style={{fontSize:13,color:hasPhotos?"#fff":t.textMuted,fontWeight:500,textShadow:hasPhotos?"0 1px 2px rgba(0,0,0,.5)":"none",flexShrink:0,marginLeft:"auto"}}>{fmtDateLang(c.date,lang)}</span>
+        <div style={{position:"absolute",inset:0,pointerEvents:"none",background:"linear-gradient(180deg,rgba(0,0,0,.55) 0%,rgba(0,0,0,0) 26%,rgba(0,0,0,0) 46%,rgba(0,0,0,.5) 70%,rgba(0,0,0,.82) 100%)"}}/>
+        <div style={{position:"absolute",top:0,left:0,right:0,padding:"14px 15px",display:"flex",alignItems:"center",gap:8,zIndex:2}}>
+          {showOwner?(()=>{const clickable=onViewUser&&c.user_id!==currentUserId;return <div style={{display:"flex",alignItems:"center",gap:8,minWidth:0,flex:1,pointerEvents:clickable?"auto":"none",cursor:clickable?"pointer":"default"}} onClick={clickable?(e)=>{e.stopPropagation();onViewUser(c.user_id);}:undefined}><Avatar url={avatarUrl} name={ownerName} seed={seed} size={34} t={t}/><span style={{fontSize:15,fontWeight:600,color:"#fff",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",textShadow:"0 1px 3px rgba(0,0,0,.55)"}}>{displayedName}</span></div>;})():<VisGlass vis={vis} t={t} L={L}/>}
+          <span style={{marginLeft:"auto",fontSize:13,fontWeight:600,color:"#fff",textShadow:"0 1px 3px rgba(0,0,0,.55)",flexShrink:0,pointerEvents:"none"}}>{shortDate(c.date,lang)}</span>
         </div>
-        <div style={{position:"absolute",bottom:0,left:0,right:0,padding:"50px 14px 14px",background:hasPhotos?"linear-gradient(0deg,rgba(0,0,0,.78),rgba(0,0,0,.45) 60%,rgba(0,0,0,0))":"transparent",pointerEvents:"none",zIndex:2}}>
-          <p style={{fontSize:17,fontWeight:700,color:hasPhotos?"#fff":t.text,margin:"0 0 8px",textShadow:hasPhotos?"0 1px 3px rgba(0,0,0,.6)":"none"}}>{trSpecies(c.species,lang)} · {c.river}{c.beat?` · ${c.beat}`:""}</p>
-          {chips}
+        {photos.length>1&&<span style={{position:"absolute",top:54,right:15,display:"inline-flex",alignItems:"center",gap:4,fontSize:11.5,fontWeight:600,color:"#fff",background:"rgba(10,18,15,.42)",border:"1px solid rgba(255,255,255,.16)",backdropFilter:"blur(8px)",padding:"3px 8px",borderRadius:20,pointerEvents:"none",zIndex:2}}>{I.photos(13)}{photos.length}</span>}
+        <div style={{position:"absolute",left:0,right:0,bottom:0,padding:"44px 15px 16px",pointerEvents:"none",zIndex:2}}>
+          <div style={{display:"flex",alignItems:"center",gap:9,marginBottom:10,minWidth:0}}>
+            <span style={{width:10,height:10,borderRadius:5,background:speciesColor(c.species,t),flexShrink:0,boxShadow:"0 1px 3px rgba(0,0,0,.4)"}}/>
+            <span style={{flex:1,minWidth:0,fontSize:22,fontWeight:700,color:"#fff",letterSpacing:"-0.02em",textShadow:"0 1px 5px rgba(0,0,0,.6)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{catchTitle(c,lang)}</span>
+          </div>
+          <div style={{display:"flex",alignItems:"center",gap:7,flexWrap:"wrap"}}>
+            {c.weight!=null&&<Metric value={c.weight} unit="kg" t={t} onPhoto/>}
+            {c.length!=null&&<Metric value={c.length} unit="cm" t={t} onPhoto/>}
+            <TextChip t={t} onPhoto>{flyLabel(c,lang)}</TextChip>
+            <StatusTag released={c.released} t={t} L={L} onPhoto/>
+          </div>
         </div>
       </div>);
     }
@@ -2246,9 +2320,9 @@
 
         <div style={S.sec}>
           <p style={S.secT}>{L("profile_theme")}</p>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
             {Object.entries(THEMES).map(([k,th])=>(
-              <button key={k} onClick={()=>switchTheme(k)} style={{padding:"10px 8px",borderRadius:10,border:k===themeKey?`2px solid ${t.primary}`:`1px solid ${t.inputBorder}`,background:k===themeKey?t.primaryLight:t.cardBg,fontSize:14,fontWeight:k===themeKey?600:500,color:k===themeKey?t.primary:t.textSec,fontFamily:t.font,cursor:"pointer"}}>{th.name}</button>
+              <button key={k} onClick={()=>switchTheme(k)} style={{padding:"10px 8px",borderRadius:10,border:k===themeKey?`2px solid ${t.primary}`:`1px solid ${t.inputBorder}`,background:k===themeKey?t.primaryLight:t.cardBg,fontSize:14,fontWeight:k===themeKey?600:500,color:k===themeKey?t.primary:t.textSec,fontFamily:t.font,cursor:"pointer"}}>{th.name[lang]||th.name.nb}</button>
             ))}
           </div>
         </div>
@@ -2346,12 +2420,15 @@
               {I.rel(true)} {L("following")}
             </button>
           ):(
-            <button onClick={onFollow} style={{display:"inline-flex",alignItems:"center",gap:5,padding:"9px 16px",borderRadius:10,background:t.primary,color:t.name==="Mørk"?"#0f1a17":"#fff",border:"none",fontSize:14,fontWeight:600,fontFamily:t.font,cursor:"pointer",flexShrink:0}}>
+            <button onClick={onFollow} style={{display:"inline-flex",alignItems:"center",gap:5,padding:"9px 16px",borderRadius:10,background:t.primary,color:t.primaryInk,border:"none",fontSize:14,fontWeight:600,fontFamily:t.font,cursor:"pointer",flexShrink:0}}>
               <span style={{fontSize:16,lineHeight:1}}>+</span> {L("follow")}
             </button>
           )}
         </div>}
-        <h2 style={{fontFamily:t.titleFont,fontSize:24,fontWeight:700,color:t.text,margin:"0 0 4px"}}>{trSpecies(c.species,lang)}</h2>
+        <div style={{display:"flex",alignItems:"center",gap:10,margin:"0 0 4px"}}>
+          <span style={{width:11,height:11,borderRadius:6,background:speciesColor(c.species,t),flexShrink:0}}/>
+          <h2 style={{fontFamily:t.titleFont,fontSize:24,fontWeight:700,color:t.text,margin:0}}>{trSpecies(c.species,lang)}</h2>
+        </div>
         <p style={{fontSize:16,color:t.textSec,margin:"0 0 2px",fontWeight:500}}>{c.river}{c.beat?` — ${c.beat}`:""}</p>
         <p style={{fontSize:14,color:t.textMuted,margin:"0 0 16px"}}>{fmtDateLang(c.date,lang)}{c.time?` ${L("detail_clock")} ${c.time.slice(0,5)}`:""}{isOwn&&" · "}{isOwn&&(()=>{
           const vis=c.visibility||(c.is_public?"public":"private");
@@ -2367,8 +2444,8 @@
           return <span>● {L("visibility_private")}</span>;
         })()}</p>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:14}}>
-          {c.weight!=null&&<SBox v={c.weight} l="kg" t={t} icon={I.weight(16)}/>}
-          {c.length!=null&&<SBox v={c.length} l="cm" t={t} icon={I.ruler(16)}/>}
+          {c.weight!=null&&<SBox v={c.weight} l="kg" t={t} icon={I.weight(16)} mono/>}
+          {c.length!=null&&<SBox v={c.length} l="cm" t={t} icon={I.ruler(16)} mono/>}
           <SBox
             v={c.equipment==="Flue"&&c.fly_pattern?c.fly_pattern:trEquipment(c.equipment,lang)}
             l={L("detail_equipment")}
@@ -2388,9 +2465,9 @@
       </div>);
     }
 
-    function SBox({v,l,t,color,icon}){return <div style={{background:t.cardBg,borderRadius:12,padding:"14px 10px",textAlign:"center",border:`1px solid ${t.cardBorder}`}}>
+    function SBox({v,l,t,color,icon,mono}){return <div style={{background:t.cardBg,borderRadius:12,padding:"14px 10px",textAlign:"center",border:`1px solid ${t.cardBorder}`}}>
       {icon&&<div style={{color:t.textMuted,display:"flex",justifyContent:"center",marginBottom:4}}>{icon}</div>}
-      <span style={{display:"block",fontSize:20,fontWeight:700,color:color||t.primary,lineHeight:1.1}}>{v}</span>
+      <span style={{display:"block",fontSize:20,fontWeight:700,color:color||t.primary,lineHeight:1.1,fontFamily:mono?t.mono:t.font,letterSpacing:mono?"-0.03em":0}}>{v}</span>
       <span style={{display:"block",fontSize:12,color:t.textMuted,marginTop:2}}>{l}</span>
     </div>;}
 
@@ -2722,7 +2799,7 @@
                       background:checked?t.primary:"transparent",
                       display:"flex",alignItems:"center",justifyContent:"center"
                     }}>
-                      {checked&&<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={t.name==="Mørk"?"#0f1a17":"#fff"} strokeWidth="3" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>}
+                      {checked&&<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={t.primaryInk} strokeWidth="3" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>}
                     </div>
                     <span style={{fontSize:14,color:t.text,flex:1}}>{g.name}</span>
                     <span style={{fontSize:12,color:t.textMuted}}>{trMembers(g.member_count,lang)}</span>
