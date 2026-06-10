@@ -1,4 +1,5 @@
-const CACHE_NAME = 'speylog-debug-v96';
+const CACHE_NAME = 'speylog-debug-v97';
+const IMG_CACHE = 'speylog-img-v1';
 const ASSETS = [
   '/',
   '/index.html',
@@ -18,7 +19,11 @@ self.addEventListener('install', event => {
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys().then(keys =>
-      Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))
+      Promise.all(
+        keys
+          .filter(k => k !== CACHE_NAME && k !== IMG_CACHE)
+          .map(k => caches.delete(k))
+      )
     )
   );
   self.clients.claim();
@@ -33,7 +38,30 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // NEVER cache Supabase API calls (data, auth, storage)
+  // Catch photos from Supabase Storage: cache-first.
+  // Safe because filenames are unique — a photo never changes at the same URL.
+  // This makes photos download exactly once, and work offline.
+  if (
+    event.request.method === 'GET' &&
+    url.pathname.includes('/storage/v1/object/public/catch-photos/')
+  ) {
+    event.respondWith(
+      caches.open(IMG_CACHE).then(cache =>
+        cache.match(event.request).then(hit => {
+          if (hit) return hit;
+          return fetch(event.request).then(response => {
+            if (response.status === 200) {
+              cache.put(event.request, response.clone());
+            }
+            return response;
+          });
+        })
+      )
+    );
+    return;
+  }
+
+  // NEVER cache other Supabase API calls (data, auth)
   if (url.hostname.includes('supabase.co') || url.hostname.includes('supabase.in')) {
     return;
   }
