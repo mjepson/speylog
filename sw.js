@@ -1,4 +1,4 @@
-const CACHE_NAME = 'speylog-debug-v97';
+const CACHE_NAME = 'speylog-debug-v98';
 const IMG_CACHE = 'speylog-img-v1';
 const ASSETS = [
   '/',
@@ -38,12 +38,13 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // Catch photos from Supabase Storage: cache-first.
-  // Safe because filenames are unique — a photo never changes at the same URL.
-  // This makes photos download exactly once, and work offline.
+  // Catch photos + avatars from Supabase Storage: cache-first.
+  // Safe because filenames are unique — an image never changes at the same URL.
+  // This makes images download exactly once, and work offline.
   if (
     event.request.method === 'GET' &&
-    url.pathname.includes('/storage/v1/object/public/catch-photos/')
+    (url.pathname.includes('/storage/v1/object/public/catch-photos/') ||
+     url.pathname.includes('/storage/v1/object/public/avatars/'))
   ) {
     event.respondWith(
       caches.open(IMG_CACHE).then(cache =>
