@@ -30,6 +30,30 @@
       --pink: #f472b6;
       --radius: 12px;
       --radius-lg: 14px;
+      --warn-bg: #2a2a1c;
+      --danger-bg: #2e1c1c;
+    }
+
+    [data-theme="light"] {
+      --bg: #f6f9f4;
+      --bg2: #eef2eb;
+      --card: #ffffff;
+      --border: #e2eadf;
+      --primary: #1a8a52;
+      --primary-light: #e2f3e8;
+      --text: #16271d;
+      --text-sec: #5a7a64;
+      --text-muted: #92a596;
+      --chip-bg: #eef5ee;
+      --chip-text: #3f6149;
+      --danger: #c0492f;
+      --released: #1a8a52;
+      --kept: #c0492f;
+      --yellow: #b45309;
+      --blue: #1d4ed8;
+      --pink: #be185d;
+      --warn-bg: #fdf3e3;
+      --danger-bg: #fdeaea;
     }
 
     body {
@@ -195,9 +219,9 @@
     }
     .chip-active { background: var(--primary-light); color: var(--primary); }
     .chip-active .dot { background: var(--primary); }
-    .chip-inactive { background: #2a2a1c; color: var(--yellow); }
+    .chip-inactive { background: var(--warn-bg); color: var(--yellow); }
     .chip-inactive .dot { background: var(--yellow); }
-    .chip-suspended { background: #2e1c1c; color: var(--danger); }
+    .chip-suspended { background: var(--danger-bg); color: var(--danger); }
     .chip-suspended .dot { background: var(--danger); }
 
     .count-big { font-size: 16px; font-weight: 700; }
@@ -294,7 +318,7 @@
       padding: 2px 8px; border-radius: 4px; flex-shrink: 0;
     }
     .c-released { background: var(--primary-light); color: var(--released); }
-    .c-kept { background: #2e1c1c; color: var(--kept); }
+    .c-kept { background: var(--danger-bg); color: var(--kept); }
 
     .empty-state {
       padding: 40px;
@@ -354,8 +378,8 @@
       border-radius: 8px;
     }
     .msg-ok { background: var(--primary-light); color: var(--primary); }
-    .msg-err { background: #2e1c1c; color: var(--danger); }
-    .msg-deny { background: #2e1c1c; color: var(--danger); }
+    .msg-err { background: var(--danger-bg); color: var(--danger); }
+    .msg-deny { background: var(--danger-bg); color: var(--danger); }
 
     /* ── Loading ── */
     .loading {
@@ -374,6 +398,51 @@
     @keyframes spin { to { transform: rotate(360deg); } }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
     .fade-in { animation: fadeIn .3s ease; }
+
+    /* ── Tabs ── */
+    .tabs { display: flex; gap: 6px; margin-bottom: 20px; flex-wrap: wrap; }
+    .tab-btn {
+      padding: 9px 18px; border-radius: 10px;
+      border: 1px solid var(--border); background: var(--card); color: var(--text-sec);
+      font-family: 'Outfit', sans-serif; font-size: 13.5px; font-weight: 600; cursor: pointer;
+      display: inline-flex; align-items: center;
+    }
+    .tab-btn.active { background: var(--primary-light); color: var(--primary); border-color: var(--primary); }
+    .badge-num {
+      background: var(--danger); color: #fff; border-radius: 9px;
+      font-size: 11px; font-weight: 700; padding: 1px 7px; margin-left: 7px;
+    }
+    .icon-btn {
+      width: 38px; height: 38px; border-radius: 10px;
+      border: 1px solid var(--border); background: var(--card); color: var(--text-sec);
+      cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px;
+    }
+
+    /* ── Elver ── */
+    .river-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius-lg); padding: 18px 20px; margin-bottom: 12px;
+    }
+    .river-card .top { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
+    .river-card h3 { font-size: 16px; font-weight: 700; }
+    .river-card .meta { font-size: 12.5px; color: var(--text-muted); margin-top: 2px; }
+    .hint {
+      display: flex; align-items: center; gap: 8px;
+      border-radius: 8px; padding: 8px 12px; margin: 12px 0; font-size: 13px;
+    }
+    .hint-warn { background: var(--warn-bg); color: var(--yellow); }
+    .hint-ok { background: var(--primary-light); color: var(--primary); }
+    .btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+    .btn {
+      padding: 9px 16px; border-radius: 9px;
+      font-family: 'Outfit', sans-serif; font-size: 13.5px; font-weight: 600;
+      cursor: pointer; border: 1px solid var(--border); background: var(--card); color: var(--text);
+    }
+    .btn-ok { color: var(--primary); border-color: var(--primary); }
+    .btn-danger { color: var(--danger); border-color: var(--danger); }
+    .btn:disabled { opacity: .5; cursor: default; }
+    .sildre-link { color: var(--blue); font-size: 13px; text-decoration: none; white-space: nowrap; }
+    .stale-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
 
     /* ── Responsive ── */
     @media (max-width: 768px) {
@@ -409,6 +478,20 @@ const ADMIN_EMAILS = ['magnus@jepson.no'];
 
 const app = document.getElementById('app');
 
+// ── Tema (mørk/lys) ──
+function initTheme() {
+  const saved = localStorage.getItem('admin_theme');
+  const mode = saved || (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+  document.documentElement.setAttribute('data-theme', mode);
+}
+function toggleTheme() {
+  const next = document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+  document.documentElement.setAttribute('data-theme', next);
+  localStorage.setItem('admin_theme', next);
+  render();
+}
+initTheme();
+
 // ── Avatar color from seed ──
 function avatarColor(seed) {
   const colors = ["#1a5c3a","#2d6a4f","#52796f","#386641","#6a994e","#8b5cf6","#7c3aed","#0891b2","#0e7490","#b45309","#a16207","#be123c","#9f1239","#9333ea","#1e40af"];
@@ -433,14 +516,18 @@ let state = {
   loading: true,
   session: null,
   denied: false,
+  tab: 'users', // 'users' | 'groups' | 'rivers'
   users: [],
   groups: [],
   groupsByUser: {},
+  rivers: [],
   selectedUserId: null,
   selectedGroupId: null,
   search: '',
   sortCol: 'name',
   sortAsc: true,
+  backfillBusy: false,
+  backfillMsg: '',
 };
 
 // ── Auth ──
@@ -503,6 +590,10 @@ async function loadData() {
   // follows. For full oversikt over alle følge-relasjoner trengs en
   // admin RLS-policy på follows-tabellen.
   const { data: follows } = await sb.from('follows').select('*');
+
+  // Elver/målestasjoner — inkluderer ventende forslag (verified=false)
+  const { data: rivers } = await sb.from('river_stations').select('*');
+  state.rivers = (rivers || []).sort((a, b) => a.river_name.localeCompare(b.river_name, 'nb'));
 
   // Build memberships lookups
   const membersByGroup = {};
@@ -584,9 +675,38 @@ function render() {
     renderGroupDetail();
   } else if (state.selectedUserId) {
     renderDetail();
+  } else if (state.tab === 'groups') {
+    renderGroups();
+  } else if (state.tab === 'rivers') {
+    renderRivers();
   } else {
     renderList();
   }
+}
+
+// ── Felles header + faner ──
+function headerHTML(sub) {
+  const light = document.documentElement.getAttribute('data-theme') === 'light';
+  return `
+    <div class="header">
+      <div>
+        <h1>Speylog</h1>
+        <div class="sub">${sub}</div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 14px;">
+        <button class="icon-btn" onclick="toggleTheme()" title="Bytt mellom mørk og lys modus">${light ? '☾' : '☀'}</button>
+        <div class="dot-live"></div>
+      </div>
+    </div>`;
+}
+function tabsHTML() {
+  const pending = state.rivers.filter(r => !r.verified).length;
+  const t = (id, label, extra = '') => `<button class="tab-btn ${state.tab === id ? 'active' : ''}" onclick="state.tab='${id}'; render();">${label}${extra}</button>`;
+  return `<div class="tabs">
+    ${t('users', 'Brukere')}
+    ${t('groups', 'Grupper')}
+    ${t('rivers', 'Elver', pending > 0 ? `<span class="badge-num">${pending}</span>` : '')}
+  </div>`;
 }
 
 function renderList() {
@@ -627,18 +747,10 @@ function renderList() {
     visCount[v] = (visCount[v] || 0) + 1;
   });
 
-  // Sorted groups list (by member count desc)
-  const sortedGroups = [...state.groups].sort((a, b) => b.members.length - a.members.length);
-
   app.innerHTML = `
-    <div class="header">
-      <div>
-        <h1>Speylog</h1>
-        <div class="sub">Admin · Brukeradministrasjon</div>
-      </div>
-      <div class="dot-live"></div>
-    </div>
+    ${headerHTML('Admin · Brukeradministrasjon')}
     <div class="container fade-in">
+      ${tabsHTML()}
       <div class="stats-grid">
         <div class="stat-card">
           <div class="accent" style="background: var(--primary)"></div>
@@ -680,35 +792,6 @@ function renderList() {
           </div>
         </div>
       </div>
-
-      ${state.groups.length > 0 ? `
-      <div class="table-wrap" style="margin-bottom: 24px;">
-        <div class="table-header" style="grid-template-columns: 2fr 1fr 1fr 1fr;">
-          <span>Gruppe</span>
-          <span>Oppretter</span>
-          <span>Medlemmer</span>
-          <span>Opprettet</span>
-        </div>
-        ${sortedGroups.map(g => {
-          const creator = state.users.find(u => u.id === g.created_by);
-          const creatorName = creator ? creator.name : '—';
-          return `
-            <div class="table-row" style="grid-template-columns: 2fr 1fr 1fr 1fr;" onclick="state.selectedGroupId = '${g.id}'; render();">
-              <div class="user-cell">
-                <div class="avatar" style="background: ${avatarColor(g.name)}">${initials(g.name)}</div>
-                <div>
-                  <div class="name">${g.name}</div>
-                  <div class="email">${g.invite_code ? g.invite_code.slice(0, 12) + '…' : ''}</div>
-                </div>
-              </div>
-              <span class="date-val">${creatorName}</span>
-              <span class="count-big">${g.members.length}</span>
-              <span class="date-val">${fmtDate(g.created_at)}</span>
-            </div>
-          `;
-        }).join('')}
-      </div>
-      ` : ''}
 
       <div class="filters">
         <div class="search-wrap">
@@ -755,6 +838,161 @@ function renderList() {
     </div>`;
 }
 
+function renderGroups() {
+  const sortedGroups = [...state.groups].sort((a, b) => b.members.length - a.members.length);
+  app.innerHTML = `
+    ${headerHTML('Admin · Grupper')}
+    <div class="container fade-in">
+      ${tabsHTML()}
+      ${sortedGroups.length === 0 ? `<div class="empty-state">Ingen grupper opprettet ennå</div>` : `
+      <div class="table-wrap">
+        <div class="table-header" style="grid-template-columns: 2fr 1fr 1fr 1fr;">
+          <span>Gruppe</span>
+          <span>Oppretter</span>
+          <span>Medlemmer</span>
+          <span>Opprettet</span>
+        </div>
+        ${sortedGroups.map(g => {
+          const creator = state.users.find(u => u.id === g.created_by);
+          const creatorName = creator ? creator.name : '—';
+          return `
+            <div class="table-row" style="grid-template-columns: 2fr 1fr 1fr 1fr;" onclick="state.selectedGroupId = '${g.id}'; render();">
+              <div class="user-cell">
+                <div class="avatar" style="background: ${avatarColor(g.name)}">${initials(g.name)}</div>
+                <div>
+                  <div class="name">${g.name}</div>
+                  <div class="email">${g.invite_code ? g.invite_code.slice(0, 12) + '…' : ''}</div>
+                </div>
+              </div>
+              <span class="date-val">${creatorName}</span>
+              <span class="count-big">${g.members.length}</span>
+              <span class="date-val">${fmtDate(g.created_at)}</span>
+            </div>
+          `;
+        }).join('')}
+      </div>`}
+    </div>`;
+}
+
+// ── Elver: godkjenningskø + stasjonshelse + backfill ──
+function editDist(a, b) {
+  if (Math.abs(a.length - b.length) > 3) return 99;
+  const d = Array.from({ length: a.length + 1 }, (_, i) => [i, ...Array(b.length).fill(0)]);
+  for (let j = 0; j <= b.length; j++) d[0][j] = j;
+  for (let i = 1; i <= a.length; i++) for (let j = 1; j <= b.length; j++)
+    d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+  return d[a.length][b.length];
+}
+function riverDupHint(r) {
+  const others = state.rivers.filter(x => x.river_name !== r.river_name);
+  const ln = r.river_name.toLowerCase();
+  const sim = others.find(o => {
+    const e = o.river_name.toLowerCase();
+    return e.startsWith(ln) || ln.startsWith(e) || (ln.length > 5 && editDist(e, ln) <= 2);
+  });
+  return sim
+    ? `<div class="hint hint-warn">⚠ Ligner på «${sim.river_name}» (stasjon ${sim.nve_station_id}${sim.verified ? '' : ', også ventende'})</div>`
+    : `<div class="hint hint-ok">✓ Ingen duplikater funnet</div>`;
+}
+async function approveRiver(name) {
+  const { error } = await sb.from('river_stations').update({ verified: true }).eq('river_name', name);
+  if (error) { alert('Feil: ' + error.message); return; }
+  await loadData();
+  render();
+}
+async function rejectRiver(name) {
+  if (!confirm(`Avvise og slette forslaget «${name}»?`)) return;
+  const { error } = await sb.from('river_stations').delete().eq('river_name', name);
+  if (error) { alert('Feil: ' + error.message); return; }
+  await loadData();
+  render();
+}
+async function runBackfill() {
+  state.backfillBusy = true;
+  state.backfillMsg = 'Kjører…';
+  render();
+  const { data, error } = await sb.functions.invoke('fetch-conditions', { body: { backfill: true } });
+  state.backfillBusy = false;
+  state.backfillMsg = error ? ('Feil: ' + error.message)
+    : (data && data.error) ? ('Feil: ' + data.error)
+    : `Oppdaterte ${data.updated} av ${data.processed} fangster — ${data.remaining} gjenstår`;
+  render();
+}
+
+function renderRivers() {
+  const pending = state.rivers.filter(r => !r.verified);
+  const approved = state.rivers.filter(r => r.verified);
+  const now = Date.now();
+  const esc = s => encodeURIComponent(s);
+
+  app.innerHTML = `
+    ${headerHTML('Admin · Elver og målestasjoner')}
+    <div class="container fade-in">
+      ${tabsHTML()}
+
+      <div class="river-card">
+        <div class="top">
+          <div>
+            <h3>Måledata-backfill</h3>
+            <div class="meta">Fyller målte forhold (vannføring, temperatur) på eldre fangster — 8 per kjøring.</div>
+          </div>
+          <button class="btn btn-ok" onclick="runBackfill()" ${state.backfillBusy ? 'disabled' : ''}>${state.backfillBusy ? 'Kjører…' : 'Kjør backfill'}</button>
+        </div>
+        ${state.backfillMsg ? `<div class="hint ${state.backfillMsg.startsWith('Feil') ? 'hint-warn' : 'hint-ok'}" style="margin-bottom: 0;">${state.backfillMsg}</div>` : ''}
+      </div>
+
+      <h3 style="font-size: 14px; font-weight: 700; margin: 24px 0 12px; color: var(--text-sec);">Til godkjenning ${pending.length > 0 ? `(${pending.length})` : ''}</h3>
+      ${pending.length === 0 ? `<div class="empty-state" style="padding: 20px;">Ingen ventende elveforslag</div>` :
+        pending.map(r => {
+          const submitter = state.users.find(u => u.id === r.submitted_by);
+          return `
+          <div class="river-card">
+            <div class="top">
+              <div>
+                <h3>${r.river_name}</h3>
+                <div class="meta">Stasjon ${r.nve_station_id}${r.nve_station_name ? ' · ' + r.nve_station_name : ''} · sendt av ${submitter ? submitter.name : 'ukjent'} · ${fmtDate(r.created_at)}</div>
+              </div>
+              <a class="sildre-link" href="https://sildre.nve.no/station/${r.nve_station_id}" target="_blank" rel="noopener">Åpne i Sildre ↗</a>
+            </div>
+            ${riverDupHint(r)}
+            <div class="btn-row">
+              <button class="btn btn-ok" onclick="approveRiver(decodeURIComponent('${esc(r.river_name)}'))">✓ Godkjenn</button>
+              <button class="btn btn-danger" onclick="rejectRiver(decodeURIComponent('${esc(r.river_name)}'))">✕ Avvis</button>
+            </div>
+          </div>`;
+        }).join('')}
+
+      <h3 style="font-size: 14px; font-weight: 700; margin: 24px 0 12px; color: var(--text-sec);">Godkjente elver (${approved.length})</h3>
+      <div class="table-wrap">
+        <div class="table-header" style="grid-template-columns: 2fr 1.4fr 1fr 1fr 90px;">
+          <span>Elv</span>
+          <span>Stasjon</span>
+          <span>Vannføring</span>
+          <span>Siste måling</span>
+          <span></span>
+        </div>
+        ${approved.map(r => {
+          const ageMs = r.latest_at ? now - new Date(r.latest_at).getTime() : null;
+          const stale = ageMs === null || ageMs > 24 * 3600_000;
+          const flow = r.latest && r.latest.flow != null ? r.latest.flow + ' m³/s' : '—';
+          const when = r.latest_at ? fmtDate(r.latest_at) : 'aldri';
+          return `
+            <div class="table-row" style="grid-template-columns: 2fr 1.4fr 1fr 1fr 90px; cursor: default;">
+              <div class="user-cell"><div class="name">${r.river_name}</div></div>
+              <span class="date-val">${r.nve_station_id}${r.nve_station_name ? ' · ' + r.nve_station_name : ''}</span>
+              <span class="weight-val">${flow}</span>
+              <span class="date-val"><span class="stale-dot" style="background: ${stale ? 'var(--yellow)' : 'var(--primary)'}"></span>${when}</span>
+              <a class="sildre-link" href="https://sildre.nve.no/station/${r.nve_station_id}" target="_blank" rel="noopener">Sildre ↗</a>
+            </div>`;
+        }).join('')}
+      </div>
+      <div class="footer-bar">
+        <span>${approved.length} godkjente · ${pending.length} ventende</span>
+        <span>Gul prikk = ingen måling siste døgn</span>
+      </div>
+    </div>`;
+}
+
 function renderDetail() {
   const user = state.users.find(u => u.id === state.selectedUserId);
   if (!user) { state.selectedUserId = null; render(); return; }
@@ -767,13 +1005,7 @@ function renderDetail() {
   const methods = [...new Set(catches.map(c => c.equipment).filter(Boolean))];
 
   app.innerHTML = `
-    <div class="header">
-      <div>
-        <h1>Speylog</h1>
-        <div class="sub">Admin · Brukerdetaljer</div>
-      </div>
-      <div class="dot-live"></div>
-    </div>
+    ${headerHTML('Admin · Brukerdetaljer')}
     <div class="container fade-in">
       <button class="back-btn" onclick="state.selectedUserId = null; render();">← Tilbake til brukere</button>
 
@@ -886,13 +1118,7 @@ function renderGroupDetail() {
     .sort((a, b) => new Date(b.date) - new Date(a.date));
 
   app.innerHTML = `
-    <div class="header">
-      <div>
-        <h1>Speylog</h1>
-        <div class="sub">Admin · Gruppedetaljer</div>
-      </div>
-      <div class="dot-live"></div>
-    </div>
+    ${headerHTML('Admin · Gruppedetaljer')}
     <div class="container fade-in">
       <button class="back-btn" onclick="state.selectedGroupId = null; render();">← Tilbake til oversikt</button>
 

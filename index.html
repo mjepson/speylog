@@ -355,6 +355,39 @@
       rivers_stable:{nb:"stabil",en:"stable"},
       rivers_error:{nb:"Kunne ikke hente vannføring akkurat nå.",en:"Couldn't fetch flow data right now."},
       profile_stats_link:{nb:"Statistikk",en:"Statistics"},
+      profile_admin_link:{nb:"Admin",en:"Admin"},
+      rivers_add_title:{nb:"Foreslå ny elv",en:"Suggest a river"},
+      rivers_add_name_ph:{nb:"Elvenavn, f.eks. Lakselva",en:"River name, e.g. Lakselva"},
+      rivers_add_hint:{nb:"Finn elvens målestasjon på sildre.nve.no og lim inn lenken. Forslaget blir tilgjengelig for alle når det er godkjent.",en:"Find the river's gauging station on sildre.nve.no and paste the link. The suggestion becomes available to everyone once approved."},
+      rivers_add_need_name:{nb:"Skriv inn elvenavn.",en:"Enter a river name."},
+      rivers_add_invalid_url:{nb:"Ugyldig Sildre-lenke — den skal se ut som sildre.nve.no/station/33.8.0",en:"Invalid Sildre link — it should look like sildre.nve.no/station/33.8.0"},
+      rivers_add_exists:{nb:"Denne elven er allerede registrert.",en:"This river is already registered."},
+      rivers_add_station_exists:{nb:n=>`Denne målestasjonen er allerede registrert på «${n}».`,en:n=>`This gauging station is already registered for “${n}”.`},
+      rivers_add_similar:{nb:n=>`Ligner på «${n}» som finnes fra før. Er du sikker på at det er en annen elv?`,en:n=>`Looks similar to “${n}” which already exists. Sure it's a different river?`},
+      rivers_add_anyway:{nb:"Legg til likevel",en:"Add anyway"},
+      rivers_add_submitted:{nb:"Takk! Forslaget er sendt til godkjenning.",en:"Thanks! Your suggestion was sent for approval."},
+      rivers_add_save:{nb:"Send forslag",en:"Submit"},
+      lb_title:{nb:"Toppliste",en:"Leaderboard"},
+      lb_period_season:{nb:"Sesong",en:"Season"},
+      lb_period_month:{nb:"Måned",en:"Month"},
+      lb_period_all:{nb:"Totalt",en:"All time"},
+      lb_scope_all:{nb:"Alle",en:"Everyone"},
+      lb_scope_groups:{nb:"Grupper",en:"Groups"},
+      lb_scope_following:{nb:"Følger",en:"Following"},
+      lb_most_catches:{nb:"Flest fangster",en:"Most catches"},
+      lb_biggest:{nb:"Største fisk",en:"Biggest fish"},
+      lb_awards:{nb:"Utmerkelser",en:"Awards"},
+      lb_award_svidde:{nb:"Sviddekongen",en:"The Grilse King"},
+      lb_award_svidde_desc:{nb:"Flest laks under 3 kg",en:"Most salmon under 3 kg"},
+      lb_svidde_n:{nb:n=>`${n} svidde${n!==1?"r":""}`,en:n=>`${n} grilse`},
+      lb_award_morning:{nb:"Morgenfuglen",en:"The Early Bird"},
+      lb_award_morning_desc:{nb:"Tidligste fangst",en:"Earliest catch"},
+      lb_award_ice:{nb:"Isbjørnen",en:"The Polar Bear"},
+      lb_award_ice_desc:{nb:"Kaldeste vanntemp",en:"Coldest water temp"},
+      lb_award_species:{nb:"Artsjegeren",en:"The Species Hunter"},
+      lb_award_species_desc:{nb:"Flest ulike arter",en:"Most distinct species"},
+      lb_species_n:{nb:n=>`${n} arter`,en:n=>`${n} species`},
+      lb_empty:{nb:"Ingen fangster i valgt periode.",en:"No catches in the selected period."},
       cond_water_short:{nb:"vann",en:"water"},
       vis_private_desc:{nb:"Bare du ser denne fangsten",en:"Only you can see this catch"},
       vis_groups_desc_active:{nb:n=>`Synlig for medlemmer i dine ${n} gruppe${n!==1?"r":""}`,en:n=>`Visible to members of your ${n} group${n!==1?"s":""}`},
@@ -521,6 +554,7 @@
     const I={
       fish:(s=20,c="currentColor")=>React.createElement("svg",{width:s,height:s,viewBox:"0 0 24 24",fill:"none",stroke:c,strokeWidth:"1.8",strokeLinecap:"round"},React.createElement("path",{d:"M6.5 12c3-6 11-6 14.5 0-3.5 6-11.5 6-14.5 0z"}),React.createElement("path",{d:"M2.5 12c0 0-1-3 .5-5s3-2.5 3-2.5"}),React.createElement("path",{d:"M2.5 12c0 0-1 3 .5 5s3 2.5 3 2.5"}),React.createElement("circle",{cx:"16",cy:"12",r:"1",fill:c})),
       plus:()=><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>,
+      trophy:()=><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 21h8"/><path d="M12 17v4"/><path d="M7 4h10v6a5 5 0 01-10 0V4z"/><path d="M7 6H4a1 1 0 00-1 1v1a3 3 0 003 3h1"/><path d="M17 6h3a1 1 0 011 1v1a3 3 0 01-3 3h-1"/></svg>,
       back:()=><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>,
       trash:()=><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>,
       cam:()=><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>,
@@ -1089,7 +1123,7 @@
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
             speylog.com
           </a>
-          <p style={{fontSize:11,color:t.textMuted,margin:"10px 0 0",opacity:.5}}>v107</p>
+          <p style={{fontSize:11,color:t.textMuted,margin:"10px 0 0",opacity:.5}}>v108</p>
         </div>
       );
     }
@@ -1127,7 +1161,16 @@
       const[feedLastSeen,setFeedLastSeen]=useState(lsGet("fl_feedLastSeen")||null);
       const[delModal,setDelModal]=useState(null);
       const[lightbox,setLightbox]=useState(null);
-      const allRivers=[...new Set([...DEFAULT_RIVERS,...customRivers])].sort((a,b)=>a.localeCompare(b,"nb"));
+      const[dbRivers,setDbRivers]=useState([]);
+      useEffect(()=>{
+        let cancelled=false;
+        (async()=>{
+          const {data}=await sb.from("river_stations").select("river_name").eq("verified",true);
+          if(!cancelled&&data)setDbRivers(data.map(r=>r.river_name));
+        })();
+        return()=>{cancelled=true;};
+      },[]);
+      const allRivers=[...new Set([...DEFAULT_RIVERS,...dbRivers,...customRivers])].sort((a,b)=>a.localeCompare(b,"nb"));
       const allFlies=[...new Set([...DEFAULT_FLIES,...customFlies])].sort((a,b)=>a.localeCompare(b,"nb"));
 
       const loadCatches=async()=>{
@@ -1496,9 +1539,10 @@
 
       return (
         <div style={S.app}>
-          {view==="list"&&<ListView L={L} lang={lang} catches={filtered} total={catches.length} fp={fp} S={S} t={t} tab={tab} setTab={setTab} viewMode={viewMode} switchViewMode={switchViewMode} hideOwnInFeed={hideOwnInFeed} toggleHideOwnInFeed={toggleHideOwnInFeed} myGroups={myGroups} following={following} feedFilter={feedFilter} setFeedFilter={(v)=>{setFeedFilter(v);lsSet("fl_feedFilter",v);}} feedNewCount={feedNewCount} session={session} profile={profile} initialScrollY={listScrollY} onSelect={c=>{setListScrollY(window.scrollY);setSelected(c);setView("detail")}} onViewUser={(uid)=>{if(uid&&uid!==session.user.id){setViewUserId(uid);setView("userProfile");}}} onAdd={()=>setView("add")} onStats={()=>setView("stats")} onRivers={()=>setView("rivers")} onProfile={()=>setView("profile")} onRefresh={loadCatches} onExpandPhotos={(c,startIdx)=>setLightbox({photos:c.photos,index:startIdx||0})}/>}
+          {view==="list"&&<ListView L={L} lang={lang} catches={filtered} total={catches.length} fp={fp} S={S} t={t} tab={tab} setTab={setTab} viewMode={viewMode} switchViewMode={switchViewMode} hideOwnInFeed={hideOwnInFeed} toggleHideOwnInFeed={toggleHideOwnInFeed} myGroups={myGroups} following={following} feedFilter={feedFilter} setFeedFilter={(v)=>{setFeedFilter(v);lsSet("fl_feedFilter",v);}} feedNewCount={feedNewCount} session={session} profile={profile} initialScrollY={listScrollY} onSelect={c=>{setListScrollY(window.scrollY);setSelected(c);setView("detail")}} onViewUser={(uid)=>{if(uid&&uid!==session.user.id){setViewUserId(uid);setView("userProfile");}}} onAdd={()=>setView("add")} onStats={()=>setView("stats")} onRivers={()=>setView("rivers")} onLeaderboard={()=>setView("leaderboard")} onProfile={()=>setView("profile")} onRefresh={loadCatches} onExpandPhotos={(c,startIdx)=>setLightbox({photos:c.photos,index:startIdx||0})}/>}
           {view==="stats"&&<StatsView L={L} lang={lang} catches={catches} fp={fp} S={S} t={t} onBack={()=>setView("profile")}/>}
           {view==="rivers"&&<RiversView L={L} lang={lang} catches={catches} S={S} t={t} onBack={()=>setView("list")}/>}
+          {view==="leaderboard"&&<LeaderboardView L={L} lang={lang} catches={catches} publicFeed={publicFeed} session={session} profile={profile} myGroups={myGroups} groupMembersByGroup={groupMembersByGroup} following={following} S={S} t={t} onBack={()=>setView("list")} onSelect={c=>{setSelected(c);setView("detail")}} onViewUser={(uid)=>{if(uid&&uid!==session.user.id){setViewUserId(uid);setView("userProfile");}}}/>}
           {view==="profile"&&<ProfileView L={L} lang={lang} switchLang={switchLang} session={session} profile={profile} catches={catches} myGroups={myGroups} onGroupsChange={loadMyGroups} following={following} onStats={()=>setView("stats")} onViewUser={(uid)=>{if(uid&&uid!==session.user.id){setViewUserId(uid);setView("userProfile");}}} S={S} t={t} themeKey={themeKey} switchTheme={switchTheme} onBack={()=>setView("list")} onUpdate={(p)=>setProfile(p)} onSignOut={signOut}/>}
           {view==="userProfile"&&viewUserId&&<UserProfileView L={L} lang={lang} userId={viewUserId} publicFeed={publicFeed} isFollowing={isFollowing(viewUserId)} onFollow={()=>followUser(viewUserId)} onUnfollow={()=>unfollowUser(viewUserId)} S={S} t={t} onBack={()=>setView(tab==="mine"?"list":"list")} onSelect={c=>{setSelected(c);setView("detail")}} onExpandPhotos={(c,startIdx)=>setLightbox({photos:c.photos,index:startIdx||0})}/>}
           {view==="add"&&<FormView L={L} lang={lang} allRivers={allRivers} allFlies={allFlies} prefs={prefs} profile={profile} myGroups={myGroups} S={S} t={t} onSave={addCatch} onCancel={()=>setView("list")}/>}
@@ -1667,7 +1711,7 @@
     }
 
     // ── ListView ──
-    function ListView({L,lang,catches,total,fp,S,t,tab,setTab,viewMode,switchViewMode,hideOwnInFeed,toggleHideOwnInFeed,myGroups,following,feedFilter,setFeedFilter,feedNewCount,session,profile,initialScrollY,onSelect,onViewUser,onAdd,onStats,onRivers,onProfile,onRefresh,onExpandPhotos}){
+    function ListView({L,lang,catches,total,fp,S,t,tab,setTab,viewMode,switchViewMode,hideOwnInFeed,toggleHideOwnInFeed,myGroups,following,feedFilter,setFeedFilter,feedNewCount,session,profile,initialScrollY,onSelect,onViewUser,onAdd,onStats,onRivers,onLeaderboard,onProfile,onRefresh,onExpandPhotos}){
       const sorted=[...catches].sort((a,b)=>new Date(b.date)-new Date(a.date));
       const[filterModalOpen,setFilterModalOpen]=useState(false);
       const[welcomeDismissed,setWelcomeDismissed]=useState(lsGet("fl_dismissedWelcome")||false);
@@ -1754,6 +1798,9 @@
               )}
             </button>
           </div>
+          <button onClick={onLeaderboard} style={{width:42,height:42,borderRadius:11,background:t.cardBg,color:t.primary,border:`1px solid ${t.cardBorder}`,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",flexShrink:0}}>
+            {I.trophy()}
+          </button>
           <button onClick={()=>setFilterModalOpen(true)} style={{position:"relative",width:42,height:42,borderRadius:11,background:hasActiveFilter?t.primaryLight:t.cardBg,color:hasActiveFilter?t.primary:t.primary,border:`1px solid ${hasActiveFilter?t.primary:t.cardBorder}`,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",flexShrink:0}}>
             {I.filter()}
             {hasActiveFilter&&<span style={{position:"absolute",top:6,right:6,width:7,height:7,borderRadius:4,background:t.primary,boxShadow:`0 0 0 2px ${t.cardBg}`}}/>}
@@ -1810,7 +1857,7 @@
           </div>
         )}
         <div style={{marginTop:30,textAlign:"center"}}>
-          <p style={{fontSize:11,color:t.textMuted,opacity:.5,margin:0}}>v107</p>
+          <p style={{fontSize:11,color:t.textMuted,opacity:.5,margin:0}}>v108</p>
         </div>
         </div>
 
@@ -2305,13 +2352,21 @@
           </div>
         </div>
 
-        <button onClick={onStats} style={{width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,background:t.cardBg,border:`1px solid ${t.cardBorder}`,borderRadius:12,padding:"14px 16px",marginBottom:18,cursor:"pointer",fontFamily:t.font,WebkitTapHighlightColor:"transparent"}}>
+        <button onClick={onStats} style={{width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,background:t.cardBg,border:`1px solid ${t.cardBorder}`,borderRadius:12,padding:"14px 16px",marginBottom:session?.user?.email==="magnus@jepson.no"?8:18,cursor:"pointer",fontFamily:t.font,WebkitTapHighlightColor:"transparent"}}>
           <span style={{display:"flex",alignItems:"center",gap:10}}>
             <span style={{color:t.primary,display:"flex"}}>{I.chart()}</span>
             <span style={{fontSize:15,fontWeight:500,color:t.text}}>{L("profile_stats_link")}</span>
           </span>
           <span style={{color:t.textMuted,display:"flex",transform:"rotate(-90deg)"}}>{I.chevDown()}</span>
         </button>
+        {session?.user?.email==="magnus@jepson.no"&&
+        <button onClick={()=>{window.location.href="/admin.html";}} style={{width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,background:t.cardBg,border:`1px solid ${t.cardBorder}`,borderRadius:12,padding:"14px 16px",marginBottom:18,cursor:"pointer",fontFamily:t.font,WebkitTapHighlightColor:"transparent"}}>
+          <span style={{display:"flex",alignItems:"center",gap:10}}>
+            <span style={{color:t.primary,display:"flex"}}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span>
+            <span style={{fontSize:15,fontWeight:500,color:t.text}}>{L("profile_admin_link")}</span>
+          </span>
+          <span style={{color:t.textMuted,display:"flex",transform:"rotate(-90deg)"}}>{I.chevDown()}</span>
+        </button>}
 
         <div style={S.sec}>
           <p style={S.secT}>{L("profile_default_visibility")}</p>
@@ -2570,6 +2625,137 @@
       </div>;
     }
 
+    // ── LeaderboardView ──
+    // Toppliste beregnet klient-side fra fangstene brukeren allerede ser
+    // (egne + offentlige + gruppedelte) — private fangster lekker aldri inn, RLS urørt.
+    function LeaderboardView({L,lang,catches,publicFeed,session,profile,myGroups,groupMembersByGroup,following,S,t,onBack,onSelect,onViewUser}){
+      const swipeRef=useEdgeSwipeBack(onBack);
+      useEffect(()=>{window.scrollTo(0,0);},[]);
+      const[period,setPeriod]=useState("season");
+      const[scope,setScope]=useState("all");
+      const me=session.user.id;
+      const now=new Date();
+      // publicFeed kan inneholde egne offentlige fangster — egne kommer fra catches
+      const merged=[...catches,...publicFeed.filter(c=>c.user_id!==me)];
+      const inPeriod=c=>{
+        const d=new Date(c.date);
+        if(period==="season")return d.getFullYear()===now.getFullYear();
+        if(period==="month")return d.getFullYear()===now.getFullYear()&&d.getMonth()===now.getMonth();
+        return true;
+      };
+      const scopeIds=(()=>{
+        if(scope==="groups"){const s=new Set([me]);Object.values(groupMembersByGroup||{}).forEach(set=>set.forEach(id=>s.add(id)));return s;}
+        if(scope==="following"){const s=new Set([me]);(following||[]).forEach(p=>s.add(p.id));return s;}
+        return null;
+      })();
+      const pool=merged.filter(c=>inPeriod(c)&&(!scopeIds||scopeIds.has(c.user_id)));
+      const userOf=c=>c.user_id===me
+        ?{uid:me,name:profile?.display_name||profile?.username||"–",avatar:profile?.avatar_url}
+        :{uid:c.user_id,name:c.profiles?.display_name||c.profiles?.username||"–",avatar:c.profiles?.avatar_url};
+      const agg={};
+      pool.forEach(c=>{
+        const u=userOf(c);
+        const a=agg[u.uid]||(agg[u.uid]={...u,count:0,best:null,bestLen:null,svidde:0,early:null,cold:null,species:new Set()});
+        a.count++;
+        const w=parseFloat(c.weight);
+        if(!isNaN(w)&&w>0&&(!a.best||w>parseFloat(a.best.weight)))a.best=c;
+        const len=parseFloat(c.length);
+        if(!isNaN(len)&&len>0&&(!a.bestLen||len>parseFloat(a.bestLen.length)))a.bestLen=c;
+        if(c.species==="Laks"&&!isNaN(w)&&w>0&&w<3)a.svidde++;
+        if(c.time){const[h,mi]=c.time.slice(0,5).split(":").map(Number);const mins=h*60+mi;if(!a.early||mins<a.early.mins)a.early={mins,c};}
+        const cond=c.conditions||{};
+        const wt=cond.waterTemp!=null&&cond.waterTemp!==""?parseFloat(cond.waterTemp):(cond.measured&&cond.measured.water_temp!=null?parseFloat(cond.measured.water_temp):NaN);
+        if(!isNaN(wt)&&(!a.cold||wt<a.cold.temp))a.cold={temp:wt,c};
+        if(c.species)a.species.add(c.species);
+      });
+      const users=Object.values(agg);
+      const fmt1=v=>(Math.round(v*10)/10).toLocaleString(lang==="en"?"en-GB":"nb-NO");
+      const byCount=[...users].sort((a,b)=>b.count-a.count).slice(0,3);
+      // Vekt rangerer pallen; lengde brukes bare hvis ingen i utvalget har vekt
+      const hasWeight=users.some(u=>u.best);
+      const byBig=hasWeight
+        ?users.filter(u=>u.best).sort((a,b)=>parseFloat(b.best.weight)-parseFloat(a.best.weight)).slice(0,3)
+        :users.filter(u=>u.bestLen).sort((a,b)=>parseFloat(b.bestLen.length)-parseFloat(a.bestLen.length)).slice(0,3);
+      const bigVal=u=>hasWeight?fmt1(parseFloat(u.best.weight))+" kg":fmt1(parseFloat(u.bestLen.length))+" cm";
+      const bigCatch=u=>hasWeight?u.best:u.bestLen;
+      const top=(arr,key,desc=true)=>arr.length?[...arr].sort((a,b)=>desc?key(b)-key(a):key(a)-key(b))[0]:null;
+      const svidde=top(users.filter(u=>u.svidde>0),u=>u.svidde);
+      const morning=top(users.filter(u=>u.early),u=>u.early.mins,false);
+      const ice=top(users.filter(u=>u.cold),u=>u.cold.temp,false);
+      const hunter=top(users.filter(u=>u.species.size>=2),u=>u.species.size);
+      const medal=["#fbbf24",t.textSec,"#c08457"];
+      const secT={fontSize:12,fontWeight:600,color:t.textMuted,letterSpacing:.6,textTransform:"uppercase",margin:"0 0 12px"};
+      const Chip=({label,active,onClick})=>(
+        <button onClick={onClick} style={{padding:"7px 13px",borderRadius:14,fontSize:12.5,fontWeight:600,fontFamily:t.font,border:"none",cursor:"pointer",background:active?t.primaryLight:t.chipBg,color:active?t.primary:t.chipText,WebkitTapHighlightColor:"transparent"}}>{label}</button>
+      );
+      const Podium=({entries,valueOf,onTapEntry})=>{
+        const slots=[{e:entries[1],r:2,h:30,size:50},{e:entries[0],r:1,h:46,size:60},{e:entries[2],r:3,h:24,size:50}].filter(s=>s.e);
+        return(<div style={{display:"flex",alignItems:"flex-end",justifyContent:"center",gap:14,marginBottom:24}}>
+          {slots.map(s=>(
+            <div key={s.r} onClick={()=>{if(onTapEntry)onTapEntry(s.e);}} style={{textAlign:"center",width:s.r===1?100:88,minWidth:0,cursor:onTapEntry?"pointer":"default"}}>
+              <div style={{display:"flex",justifyContent:"center",marginBottom:6}}>
+                <div style={{borderRadius:"50%",border:`2px solid ${medal[s.r-1]}`,padding:2,display:"flex"}}>
+                  <Avatar url={s.e.avatar} name={s.e.name} seed={s.e.uid} size={s.size} t={t}/>
+                </div>
+              </div>
+              <p style={{fontSize:s.r===1?13:12.5,fontWeight:600,color:t.text,margin:0,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{s.e.name}</p>
+              <p style={{fontSize:12,color:s.r===1?medal[0]:t.textSec,fontWeight:s.r===1?600:400,margin:0,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{valueOf(s.e)}</p>
+              <div style={{background:s.r===1?t.primaryLight:t.chipBg,borderRadius:"8px 8px 0 0",height:s.h,marginTop:8,display:"flex",alignItems:"center",justifyContent:"center",color:medal[s.r-1],fontWeight:700,fontSize:s.r===1?17:15}}>{s.r}</div>
+            </div>
+          ))}
+        </div>);
+      };
+      const Award=({icon,title,desc,u,value,catchRef,gold})=>(
+        <div onClick={()=>{if(catchRef&&onSelect)onSelect(catchRef);}} style={{background:t.cardBg,border:`1px solid ${gold?"#fbbf24":t.cardBorder}`,borderRadius:12,padding:"12px 14px",marginBottom:8,display:"flex",alignItems:"center",gap:12,cursor:catchRef?"pointer":"default"}}>
+          <div style={{width:38,height:38,borderRadius:19,background:t.chipBg,display:"flex",alignItems:"center",justifyContent:"center",color:gold?"#fbbf24":t.primary,flexShrink:0}}>{icon}</div>
+          <div style={{flex:1,minWidth:0}}>
+            <p style={{fontSize:14,fontWeight:600,color:t.text,margin:0}}>{title}</p>
+            <p style={{fontSize:12,color:t.textSec,margin:0}}>{desc}</p>
+          </div>
+          <div style={{textAlign:"right",minWidth:0}}>
+            <p style={{fontSize:13,fontWeight:600,color:t.text,margin:0,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",maxWidth:110}}>{u.name}</p>
+            <p style={{fontSize:12,color:gold?"#fbbf24":t.primary,fontWeight:600,margin:0,whiteSpace:"nowrap"}}>{value}</p>
+          </div>
+        </div>
+      );
+      const subtitle=period==="season"
+        ?(lang==="en"?`Season ${now.getFullYear()}`:`Sesongen ${now.getFullYear()}`)
+        :period==="month"
+        ?now.toLocaleDateString(lang==="en"?"en-GB":"nb-NO",{month:"long",year:"numeric"})
+        :L("lb_period_all");
+      const hasAwards=svidde||morning||ice||hunter;
+      return(<div ref={swipeRef} className="safe-top safe-bottom" style={S.page}>
+        <div style={S.topBar}><button style={S.backBtn} onClick={onBack}>{I.back()}</button></div>
+        <h2 style={{fontFamily:t.titleFont,fontSize:26,fontWeight:700,color:t.text,margin:"0 0 4px"}}>{L("lb_title")}</h2>
+        <p style={{fontSize:13.5,color:t.textSec,margin:"0 0 14px"}}>{subtitle}</p>
+        <div style={{display:"flex",gap:6,marginBottom:8,flexWrap:"wrap"}}>
+          <Chip label={L("lb_period_season")} active={period==="season"} onClick={()=>setPeriod("season")}/>
+          <Chip label={L("lb_period_month")} active={period==="month"} onClick={()=>setPeriod("month")}/>
+          <Chip label={L("lb_period_all")} active={period==="all"} onClick={()=>setPeriod("all")}/>
+        </div>
+        {((myGroups&&myGroups.length>0)||(following&&following.length>0))&&
+        <div style={{display:"flex",gap:6,marginBottom:20,flexWrap:"wrap"}}>
+          <Chip label={L("lb_scope_all")} active={scope==="all"} onClick={()=>setScope("all")}/>
+          {myGroups&&myGroups.length>0&&<Chip label={L("lb_scope_groups")} active={scope==="groups"} onClick={()=>setScope("groups")}/>}
+          {following&&following.length>0&&<Chip label={L("lb_scope_following")} active={scope==="following"} onClick={()=>setScope("following")}/>}
+        </div>}
+        {pool.length===0&&<p style={{color:t.textMuted,fontSize:14,marginTop:24}}>{L("lb_empty")}</p>}
+        {byCount.length>0&&<div style={{marginTop:10}}>
+          <p style={secT}>{L("lb_most_catches")}</p>
+          <Podium entries={byCount} valueOf={u=>trCatches(u.count,lang)} onTapEntry={u=>{if(u.uid!==me&&onViewUser)onViewUser(u.uid);}}/>
+        </div>}
+        {byBig.length>0&&<div>
+          <p style={secT}>{L("lb_biggest")}</p>
+          <Podium entries={byBig} valueOf={u=>bigVal(u)+(bigCatch(u).river?" · "+bigCatch(u).river:"")} onTapEntry={u=>{if(onSelect)onSelect(bigCatch(u));}}/>
+        </div>}
+        {hasAwards&&<p style={secT}>{L("lb_awards")}</p>}
+        {svidde&&<Award gold icon={<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 18h20"/><path d="M3 14L2 6l6 4 4-7 4 7 6-4-1 8H3z"/></svg>} title={L("lb_award_svidde")} desc={L("lb_award_svidde_desc")} u={svidde} value={L("lb_svidde_n",svidde.svidde)}/>}
+        {morning&&<Award icon={<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 18a5 5 0 00-10 0"/><line x1="12" y1="9" x2="12" y2="2"/><line x1="4.22" y1="10.22" x2="5.64" y2="11.64"/><line x1="1" y1="18" x2="3" y2="18"/><line x1="21" y1="18" x2="23" y2="18"/><line x1="18.36" y1="11.64" x2="19.78" y2="10.22"/><line x1="23" y1="22" x2="1" y2="22"/><polyline points="8 6 12 2 16 6"/></svg>} title={L("lb_award_morning")} desc={L("lb_award_morning_desc")} u={morning} value={morning.early.c.time.slice(0,5)} catchRef={morning.early.c}/>}
+        {ice&&<Award icon={<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="2" x2="12" y2="22"/><line x1="4" y1="7" x2="20" y2="17"/><line x1="20" y1="7" x2="4" y2="17"/><path d="M12 2l-2 3h4l-2-3z" fill="currentColor" stroke="none"/></svg>} title={L("lb_award_ice")} desc={L("lb_award_ice_desc")} u={ice} value={fmt1(ice.cold.temp)+" °C"} catchRef={ice.cold.c}/>}
+        {hunter&&<Award icon={<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6.5 12c2.5-5 8-7 13.5-5-1 5-5.5 8.5-11 7.5"/><path d="M6.5 12L2 9v7l4.5-4z"/><path d="M6.5 12c1.5 3 4 5 7.5 5.5"/></svg>} title={L("lb_award_species")} desc={L("lb_award_species_desc")} u={hunter} value={L("lb_species_n",hunter.species.size)}/>}
+      </div>);
+    }
+
     // ── RiversView ──
     // Liste over elver med målestasjon: vannføring nå, trend siste døgn, lenke til Sildre.
     // Rekkefølgen kan endres med dra-og-slipp (håndtaket) og lagres i localStorage (fl_riverOrder).
@@ -2577,6 +2763,14 @@
       const swipeRef=useEdgeSwipeBack(onBack);
       const[rows,setRows]=useState(null);
       const[err,setErr]=useState(false);
+      const[addOpen,setAddOpen]=useState(false);
+      const[newName,setNewName]=useState("");
+      const[newUrl,setNewUrl]=useState("");
+      const[addMsg,setAddMsg]=useState("");
+      const[addOk,setAddOk]=useState("");
+      const[fuzzyOk,setFuzzyOk]=useState(false);
+      const[adding,setAdding]=useState(false);
+      const[reloadKey,setReloadKey]=useState(0);
       const[dragState,setDragState]=useState(null);
       const dragRef=useRef(null);
       const rowsRef=useRef(null);
@@ -2605,7 +2799,49 @@
           }catch(e){if(!cancelled)setErr(true);}
         })();
         return()=>{cancelled=true;};
-      },[]);
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      },[reloadKey]);
+      // Enkel redigeringsavstand for å fange near-duplikater som «Årdalselva»/«Årdalselven»
+      const editDist=(a,b)=>{
+        if(Math.abs(a.length-b.length)>3)return 99;
+        const d=Array.from({length:a.length+1},(_,i)=>[i,...Array(b.length).fill(0)]);
+        for(let j=0;j<=b.length;j++)d[0][j]=j;
+        for(let i=1;i<=a.length;i++)for(let j=1;j<=b.length;j++)
+          d[i][j]=Math.min(d[i-1][j]+1,d[i][j-1]+1,d[i-1][j-1]+(a[i-1]===b[j-1]?0:1));
+        return d[a.length][b.length];
+      };
+      const addRiver=async()=>{
+        const name=newName.trim().replace(/\s+/g," ");
+        const m=newUrl.trim().match(/sildre\.nve\.no\/[Ss]tation\/(\d+\.\d+\.\d+)/);
+        if(!name){setAddMsg(L("rivers_add_need_name"));return;}
+        if(!m){setAddMsg(L("rivers_add_invalid_url"));return;}
+        setAdding(true);setAddMsg("");setAddOk("");
+        // Dupsjekk mot alle registrerte elver — også ventende forslag
+        const {data:existing,error:exErr}=await sb.from("river_stations").select("river_name,nve_station_id");
+        if(exErr){setAdding(false);setAddMsg(L("error_prefix")+" "+exErr.message);return;}
+        const lower=name.toLowerCase();
+        if((existing||[]).some(r=>r.river_name.toLowerCase()===lower)){
+          setAdding(false);setAddMsg(L("rivers_add_exists"));return;
+        }
+        const stationHit=(existing||[]).find(r=>r.nve_station_id===m[1]);
+        if(stationHit){setAdding(false);setAddMsg(L("rivers_add_station_exists",stationHit.river_name));return;}
+        const similar=(existing||[]).find(r=>{
+          const e=r.river_name.toLowerCase();
+          return e.startsWith(lower)||lower.startsWith(e)||(lower.length>5&&editDist(e,lower)<=2);
+        });
+        if(similar&&!fuzzyOk){
+          setAdding(false);setFuzzyOk(true);setAddMsg(L("rivers_add_similar",similar.river_name));return;
+        }
+        const {data:{session:s}}=await sb.auth.getSession();
+        const {error}=await sb.from("river_stations").insert({river_name:name,nve_station_id:m[1],submitted_by:s?.user?.id??null});
+        setAdding(false);setFuzzyOk(false);
+        if(error){
+          setAddMsg(error.code==="23505"?L("rivers_add_exists"):L("error_prefix")+" "+error.message);
+          return;
+        }
+        // Forslaget er ikke synlig før godkjenning — ingen reload, ingen localStorage
+        setNewName("");setNewUrl("");setAddMsg("");setAddOk(L("rivers_add_submitted"));
+      };
       const computeTarget=(index,delta,heights)=>{
         let ti=index,acc=0;
         if(delta>0){while(ti<heights.length-1&&delta>acc+heights[ti+1]/2){acc+=heights[ti+1];ti++;}}
@@ -2655,9 +2891,21 @@
       const draggedH=dragRef.current?dragRef.current.heights[dragRef.current.index]:0;
       const target=dragState&&dragRef.current?computeTarget(dragState.index,dragState.delta,dragRef.current.heights):null;
       return(<div ref={swipeRef} className="safe-top safe-bottom" style={{...S.page,touchAction:"pan-y",willChange:"transform"}}>
-        <div style={S.topBar}><button style={S.backBtn} onClick={onBack}>{I.back()}</button></div>
+        <div style={{...S.topBar,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <button style={S.backBtn} onClick={onBack}>{I.back()}</button>
+          <button style={S.circBtn} onClick={()=>{setAddOpen(o=>!o);setAddMsg("");}}>{I.plus()}</button>
+        </div>
         <h2 style={{fontFamily:t.titleFont,fontSize:26,fontWeight:700,color:t.text,margin:"0 0 4px"}}>{L("rivers_title")}</h2>
         <p style={{fontSize:13.5,color:t.textSec,margin:"0 0 16px"}}>{L("rivers_sub")}</p>
+        {addOpen&&<div style={{background:t.cardBg,border:`1px solid ${t.cardBorder}`,borderRadius:12,padding:16,marginBottom:14}}>
+          <p style={{fontSize:14,fontWeight:600,color:t.text,margin:"0 0 10px"}}>{L("rivers_add_title")}</p>
+          <input value={newName} onChange={e=>{setNewName(e.target.value);setFuzzyOk(false);setAddOk("");}} placeholder={L("rivers_add_name_ph")} style={{...S.inp,marginBottom:8}}/>
+          <input value={newUrl} onChange={e=>{setNewUrl(e.target.value);setFuzzyOk(false);setAddOk("");}} placeholder="https://sildre.nve.no/station/33.8.0" inputMode="url" autoCapitalize="none" style={{...S.inp,marginBottom:10}}/>
+          <p style={{fontSize:12,color:t.textMuted,margin:"0 0 10px",lineHeight:1.4}}>{L("rivers_add_hint")}</p>
+          {addMsg&&<p style={{fontSize:13,color:t.danger||"#f87171",margin:"0 0 10px"}}>{addMsg}</p>}
+          {addOk&&<p style={{fontSize:13,color:t.primary,fontWeight:600,margin:"0 0 10px"}}>{addOk}</p>}
+          <button onClick={addRiver} disabled={adding} style={{...S.btnPriFull,opacity:adding?.6:1}}>{adding?"…":fuzzyOk?L("rivers_add_anyway"):L("rivers_add_save")}</button>
+        </div>}
         {rows===null&&!err&&<div style={{display:"flex",justifyContent:"center",padding:40}}><div style={{width:32,height:32,borderRadius:16,border:`3px solid ${t.cardBorder}`,borderTopColor:t.primary,animation:"spin 0.8s linear infinite"}}/></div>}
         {err&&<p style={{color:t.textMuted,fontSize:14}}>{L("rivers_error")}</p>}
         {rows&&rows.map((r,i)=>{
