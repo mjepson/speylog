@@ -346,6 +346,7 @@
       cond_color_tinted:{nb:"Farget",en:"Tinted"},
       cond_color_murky:{nb:"Grumsete",en:"Murky"},
       cond_air_short:{nb:"luft",en:"air"},
+      cond_measured_src:{nb:"Måledata",en:"Measured data"},
       cond_water_short:{nb:"vann",en:"water"},
       vis_private_desc:{nb:"Bare du ser denne fangsten",en:"Only you can see this catch"},
       vis_groups_desc_active:{nb:n=>`Synlig for medlemmer i dine ${n} gruppe${n!==1?"r":""}`,en:n=>`Visible to members of your ${n} group${n!==1?"s":""}`},
@@ -1080,7 +1081,7 @@
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
             speylog.com
           </a>
-          <p style={{fontSize:11,color:t.textMuted,margin:"10px 0 0",opacity:.5}}>v99</p>
+          <p style={{fontSize:11,color:t.textMuted,margin:"10px 0 0",opacity:.5}}>v100</p>
         </div>
       );
     }
@@ -1358,10 +1359,35 @@
           }
         }
         setCatches(prev=>[data,...prev]);
+        enrichConditions(data);
         savePrefs({lastRiver:form.river,lastEquipment:form.equipment});
         if(!DEFAULT_RIVERS.includes(form.river))addCustomRiver(form.river);
         if(form.equipment==="Flue"&&form.fly_pattern&&!DEFAULT_FLIES.includes(form.fly_pattern))addCustomFly(form.fly_pattern);
         setView("list");
+      };
+
+      // Henter måledata (NVE/Frost) via Edge Function og skriver til conditions.measured.
+      // Kjøres asynkront etter lagring — blokkerer aldri, og rører aldri manuelle felt.
+      const enrichConditions=async(catchRow)=>{
+        try{
+          if(!catchRow||!catchRow.date||!catchRow.river)return;
+          const ts=new Date(`${catchRow.date}T${catchRow.time||"12:00"}`).toISOString();
+          const {data,error}=await sb.functions.invoke("fetch-conditions",{body:{river:catchRow.river,timestamp:ts}});
+          if(error||!data||data.error)return;
+          const r1=v=>Math.round(v*10)/10;
+          const measured={};
+          if(data.water_flow!=null)measured.water_flow=r1(data.water_flow);
+          if(data.water_temp!=null)measured.water_temp=r1(data.water_temp);
+          if(data.air_temp!=null)measured.air_temp=r1(data.air_temp);
+          if(Object.keys(measured).length===0)return;
+          if(data.nve_station)measured.nve_station=data.nve_station;
+          measured.fetched_at=data.fetched_at;
+          const conditions={...(catchRow.conditions||{}),measured};
+          const {data:upd,error:updErr}=await sb.from("catches").update({conditions}).eq("id",catchRow.id).select().single();
+          if(updErr||!upd)return;
+          setCatches(prev=>prev.map(x=>x.id===upd.id?upd:x));
+          setSelected(prev=>prev&&prev.id===upd.id?upd:prev);
+        }catch(e){console.error("enrichConditions",e);}
       };
 
       const updateCatch=async(form,newPhotoFiles)=>{
@@ -1403,6 +1429,7 @@
           setCatchGroupsMap(prev=>{const c={...prev};delete c[form.id];return c;});
         }
         setCatches(prev=>prev.map(x=>x.id===data.id?data:x));
+        enrichConditions(data);
         if(!DEFAULT_RIVERS.includes(form.river))addCustomRiver(form.river);
         if(form.equipment==="Flue"&&form.fly_pattern&&!DEFAULT_FLIES.includes(form.fly_pattern))addCustomFly(form.fly_pattern);
         setSelected(data);setView("detail");
@@ -1775,7 +1802,7 @@
           </div>
         )}
         <div style={{marginTop:30,textAlign:"center"}}>
-          <p style={{fontSize:11,color:t.textMuted,opacity:.5,margin:0}}>v99</p>
+          <p style={{fontSize:11,color:t.textMuted,opacity:.5,margin:0}}>v100</p>
         </div>
         </div>
 
@@ -2497,12 +2524,16 @@
       const windStrengths={calm:0,lightBreeze:1,fresh:2,strong:3};
       const levelLabels={low:L("cond_level_low"),medium:L("cond_level_medium"),high:L("cond_level_high")};
       const colorLabels={clear:L("cond_color_clear"),tinted:L("cond_color_tinted"),murky:L("cond_color_murky")};
+      const m=(conditions.measured&&typeof conditions.measured==="object")?conditions.measured:{};
       if(conditions.weather&&weatherIcons[conditions.weather])chips.push({icon:weatherIcons[conditions.weather],label:weatherLabels[conditions.weather]});
       if(conditions.wind&&windStrengths[conditions.wind]!==undefined)chips.push({icon:<WindIcon strength={windStrengths[conditions.wind]}/>,label:windLabels[conditions.wind]});
       if(conditions.waterLevel)chips.push({icon:<WaterLevelIcon level={conditions.waterLevel}/>,label:levelLabels[conditions.waterLevel]});
       if(conditions.waterColor)chips.push({icon:<WaterColorIcon color={conditions.waterColor}/>,label:colorLabels[conditions.waterColor]});
-      if(conditions.airTemp!=null)chips.push({icon:I.thermo(),label:`${conditions.airTemp}°C ${L("cond_air_short")}`});
-      if(conditions.waterTemp!=null)chips.push({icon:I.thermo(),label:`${conditions.waterTemp}°C ${L("cond_water_short")}`});
+      if(m.water_flow!=null)chips.push({icon:<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="4" y1="12" x2="19" y2="12"/><polyline points="13,6 19,12 13,18"/></svg>,label:`${m.water_flow} m³/s`});
+      const airT=conditions.airTemp!=null?conditions.airTemp:(m.air_temp!=null?m.air_temp:null);
+      const waterT=conditions.waterTemp!=null?conditions.waterTemp:(m.water_temp!=null?m.water_temp:null);
+      if(airT!=null)chips.push({icon:I.thermo(),label:`${airT}°C ${L("cond_air_short")}`});
+      if(waterT!=null)chips.push({icon:I.thermo(),label:`${waterT}°C ${L("cond_water_short")}`});
       if(chips.length===0)return null;
       return <div style={{background:t.cardBg,borderRadius:12,padding:14,border:`1px solid ${t.cardBorder}`,marginBottom:10}}>
         <p style={{fontSize:14,fontWeight:600,color:t.text,margin:"0 0 10px"}}>{L("cond_title")}</p>
@@ -2514,6 +2545,7 @@
             </span>
           ))}
         </div>
+        {m.nve_station&&<p style={{fontSize:11,color:t.textMuted,margin:"8px 0 0"}}>{L("cond_measured_src")}: {m.nve_station} (NVE)</p>}
       </div>;
     }
 
