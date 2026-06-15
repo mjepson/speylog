@@ -1,4 +1,4 @@
-const CACHE_NAME = 'speylog-debug-v109';
+const CACHE_NAME = 'speylog-debug-v110';
 const IMG_CACHE = 'speylog-img-v1';
 const ASSETS = [
   '/',

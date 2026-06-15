@@ -1123,7 +1123,7 @@
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
             speylog.com
           </a>
-          <p style={{fontSize:11,color:t.textMuted,margin:"10px 0 0",opacity:.5}}>v109</p>
+          <p style={{fontSize:11,color:t.textMuted,margin:"10px 0 0",opacity:.5}}>v110</p>
         </div>
       );
     }
@@ -1857,7 +1857,7 @@
           </div>
         )}
         <div style={{marginTop:30,textAlign:"center"}}>
-          <p style={{fontSize:11,color:t.textMuted,opacity:.5,margin:0}}>v109</p>
+          <p style={{fontSize:11,color:t.textMuted,opacity:.5,margin:0}}>v110</p>
         </div>
         </div>
 
@@ -2683,26 +2683,37 @@
       const morning=top(users.filter(u=>u.early),u=>u.early.mins,false);
       const ice=top(users.filter(u=>u.cold),u=>u.cold.temp,false);
       const hunter=top(users.filter(u=>u.species.size>=2),u=>u.species.size);
-      const medal=["#fbbf24",t.textSec,"#c08457"];
+      // Fylte pall-blokker med mørk tekst — egne nyanser for lys/mørk så kontrasten holder begge veier
+      const medalSet=t.dark?[
+        {bg:"#3a3115",border:"#6b5a1e",num:"#fbcf4d",val:"#e3c46a"},
+        {bg:"#272e35",border:"#3d454d",num:"#c9d1da",val:"#aab3bd"},
+        {bg:"#352519",border:"#5e4327",num:"#e0a36a",val:"#cc9060"}
+      ]:[
+        {bg:"#fbe7a8",border:"#e0b840",num:"#8a6206",val:"#8a6206"},
+        {bg:"#dfe3e8",border:"#c2c9d1",num:"#566270",val:"#566270"},
+        {bg:"#f0d6bb",border:"#cc9966",num:"#8a5523",val:"#8a5523"}
+      ];
       const secT={fontSize:12,fontWeight:600,color:t.textMuted,letterSpacing:.6,textTransform:"uppercase",margin:"0 0 12px"};
       const Chip=({label,active,onClick})=>(
         <button onClick={onClick} style={{padding:"7px 13px",borderRadius:14,fontSize:12.5,fontWeight:600,fontFamily:t.font,border:"none",cursor:"pointer",background:active?t.primaryLight:t.chipBg,color:active?t.primary:t.chipText,WebkitTapHighlightColor:"transparent"}}>{label}</button>
       );
       const Podium=({entries,valueOf,onTapEntry})=>{
-        const slots=[{e:entries[1],r:2,h:30,size:50},{e:entries[0],r:1,h:46,size:60},{e:entries[2],r:3,h:24,size:50}].filter(s=>s.e);
-        return(<div style={{display:"flex",alignItems:"flex-end",justifyContent:"center",gap:14,marginBottom:24}}>
-          {slots.map(s=>(
-            <div key={s.r} onClick={()=>{if(onTapEntry)onTapEntry(s.e);}} style={{textAlign:"center",width:s.r===1?100:88,minWidth:0,cursor:onTapEntry?"pointer":"default"}}>
+        const slots=[{e:entries[1],r:2},{e:entries[0],r:1},{e:entries[2],r:3}].filter(s=>s.e);
+        return(<div style={{display:"flex",alignItems:"flex-end",justifyContent:"center",gap:10,marginBottom:24}}>
+          {slots.map(s=>{
+            const m=medalSet[s.r-1];const first=s.r===1;
+            return(
+            <div key={s.r} onClick={()=>{if(onTapEntry)onTapEntry(s.e);}} style={{flex:first?1.15:1,textAlign:"center",minWidth:0,cursor:onTapEntry?"pointer":"default"}}>
               <div style={{display:"flex",justifyContent:"center",marginBottom:6}}>
-                <div style={{borderRadius:"50%",border:`2px solid ${medal[s.r-1]}`,padding:2,display:"flex"}}>
-                  <Avatar url={s.e.avatar} name={s.e.name} seed={s.e.uid} size={s.size} t={t}/>
-                </div>
+                <Avatar url={s.e.avatar} name={s.e.name} seed={s.e.uid} size={first?58:46} t={t}/>
               </div>
-              <p style={{fontSize:s.r===1?13:12.5,fontWeight:600,color:t.text,margin:0,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{s.e.name}</p>
-              <p style={{fontSize:12,color:s.r===1?medal[0]:t.textSec,fontWeight:s.r===1?600:400,margin:0,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{valueOf(s.e)}</p>
-              <div style={{background:s.r===1?t.primaryLight:t.chipBg,borderRadius:"8px 8px 0 0",height:s.h,marginTop:8,display:"flex",alignItems:"center",justifyContent:"center",color:medal[s.r-1],fontWeight:700,fontSize:s.r===1?17:15}}>{s.r}</div>
-            </div>
-          ))}
+              <div style={{background:m.bg,border:`1px solid ${m.border}`,borderRadius:"12px 12px 0 0",padding:first?"12px 4px 18px":"9px 4px 13px"}}>
+                <div style={{fontSize:first?26:21,fontWeight:800,color:m.num,lineHeight:1}}>{s.r}</div>
+                <div style={{fontSize:first?13.5:12.5,fontWeight:first?700:600,color:t.text,margin:"4px 0 0",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{s.e.name}</div>
+                <div style={{fontSize:first?12.5:12,fontWeight:600,color:m.val,margin:"1px 0 0",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{valueOf(s.e)}</div>
+              </div>
+            </div>);
+          })}
         </div>);
       };
       const Award=({icon,title,desc,u,value,catchRef,gold})=>(
