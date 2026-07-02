@@ -1129,7 +1129,7 @@
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
             speylog.com
           </a>
-          <p style={{fontSize:11,color:t.textMuted,margin:"10px 0 0",opacity:.5}}>v116</p>
+          <p style={{fontSize:11,color:t.textMuted,margin:"10px 0 0",opacity:.5}}>v117</p>
         </div>
       );
     }
@@ -1863,7 +1863,7 @@
           </div>
         )}
         <div style={{marginTop:30,textAlign:"center"}}>
-          <p style={{fontSize:11,color:t.textMuted,opacity:.5,margin:0}}>v116</p>
+          <p style={{fontSize:11,color:t.textMuted,opacity:.5,margin:0}}>v117</p>
         </div>
         </div>
 
@@ -2899,13 +2899,14 @@
       // eslint-disable-next-line react-hooks/exhaustive-deps
       },[dragState!==null]);
       // Trend siste d\u00f8gn som diagonal pil i sirkel \u2014 kun retning, ingen prosent.
+      // Pilen tegnes som SVG (rotert) \u2014 unicode-piler som \u2198 rendres som emoji p\u00e5 iOS.
       // M\u00f8rk modus: n\u00f8ytral chip-bakgrunn, fargen ligger i pilen (unng\u00e5r m\u00f8rkt-p\u00e5-m\u00f8rkt).
       const trend=(r)=>{
         if(r.flow==null||r.flow24==null||r.flow24<=0)return null;
         const pct=(r.flow-r.flow24)/r.flow24*100;
-        if(pct>3)return{arrow:"\u2197",fg:t.dark?"#7fd3a3":"#1f6b3f",bg:t.dark?t.chipBg:"#d7ecdb"};
-        if(pct<-3)return{arrow:"\u2198",fg:t.dark?"#e2ba76":"#8a5a1a",bg:t.dark?t.chipBg:"#f2e4c6"};
-        return{arrow:"\u2192",fg:t.dark?"#8a978d":"#8a978d",bg:t.dark?t.chipBg:"#eef0ee"};
+        if(pct>3)return{rot:-45,fg:t.dark?"#7fd3a3":"#1f6b3f",bg:t.dark?t.chipBg:"#d7ecdb"};
+        if(pct<-3)return{rot:45,fg:t.dark?"#e2ba76":"#8a5a1a",bg:t.dark?t.chipBg:"#f2e4c6"};
+        return{rot:0,fg:"#8a978d",bg:t.dark?t.chipBg:"#eef0ee"};
       };
       // Fiskeforhold-niv\u00e5 \u2014 farger for lys og m\u00f8rk modus. Farget fyll = admin-satt terskel, omriss = persentil-estimat.
       const levelBadge=(lv,est)=>{
@@ -2958,14 +2959,19 @@
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg>
             </span>
             <div style={{minWidth:0,flex:1}}>
-              <p style={{fontSize:17,fontWeight:600,color:t.text,margin:0,display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>{r.river}{r.level&&(()=>{const lb=levelBadge(r.level,r.level_estimated);return <span style={{fontSize:11,fontWeight:700,padding:"2px 8px",borderRadius:8,whiteSpace:"nowrap",...(lb.est?{background:"transparent",color:lb.fg,border:`1px solid ${lb.fg}`,opacity:.9}:{background:lb.bg,color:lb.fg})}}>{lb.label}</span>;})()}</p>
-              <p style={{fontSize:12.5,color:t.textMuted,margin:"4px 0 0",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{(r.station_name||r.station_id)+(r.temp!=null?" · "+r.temp+"°C":"")}</p>
+              <p style={{fontSize:17,fontWeight:600,color:t.text,margin:0,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{r.river}</p>
+              {(r.level||r.temp!=null)&&<p style={{margin:"6px 0 0",display:"flex",alignItems:"center",gap:8}}>
+                {r.level&&(()=>{const lb=levelBadge(r.level,r.level_estimated);return <span style={{fontSize:11,fontWeight:700,padding:"2px 8px",borderRadius:8,whiteSpace:"nowrap",...(lb.est?{background:"transparent",color:lb.fg,border:`1px solid ${lb.fg}`,opacity:.9}:{background:lb.bg,color:lb.fg})}}>{lb.label}</span>;})()}
+                {r.temp!=null&&<span style={{fontSize:12.5,color:t.textMuted,whiteSpace:"nowrap"}}>{r.temp}°C</span>}
+              </p>}
             </div>
             <div style={{display:"flex",alignItems:"center",gap:10,flexShrink:0}}>
               <div style={{textAlign:"right",minWidth:74}}>
                 <p style={{fontSize:19,fontWeight:700,color:t.primary,margin:0,fontFamily:t.titleFont}}>{r.flow!=null?Math.round(r.flow):"\u2014"}<span style={{fontSize:11,fontWeight:500,color:t.textMuted}}> m³/s</span></p>
               </div>
-              {tr&&<div style={{width:38,height:38,borderRadius:19,background:tr.bg,color:tr.fg,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:17,fontWeight:800,lineHeight:1}}>{tr.arrow}</div>}
+              {tr&&<div style={{width:38,height:38,borderRadius:19,background:tr.bg,color:tr.fg,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" style={{transform:`rotate(${tr.rot}deg)`}}><line x1="4" y1="12" x2="19" y2="12"/><polyline points="13 6 19 12 13 18"/></svg>
+              </div>}
               {r.rain48!=null&&(()=>{
                 const wet=r.rain48>=0.5;
                 const bg=wet?(t.dark?t.chipBg:"#e3eefb"):t.chipBg;
