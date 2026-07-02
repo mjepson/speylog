@@ -50,7 +50,10 @@ Magnus kommuniserer på norsk og foretrekker konsise svar.
 - **Regnvarsel** (`rain48`, mm neste 48 t) fra MET Locationforecast per stasjonskoordinat, cachet i
   `latest` (rain_at), maks ett MET-kall/time per stasjon. Krever identifiserende User-Agent.
   MET-lisensen krever attribusjon — «Værvarsel fra MET/Yr»-linjen i RiversView skal ikke fjernes.
-  Regn-sirkelen i appen lenker til `pent.no/{lat},{lon}` (yr.no støtter ikke koordinat-URL-er).
+- **Værlenke:** regn-sirkelen lenker til `yr.no/nb/værvarsel/daglig-tabell/{yr_id}` — steds-ID-en slås opp
+  fra stasjonskoordinater via Yr sitt steds-API (`/api/v0/locations/search?lat&lon`) én gang og caches i
+  `river_stations.yr_location_id`. NB: yr.no-stier med bare ID fungerer for `daglig-tabell`/`graf`,
+  IKKE `time-for-time` (404 uten stedsnavn-hale). Fallback: `pent.no/{lat},{lon}` hvis ID mangler.
 - Tabellen `river_stations` mapper elvenavn → NVE-stasjons-ID. Navn/koordinater
   auto-fylles fra NVE ved første bruk.
 
