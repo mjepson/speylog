@@ -34,14 +34,34 @@ Magnus kommuniserer på norsk og foretrekker konsise svar.
 - NB: JSX-tekst tolker IKKE `\uXXXX`-escapes — bruk ekte tegn (°, ³, ↑) i JSX-tekst.
 - Vær forsiktig med `str_replace`-lignende endringer: verifiser med grep før og etter.
 
-## Vær- og vanndata (NVE/Frost)
+## Vær- og vanndata (NVE/Frost/MET)
 
 - Edge Function `fetch-conditions` (Supabase) har tre moduser:
   - `{ river, timestamp }` — måledata for ett tidspunkt (brukes ved lagring + live preview i skjemaet)
   - `{ backfill: true }` — fyller `conditions.measured` på inntil 8 fangster per kall
-  - `{ rivers: true }` — vannføring nå for alle elver, 15 min cache i `river_stations`
+  - `{ rivers: true }` — vannføring nå + fiskeforhold-nivå + trend + regnvarsel, 15 min cache i `river_stations`
+- **Alle moduser bruker kun `verified=true`-stasjoner** (godkjenningsflyt for brukerforslag, se under).
+- **Fiskeforhold-nivå** (`level`: low/good/high/flood + `level_estimated`):
+  admin-satte terskler `fish_min`/`fish_max` (m³/s) vinner; uten terskler brukes persentil-estimat
+  (<p25=low, ≥p75=high, ≥p95=flood). Flom sjekkes alltid mot p95, også med terskler.
+- **NVE-persentiler** hentes fra `HydAPI /Percentiles/{stasjon}/1001` én gang per stasjon og caches i
+  `river_stations.flow_percentiles` som `{ "MMDD": [p25,p50,p75,p95] }`. Sentinel `{ none: true }` =
+  stasjonen mangler statistikk (f.eks. Suldalslågen) — ingen badge. Nullstill kolonnen for re-fetch.
+- **Regnvarsel** (`rain48`, mm neste 48 t) fra MET Locationforecast per stasjonskoordinat, cachet i
+  `latest` (rain_at), maks ett MET-kall/time per stasjon. Krever identifiserende User-Agent.
+  MET-lisensen krever attribusjon — «Værvarsel fra MET/Yr»-linjen i RiversView skal ikke fjernes.
+  Regn-sirkelen i appen lenker til `pent.no/{lat},{lon}` (yr.no støtter ikke koordinat-URL-er).
 - Tabellen `river_stations` mapper elvenavn → NVE-stasjons-ID. Navn/koordinater
-  auto-fylles fra NVE ved første bruk. Innloggede brukere kan legge til elver (insert-only RLS).
+  auto-fylles fra NVE ved første bruk.
+
+## Elveforslag og godkjenning
+
+- Brukere foreslår elver (RiversView, Sildre-lenke); insert med `verified=false` + `submitted_by`.
+  Dup-sjekk klient-side: eksakt navn (case-insensitivt), stasjons-ID (også unik constraint i DB),
+  og fuzzy (editDist ≤ 2) med «Legg til likevel»-bekreftelse.
+- Admin godkjenner/avviser i admin.html → Elver-fanen (UPDATE/DELETE-RLS gated på magnus@jepson.no).
+  Samme fane har fisketerskel-editor (med dagens persentiler som hint), stasjonshelse og backfill-knapp.
+- Godkjente elver flettes inn i fangstskjemaets elveliste for alle (lastes fra DB ved app-start).
 - `catches.conditions` (jsonb): manuelle felt (`weather`, `wind`, `waterLevel`, `waterColor`,
   `airTemp`, `waterTemp`) + `measured`-subobjekt (`water_flow`, `water_temp`, `air_temp`,
   `nve_station`, `fetched_at`). **Rør aldri manuelle felt ved auto-henting** — merge kun `measured`.
