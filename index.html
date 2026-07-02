@@ -1129,7 +1129,7 @@
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
             speylog.com
           </a>
-          <p style={{fontSize:11,color:t.textMuted,margin:"10px 0 0",opacity:.5}}>v114</p>
+          <p style={{fontSize:11,color:t.textMuted,margin:"10px 0 0",opacity:.5}}>v115</p>
         </div>
       );
     }
@@ -1863,7 +1863,7 @@
           </div>
         )}
         <div style={{marginTop:30,textAlign:"center"}}>
-          <p style={{fontSize:11,color:t.textMuted,opacity:.5,margin:0}}>v114</p>
+          <p style={{fontSize:11,color:t.textMuted,opacity:.5,margin:0}}>v115</p>
         </div>
         </div>
 
@@ -2898,15 +2898,14 @@
         return()=>{window.removeEventListener("mousemove",mm);window.removeEventListener("mouseup",mu);};
       // eslint-disable-next-line react-hooks/exhaustive-deps
       },[dragState!==null]);
-      // Trend som prosentendring siste d\u00f8gn \u2014 diagonal pil + tall (Alt 2)
+      // Trend siste d\u00f8gn som diagonal pil i sirkel \u2014 kun retning, ingen prosent.
+      // M\u00f8rk modus: n\u00f8ytral chip-bakgrunn, fargen ligger i pilen (unng\u00e5r m\u00f8rkt-p\u00e5-m\u00f8rkt).
       const trend=(r)=>{
         if(r.flow==null||r.flow24==null||r.flow24<=0)return null;
         const pct=(r.flow-r.flow24)/r.flow24*100;
-        const n=Math.abs(Math.round(pct));
-        const disp=(pct>0?"+":pct<0?"\u2212":"\u00b1")+n+" %";
-        if(pct>3)return{arrow:"\u2197",disp,color:t.primary};
-        if(pct<-3)return{arrow:"\u2198",disp,color:t.dark?"#e2ba76":"#8a5a1a"};
-        return{arrow:"\u2192",disp,color:t.textMuted};
+        if(pct>3)return{arrow:"\u2197",fg:t.dark?"#7fd3a3":"#1f6b3f",bg:t.dark?t.chipBg:"#d7ecdb"};
+        if(pct<-3)return{arrow:"\u2198",fg:t.dark?"#e2ba76":"#8a5a1a",bg:t.dark?t.chipBg:"#f2e4c6"};
+        return{arrow:"\u2192",fg:t.dark?"#8a978d":"#8a978d",bg:t.dark?t.chipBg:"#eef0ee"};
       };
       // Fiskeforhold-niv\u00e5 \u2014 farger for lys og m\u00f8rk modus. Farget fyll = admin-satt terskel, omriss = persentil-estimat.
       const levelBadge=(lv,est)=>{
@@ -2964,13 +2963,13 @@
             </div>
             <div style={{display:"flex",alignItems:"center",gap:10,flexShrink:0}}>
               <div style={{textAlign:"right",minWidth:74}}>
-                <p style={{fontSize:18,fontWeight:700,color:t.primary,margin:0,fontFamily:t.titleFont}}>{r.flow!=null?r.flow:"\u2014"}<span style={{fontSize:11,fontWeight:500,color:t.textMuted}}> m³/s</span></p>
-                {tr&&<p style={{fontSize:11.5,color:tr.color,margin:"3px 0 0",fontWeight:700}}>{tr.arrow} {tr.disp}</p>}
+                <p style={{fontSize:19,fontWeight:700,color:t.primary,margin:0,fontFamily:t.titleFont}}>{r.flow!=null?Math.round(r.flow):"\u2014"}<span style={{fontSize:11,fontWeight:500,color:t.textMuted}}> m³/s</span></p>
               </div>
+              {tr&&<div style={{width:38,height:38,borderRadius:19,background:tr.bg,color:tr.fg,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:17,fontWeight:800,lineHeight:1}}>{tr.arrow}</div>}
               {r.rain48!=null&&(()=>{
                 const wet=r.rain48>=0.5;
-                const bg=wet?(t.dark?"#16283f":"#e3eefb"):t.chipBg;
-                const fg=wet?(t.dark?"#7fb2e6":"#1a5a9e"):t.textMuted;
+                const bg=wet?(t.dark?t.chipBg:"#e3eefb"):t.chipBg;
+                const fg=wet?(t.dark?"#85b7eb":"#1a5a9e"):t.textMuted;
                 const hasPos=r.lat!=null&&r.lon!=null;
                 // Egen værlenke (pent.no viser Yr/MET-varsel for punktet) — stopp klikket fra å nå Sildre-lenken rundt
                 const openWeather=e=>{if(!hasPos)return;e.preventDefault();e.stopPropagation();window.open(`https://pent.no/${r.lat.toFixed(4)},${r.lon.toFixed(4)}`,"_blank","noopener");};
