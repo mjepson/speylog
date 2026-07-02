@@ -357,6 +357,8 @@
       rivers_level_good:{nb:"Fint",en:"Good"},
       rivers_level_high:{nb:"Høyt",en:"High"},
       rivers_level_flood:{nb:"Flom",en:"Flood"},
+      rivers_rain48:{nb:"Meldt nedbør neste 48 timer (mm)",en:"Forecast precipitation next 48 hours (mm)"},
+      rivers_attribution:{nb:"Vannføring fra NVE · Værvarsel fra MET/Yr",en:"Flow data from NVE · Weather forecast from MET/Yr"},
       rivers_error:{nb:"Kunne ikke hente vannføring akkurat nå.",en:"Couldn't fetch flow data right now."},
       profile_stats_link:{nb:"Statistikk",en:"Statistics"},
       profile_admin_link:{nb:"Admin",en:"Admin"},
@@ -1127,7 +1129,7 @@
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
             speylog.com
           </a>
-          <p style={{fontSize:11,color:t.textMuted,margin:"10px 0 0",opacity:.5}}>v112</p>
+          <p style={{fontSize:11,color:t.textMuted,margin:"10px 0 0",opacity:.5}}>v113</p>
         </div>
       );
     }
@@ -1861,7 +1863,7 @@
           </div>
         )}
         <div style={{marginTop:30,textAlign:"center"}}>
-          <p style={{fontSize:11,color:t.textMuted,opacity:.5,margin:0}}>v112</p>
+          <p style={{fontSize:11,color:t.textMuted,opacity:.5,margin:0}}>v113</p>
         </div>
         </div>
 
@@ -2896,12 +2898,15 @@
         return()=>{window.removeEventListener("mousemove",mm);window.removeEventListener("mouseup",mu);};
       // eslint-disable-next-line react-hooks/exhaustive-deps
       },[dragState!==null]);
+      // Trend som prosentendring siste d\u00f8gn \u2014 diagonal pil + tall (Alt 2)
       const trend=(r)=>{
         if(r.flow==null||r.flow24==null||r.flow24<=0)return null;
-        const pct=(r.flow-r.flow24)/r.flow24;
-        if(pct>0.03)return{arrow:"\u2191",label:L("rivers_rising"),color:t.primary};
-        if(pct<-0.03)return{arrow:"\u2193",label:L("rivers_falling"),color:t.textSec};
-        return{arrow:"\u2192",label:L("rivers_stable"),color:t.textMuted};
+        const pct=(r.flow-r.flow24)/r.flow24*100;
+        const n=Math.abs(Math.round(pct));
+        const disp=(pct>0?"+":pct<0?"\u2212":"\u00b1")+n+" %";
+        if(pct>3)return{arrow:"\u2197",disp,color:t.primary};
+        if(pct<-3)return{arrow:"\u2198",disp,color:t.dark?"#e2ba76":"#8a5a1a"};
+        return{arrow:"\u2192",disp,color:t.textMuted};
       };
       // Fiskeforhold-niv\u00e5 \u2014 farger for lys og m\u00f8rk modus. Farget fyll = admin-satt terskel, omriss = persentil-estimat.
       const levelBadge=(lv,est)=>{
@@ -2943,7 +2948,7 @@
             if(dragState.index<i&&i<=target)shift=-draggedH;
             else if(target<=i&&i<dragState.index)shift=draggedH;
           }
-          return(<a key={r.river} ref={el=>itemRefs.current[i]=el} href={`https://sildre.nve.no/station/${r.station_id}`} target="_blank" rel="noopener noreferrer" style={{display:"flex",alignItems:"center",gap:10,background:t.cardBg,border:`1px solid ${dragging?t.primary:t.cardBorder}`,borderRadius:12,padding:"14px 12px 14px 8px",marginBottom:8,textDecoration:"none",position:"relative",zIndex:dragging?5:0,transform:`translateY(${dragging?dragState.delta:shift}px)`,transition:dragging?"none":"transform .15s",boxShadow:dragging?"0 6px 18px rgba(0,0,0,.25)":"none"}}>
+          return(<a key={r.river} ref={el=>itemRefs.current[i]=el} href={`https://sildre.nve.no/station/${r.station_id}`} target="_blank" rel="noopener noreferrer" style={{display:"flex",alignItems:"center",gap:10,background:t.cardBg,border:`1px solid ${dragging?t.primary:t.cardBorder}`,borderRadius:12,padding:"17px 12px 17px 8px",marginBottom:10,textDecoration:"none",position:"relative",zIndex:dragging?5:0,transform:`translateY(${dragging?dragState.delta:shift}px)`,transition:dragging?"none":"transform .15s",boxShadow:dragging?"0 6px 18px rgba(0,0,0,.25)":"none"}}>
             <span
               onClick={e=>e.preventDefault()}
               onMouseDown={e=>{e.preventDefault();startDrag(i,e.clientY);}}
@@ -2954,18 +2959,27 @@
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg>
             </span>
             <div style={{minWidth:0,flex:1}}>
-              <p style={{fontSize:16,fontWeight:600,color:t.text,margin:0,display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>{r.river}{r.level&&(()=>{const lb=levelBadge(r.level,r.level_estimated);return <span style={{fontSize:11,fontWeight:700,padding:"2px 8px",borderRadius:8,whiteSpace:"nowrap",...(lb.est?{background:"transparent",color:lb.fg,border:`1px solid ${lb.fg}`,opacity:.9}:{background:lb.bg,color:lb.fg})}}>{lb.label}</span>;})()}</p>
-              <p style={{fontSize:12,color:t.textMuted,margin:"3px 0 0",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{r.station_name||r.station_id}</p>
+              <p style={{fontSize:17,fontWeight:600,color:t.text,margin:0,display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>{r.river}{r.level&&(()=>{const lb=levelBadge(r.level,r.level_estimated);return <span style={{fontSize:11,fontWeight:700,padding:"2px 8px",borderRadius:8,whiteSpace:"nowrap",...(lb.est?{background:"transparent",color:lb.fg,border:`1px solid ${lb.fg}`,opacity:.9}:{background:lb.bg,color:lb.fg})}}>{lb.label}</span>;})()}</p>
+              <p style={{fontSize:12.5,color:t.textMuted,margin:"4px 0 0",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{(r.station_name||r.station_id)+(r.temp!=null?" · "+r.temp+"°C":"")}</p>
             </div>
-            <div style={{display:"flex",alignItems:"center",gap:14,flexShrink:0}}>
-              {r.temp!=null&&<span style={{fontSize:13,color:t.textSec,fontWeight:500}}>{r.temp}°C</span>}
+            <div style={{display:"flex",alignItems:"center",gap:10,flexShrink:0}}>
               <div style={{textAlign:"right",minWidth:74}}>
                 <p style={{fontSize:18,fontWeight:700,color:t.primary,margin:0,fontFamily:t.titleFont}}>{r.flow!=null?r.flow:"\u2014"}<span style={{fontSize:11,fontWeight:500,color:t.textMuted}}> m³/s</span></p>
-                {tr&&<p style={{fontSize:11,color:tr.color,margin:"2px 0 0",fontWeight:500}}>{tr.arrow} {tr.label}</p>}
+                {tr&&<p style={{fontSize:11.5,color:tr.color,margin:"3px 0 0",fontWeight:700}}>{tr.arrow} {tr.disp}</p>}
               </div>
+              {r.rain48!=null&&(()=>{
+                const wet=r.rain48>=0.5;
+                const bg=wet?(t.dark?"#16283f":"#e3eefb"):t.chipBg;
+                const fg=wet?(t.dark?"#7fb2e6":"#1a5a9e"):t.textMuted;
+                return(<div title={L("rivers_rain48")} style={{width:38,height:38,borderRadius:19,background:bg,color:fg,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",flexShrink:0,lineHeight:1}}>
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.7C9 7 5.5 11 5.5 14.5a6.5 6.5 0 0013 0C18.5 11 15 7 12 2.7z"/></svg>
+                  <span style={{fontSize:11.5,fontWeight:800,marginTop:1}}>{Math.round(r.rain48)}</span>
+                </div>);
+              })()}
             </div>
           </a>);
         })}
+        {rows&&rows.length>0&&<p style={{fontSize:11,color:t.textMuted,textAlign:"center",margin:"14px 0 0",opacity:.8}}>{L("rivers_attribution")}</p>}
         <div style={{height:30}}/>
       </div>);
     }
