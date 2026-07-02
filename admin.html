@@ -442,6 +442,11 @@
     .btn-danger { color: var(--danger); border-color: var(--danger); }
     .btn:disabled { opacity: .5; cursor: default; }
     .sildre-link { color: var(--blue); font-size: 13px; text-decoration: none; white-space: nowrap; }
+    .thr-inp {
+      width: 68px; background: var(--bg); border: 1px solid var(--border); color: var(--text);
+      border-radius: 8px; padding: 7px 9px; font-size: 14px; font-weight: 600;
+      font-family: 'Outfit', sans-serif; outline: none;
+    }
     .stale-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
 
     /* ── Responsive ── */
@@ -918,6 +923,27 @@ async function runBackfill() {
     : `Oppdaterte ${data.updated} av ${data.processed} fangster — ${data.remaining} gjenstår`;
   render();
 }
+// NVE-persentiler [p25,p50,p75,p95] for dagens dato — hint for å sette fisketerskler.
+function percTodayAdmin(r) {
+  const fp = r.flow_percentiles;
+  if (!fp || fp.none || typeof fp !== 'object') return null;
+  const d = new Date();
+  const key = String(d.getMonth() + 1).padStart(2, '0') + String(d.getDate()).padStart(2, '0');
+  if (fp[key]) return fp[key];
+  const keys = Object.keys(fp).sort();
+  if (!keys.length) return null;
+  return fp[keys.reduce((b, k) => Math.abs(+k - +key) < Math.abs(+b - +key) ? k : b, keys[0])];
+}
+async function saveThresholds(name, idx) {
+  const minEl = document.getElementById('fmin-' + idx);
+  const maxEl = document.getElementById('fmax-' + idx);
+  const parse = v => { v = (v || '').trim().replace(',', '.'); return v === '' ? null : (isNaN(parseFloat(v)) ? null : parseFloat(v)); };
+  const fish_min = parse(minEl.value), fish_max = parse(maxEl.value);
+  const { error } = await sb.from('river_stations').update({ fish_min, fish_max }).eq('river_name', name);
+  if (error) { alert('Feil: ' + error.message); return; }
+  await loadData();
+  render();
+}
 
 function renderRivers() {
   const pending = state.rivers.filter(r => !r.verified);
@@ -962,33 +988,41 @@ function renderRivers() {
           </div>`;
         }).join('')}
 
-      <h3 style="font-size: 14px; font-weight: 700; margin: 24px 0 12px; color: var(--text-sec);">Godkjente elver (${approved.length})</h3>
-      <div class="table-wrap">
-        <div class="table-header" style="grid-template-columns: 2fr 1.4fr 1fr 1fr 90px;">
-          <span>Elv</span>
-          <span>Stasjon</span>
-          <span>Vannføring</span>
-          <span>Siste måling</span>
-          <span></span>
-        </div>
-        ${approved.map(r => {
-          const ageMs = r.latest_at ? now - new Date(r.latest_at).getTime() : null;
-          const stale = ageMs === null || ageMs > 24 * 3600_000;
-          const flow = r.latest && r.latest.flow != null ? r.latest.flow + ' m³/s' : '—';
-          const when = r.latest_at ? fmtDate(r.latest_at) : 'aldri';
-          return `
-            <div class="table-row" style="grid-template-columns: 2fr 1.4fr 1fr 1fr 90px; cursor: default;">
-              <div class="user-cell"><div class="name">${r.river_name}</div></div>
-              <span class="date-val">${r.nve_station_id}${r.nve_station_name ? ' · ' + r.nve_station_name : ''}</span>
-              <span class="weight-val">${flow}</span>
-              <span class="date-val"><span class="stale-dot" style="background: ${stale ? 'var(--yellow)' : 'var(--primary)'}"></span>${when}</span>
+      <h3 style="font-size: 14px; font-weight: 700; margin: 24px 0 12px; color: var(--text-sec);">Godkjente elver — fisketerskler (${approved.length})</h3>
+      <p style="font-size: 12.5px; color: var(--text-muted); margin: 0 0 12px;">Sett nedre (min) og øvre (ideal-til) fiskbar vannføring per elv. Uten terskler bruker appen et persentil-estimat.</p>
+      ${approved.map((r, i) => {
+        const ageMs = r.latest_at ? now - new Date(r.latest_at).getTime() : null;
+        const stale = ageMs === null || ageMs > 24 * 3600_000;
+        const flow = r.latest && r.latest.flow != null ? r.latest.flow + ' m³/s' : '—';
+        const when = r.latest_at ? fmtDate(r.latest_at) : 'aldri';
+        const p = percTodayAdmin(r);
+        const hint = p
+          ? `NVE i dag: p25 ${p[0] != null ? p[0].toFixed(1) : '–'} · p50 ${p[1] != null ? p[1].toFixed(1) : '–'} · p75 ${p[2] != null ? p[2].toFixed(1) : '–'} · p95 ${p[3] != null ? p[3].toFixed(1) : '–'}`
+          : 'NVE har ingen persentilstatistikk for denne stasjonen';
+        const tuned = r.fish_min != null || r.fish_max != null;
+        return `
+          <div class="river-card">
+            <div class="top">
+              <div>
+                <h3>${r.river_name} ${tuned ? '<span class="badge-num" style="background: var(--primary); margin-left: 4px;">satt</span>' : ''}</h3>
+                <div class="meta"><span class="stale-dot" style="background: ${stale ? 'var(--yellow)' : 'var(--primary)'}"></span>nå ${flow} · ${r.nve_station_id}${r.nve_station_name ? ' · ' + r.nve_station_name : ''} · sist ${when}</div>
+              </div>
               <a class="sildre-link" href="https://sildre.nve.no/station/${r.nve_station_id}" target="_blank" rel="noopener">Sildre ↗</a>
-            </div>`;
-        }).join('')}
-      </div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px; margin: 12px 0 6px; flex-wrap: wrap;">
+              <span class="fx-lbl" style="font-size: 12px; color: var(--text-muted);">Min</span>
+              <input id="fmin-${i}" class="thr-inp" inputmode="decimal" value="${r.fish_min != null ? r.fish_min : ''}" placeholder="–" />
+              <span class="fx-lbl" style="font-size: 12px; color: var(--text-muted);">Ideal til</span>
+              <input id="fmax-${i}" class="thr-inp" inputmode="decimal" value="${r.fish_max != null ? r.fish_max : ''}" placeholder="–" />
+              <span class="fx-lbl" style="font-size: 12px; color: var(--text-muted);">m³/s</span>
+              <button class="btn btn-ok" style="margin-left: auto;" onclick="saveThresholds(decodeURIComponent('${esc(r.river_name)}'), ${i})">Lagre</button>
+            </div>
+            <div class="hint ${p ? 'hint-ok' : 'hint-warn'}" style="margin-bottom: 0;">${hint}</div>
+          </div>`;
+      }).join('')}
       <div class="footer-bar">
         <span>${approved.length} godkjente · ${pending.length} ventende</span>
-        <span>Gul prikk = ingen måling siste døgn</span>
+        <span>«satt» = elva har egne fisketerskler</span>
       </div>
     </div>`;
 }
