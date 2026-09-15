@@ -39,6 +39,16 @@
     .safe-top{padding-top:16px}
     .is-standalone .safe-top{padding-top:56px}
     .safe-bottom{padding-bottom:calc(24px + env(safe-area-inset-bottom, 0px))}
+    /* iOS 27 tegner en progressiv blur over toppkanten i standalone-webapper som bruker
+       black-translucent — ubetinget, uavhengig av scroll. En sticky, solid header gjør båndet
+       visuelt uskadelig: innholdet scroller under headeren i stedet for opp i blur-sonen.
+       Bakgrunnen kommer fra --headBg, som settes inline per tema. Kun mobil — desktop har
+       ikke problemet, og der ville en solid stripe brutt med den faste bakgrunnsgradienten. */
+    .spey-head{padding-top:16px}
+    .is-standalone .spey-head{padding-top:56px}
+    @media (max-width: 599px){
+      .spey-head{position:sticky;top:0;z-index:20;background:var(--headBg);margin-left:-16px;margin-right:-16px;padding-left:16px;padding-right:16px}
+    }
     .photo-scroll{display:flex;gap:8px;overflow-x:auto;-webkit-overflow-scrolling:touch;scroll-snap-type:x mandatory;padding:2px 0}
     .photo-scroll::-webkit-scrollbar{display:none}
     .photo-scroll>div{scroll-snap-align:start;flex-shrink:0}
@@ -1155,7 +1165,7 @@
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
             speylog.com
           </a>
-          <p style={{fontSize:11,color:t.textMuted,margin:"10px 0 0",opacity:.5}}>v120</p>
+          <p style={{fontSize:11,color:t.textMuted,margin:"10px 0 0",opacity:.5}}>v121</p>
         </div>
       );
     }
@@ -1796,13 +1806,14 @@
 
       const pullProgress=Math.min(pullY/PULL_THRESHOLD,1);
 
-      return(<div className="safe-top safe-bottom" style={S.page} onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}>
+      return(<div className="safe-bottom" style={S.page} onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}>
         {(pullY>0||refreshing)&&(
           <div style={{position:"absolute",top:0,left:0,right:0,display:"flex",justifyContent:"center",alignItems:"center",height:pullY,pointerEvents:"none",zIndex:10}}>
             <div style={{width:32,height:32,borderRadius:16,border:`3px solid ${t.cardBorder}`,borderTopColor:t.primary,opacity:refreshing?1:pullProgress,transform:refreshing?"none":`rotate(${pullProgress*360}deg)`,animation:refreshing?"spin 0.8s linear infinite":"none"}}/>
           </div>
         )}
-        <div style={{transform:`translateY(${pullY}px)`,transition:isPulling.current?"none":"transform 0.2s"}}>
+        <div style={{transform:pullY?`translateY(${pullY}px)`:"none",transition:isPulling.current?"none":"transform 0.2s"}}>
+        <div className="spey-head" style={{"--headBg":t.solidBg,paddingBottom:10}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:0,gap:12}}>
           <div style={{minWidth:0,flex:1}}>
             <div style={{display:"flex",alignItems:"center",gap:9}}>
@@ -1820,7 +1831,8 @@
           </div>
         </div>
         <div className="spey-ruler" style={{height:7,marginTop:14,opacity:t.dark?.55:.7,"--tick":t.borderSoft,"--tickHi":t.primary}}/>
-        <div style={{display:"flex",gap:8,marginBottom:14,marginTop:14,alignItems:"center"}}>
+        </div>
+        <div style={{display:"flex",gap:8,marginBottom:14,marginTop:4,alignItems:"center"}}>
           <div style={{...S.tabBar,marginBottom:0,flex:1}}>
             <button style={tab==="mine"?S.tabActive:S.tab} onClick={()=>setTab("mine")}>{L("tab_mine")}</button>
             <button style={{...(tab==="feed"?S.tabActive:S.tab),position:"relative"}} onClick={()=>setTab("feed")}>
@@ -1889,7 +1901,7 @@
           </div>
         )}
         <div style={{marginTop:30,textAlign:"center"}}>
-          <p style={{fontSize:11,color:t.textMuted,opacity:.5,margin:0}}>v120</p>
+          <p style={{fontSize:11,color:t.textMuted,opacity:.5,margin:0}}>v121</p>
         </div>
         </div>
 
@@ -2964,7 +2976,8 @@
       };
       const draggedH=dragRef.current?dragRef.current.heights[dragRef.current.index]:0;
       const target=dragState&&dragRef.current?computeTarget(dragState.index,dragState.delta,dragRef.current.heights):null;
-      return(<div ref={swipeRef} className="safe-top safe-bottom" style={{...S.page,touchAction:"pan-y",willChange:"transform"}}>
+      return(<div ref={swipeRef} className="safe-bottom" style={{...S.page,touchAction:"pan-y"}}>
+        <div className="spey-head" style={{"--headBg":t.solidBg,paddingBottom:10}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:0,gap:12}}>
           <div style={{minWidth:0,flex:1}}>
             <div style={{display:"flex",alignItems:"center",gap:9}}>
@@ -2982,7 +2995,8 @@
           </div>
         </div>
         <div className="spey-ruler" style={{height:7,marginTop:14,opacity:t.dark?.55:.7,"--tick":t.borderSoft,"--tickHi":t.primary}}/>
-        <p style={{fontSize:13.5,color:t.textSec,margin:"14px 0 16px"}}>{L("rivers_sub")}</p>
+        </div>
+        <p style={{fontSize:13.5,color:t.textSec,margin:"4px 0 16px"}}>{L("rivers_sub")}</p>
         {rows===null&&!err&&<div style={{display:"flex",justifyContent:"center",padding:40}}><div style={{width:32,height:32,borderRadius:16,border:`3px solid ${t.cardBorder}`,borderTopColor:t.primary,animation:"spin 0.8s linear infinite"}}/></div>}
         {err&&<p style={{color:t.textMuted,fontSize:14}}>{L("rivers_error")}</p>}
         {rows&&rows.map((r,i)=>{
