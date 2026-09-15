@@ -45,10 +45,11 @@
        topp-padding, slik at header og knapper starter under sonen. Innhold som scroller opp dit
        blir fortsatt vasket — det er et bevisst valg (v122 dekket sonen med et solid bånd, men
        den harde kanten så dårlig ut under scroll).
-       112px er målt av skjermbilde på iPhone — blur-kanten lå rundt 85–100pt. Juster her.
+       97px: målt til 112 av skjermbilde (blur-kanten lå rundt 85–100pt), så strammet 15px
+       etter at Magnus så den på telefonen. Juster her.
        Kun mobil: i Safari finnes ikke blurren, og desktop har ikke problemet. */
     @media (max-width: 599px){
-      .is-standalone .safe-top{padding-top:112px}
+      .is-standalone .safe-top{padding-top:97px}
       /* Lysboksen er fullskjerm og bruker ikke safe-top — lukkeknappen må dyttes ned selv */
       .is-standalone .spey-lightbox-close{top:120px}
     }
@@ -1169,7 +1170,7 @@
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
             speylog.com
           </a>
-          <p style={{fontSize:11,color:t.textMuted,margin:"10px 0 0",opacity:.5}}>v124</p>
+          <p style={{fontSize:11,color:t.textMuted,margin:"10px 0 0",opacity:.5}}>v125</p>
         </div>
       );
     }
@@ -1908,7 +1909,7 @@
           </div>
         )}
         <div style={{marginTop:30,textAlign:"center"}}>
-          <p style={{fontSize:11,color:t.textMuted,opacity:.5,margin:0}}>v124</p>
+          <p style={{fontSize:11,color:t.textMuted,opacity:.5,margin:0}}>v125</p>
         </div>
         </div>
 
