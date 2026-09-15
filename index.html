@@ -1169,7 +1169,7 @@
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
             speylog.com
           </a>
-          <p style={{fontSize:11,color:t.textMuted,margin:"10px 0 0",opacity:.5}}>v123</p>
+          <p style={{fontSize:11,color:t.textMuted,margin:"10px 0 0",opacity:.5}}>v124</p>
         </div>
       );
     }
@@ -1403,6 +1403,11 @@
 
       const savePrefs=(p)=>{setPrefs(p);lsSet("fl_prefs",p);};
       const switchViewMode=(m)=>{setViewMode(m);lsSet("fl_viewMode",m);};
+      // Leses av service worker-lytteren nederst i body: ingen omlasting midt i en utfylling.
+      useEffect(()=>{
+        window.speylogFormOpen=(view==="add"||view==="edit");
+        return()=>{window.speylogFormOpen=false;};
+      },[view]);
       const toggleHideOwnInFeed=()=>{const v=!hideOwnInFeed;setHideOwnInFeed(v);lsSet("fl_hideOwnInFeed",v);};
       const addCustomRiver=(name)=>{if(!customRivers.includes(name)){const next=[...customRivers,name];setCustomRivers(next);lsSet("fl_rivers",next);}};
       const addCustomFly=(name)=>{if(!customFlies.includes(name)&&!DEFAULT_FLIES.includes(name)){const next=[...customFlies,name];setCustomFlies(next);lsSet("fl_flies",next);}};
@@ -1903,7 +1908,7 @@
           </div>
         )}
         <div style={{marginTop:30,textAlign:"center"}}>
-          <p style={{fontSize:11,color:t.textMuted,opacity:.5,margin:0}}>v123</p>
+          <p style={{fontSize:11,color:t.textMuted,opacity:.5,margin:0}}>v124</p>
         </div>
         </div>
 
@@ -3415,7 +3420,36 @@
     // ── Mount ──
     ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App));
   </script>
-  <script>if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('/sw.js').catch(e=>console.log('SW:',e));});}</script>
+  <script>
+    // Service worker-registrering + aktiv oppdateringssjekk.
+    // iOS-PWA-er kan bli hengende på en gammel worker i det uendelige (sett i praksis:
+    // app-en satt fast på v121 gjennom mange omstarter mens Safari viste v122).
+    // update() tvinger nettleseren til å hente sw.js på nytt; sw.js bruker skipWaiting +
+    // clients.claim, så en ny versjon tar over med én gang og vi laster siden på nytt.
+    // Vi laster ALDRI på nytt mens brukeren står i fangstskjemaet — da ryker utfylt tekst.
+    if('serviceWorker' in navigator){
+      let reloading=false;
+      navigator.serviceWorker.addEventListener('controllerchange',()=>{
+        if(reloading||window.speylogFormOpen)return;
+        reloading=true;
+        location.reload();
+      });
+      window.addEventListener('load',()=>{
+        navigator.serviceWorker.register('/sw.js').then(reg=>{
+          if(!reg)return;
+          reg.update();
+          // Sjekk på nytt når app-en hentes fram igjen, maks én gang i halvtimen.
+          let lastCheck=Date.now();
+          document.addEventListener('visibilitychange',()=>{
+            if(document.visibilityState!=='visible')return;
+            if(Date.now()-lastCheck<30*60*1000)return;
+            lastCheck=Date.now();
+            reg.update();
+          });
+        }).catch(e=>console.log('SW:',e));
+      });
+    }
+  </script>
 
 <script>
     // PWA iOS Banner Logic med språkstøtte 🌍
