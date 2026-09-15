@@ -41,17 +41,18 @@
     .safe-bottom{padding-bottom:calc(24px + env(safe-area-inset-bottom, 0px))}
     /* iOS 27 tegner en progressiv blur over toppkanten i standalone-webapper som bruker
        black-translucent. Den er UBETINGET: den reagerer ikke på scroll, og sticky/fixed chrome
-       slipper ikke unna (testet i v121 — headeren ble vasket likevel). Eneste som virker er å
-       holde innhold ute av sonen: et solid bånd dekker den (så innhold som scroller opp dit
-       gjemmes bak farge i stedet for å bli vasket), og safe-top dytter alt innhold nedenfor.
+       slipper ikke unna (testet i v121 — headeren ble vasket likevel). Vi løser det med ekstra
+       topp-padding, slik at header og knapper starter under sonen. Innhold som scroller opp dit
+       blir fortsatt vasket — det er et bevisst valg (v122 dekket sonen med et solid bånd, men
+       den harde kanten så dårlig ut under scroll).
        112px er målt av skjermbilde på iPhone — blur-kanten lå rundt 85–100pt. Juster her.
-       Kun i standalone og kun på mobil: i Safari finnes ikke blurren, og på desktop ville en
-       solid stripe brutt med den faste bakgrunnsgradienten. */
-    .spey-blurmask{display:none}
+       Kun mobil: i Safari finnes ikke blurren, og desktop har ikke problemet. */
     @media (max-width: 599px){
       .is-standalone .safe-top{padding-top:112px}
-      .is-standalone .spey-blurmask{display:block;position:fixed;top:0;left:0;right:0;height:112px;background:var(--maskBg);z-index:150;pointer-events:none}
+      /* Lysboksen er fullskjerm og bruker ikke safe-top — lukkeknappen må dyttes ned selv */
+      .is-standalone .spey-lightbox-close{top:120px}
     }
+    .spey-lightbox-close{top:calc(12px + env(safe-area-inset-top, 0px))}
     .photo-scroll{display:flex;gap:8px;overflow-x:auto;-webkit-overflow-scrolling:touch;scroll-snap-type:x mandatory;padding:2px 0}
     .photo-scroll::-webkit-scrollbar{display:none}
     .photo-scroll>div{scroll-snap-align:start;flex-shrink:0}
@@ -1061,16 +1062,9 @@
       const switchTheme=(k)=>{setThemeKey(k);lsSet("fl_theme",k);};
       const switchLang=(l)=>{setLang(l);lsSet("fl_lang",l);};
 
-      // Blur-masken ligger over alle visningene (se .spey-blurmask i CSS) — den skjuler
-      // innhold som scroller opp i iOS 27 sin blur-sone bak solid temafarge.
-      // z-index 150: over sider og ark, under fotolysboksen (200), som er svart uansett.
-      const content=loading?<div style={S.center}><div className="spinner"/></div>
-        :!session?<AuthView S={S} t={t} L={L} lang={lang}/>
-        :<MainApp session={session} S={S} t={t} L={L} lang={lang} themeKey={themeKey} switchTheme={switchTheme} switchLang={switchLang}/>;
-      return(<React.Fragment>
-        <div className="spey-blurmask" aria-hidden="true" style={{"--maskBg":t.solidBg}}/>
-        {content}
-      </React.Fragment>);
+      if(loading)return <div style={S.center}><div className="spinner"/></div>;
+      if(!session)return <AuthView S={S} t={t} L={L} lang={lang}/>;
+      return <MainApp session={session} S={S} t={t} L={L} lang={lang} themeKey={themeKey} switchTheme={switchTheme} switchLang={switchLang}/>;
     }
 
     // ══════════════════════════════════════
@@ -1175,7 +1169,7 @@
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
             speylog.com
           </a>
-          <p style={{fontSize:11,color:t.textMuted,margin:"10px 0 0",opacity:.5}}>v122</p>
+          <p style={{fontSize:11,color:t.textMuted,margin:"10px 0 0",opacity:.5}}>v123</p>
         </div>
       );
     }
@@ -1663,7 +1657,7 @@
         return()=>document.removeEventListener("keydown",onKey);
       },[idx,photos.length,onClose]);
       return <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.94)",zIndex:200,display:"flex",alignItems:"center",justifyContent:"center"}} onClick={onClose}>
-        <button onClick={onClose} style={{position:"absolute",top:"calc(12px + env(safe-area-inset-top))",right:16,background:"rgba(255,255,255,.15)",border:"none",borderRadius:20,width:40,height:40,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",color:"#fff",zIndex:201}}>{I.x()}</button>
+        <button onClick={onClose} className="spey-lightbox-close" style={{position:"absolute",right:16,background:"rgba(255,255,255,.15)",border:"none",borderRadius:20,width:40,height:40,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",color:"#fff",zIndex:201}}>{I.x()}</button>
         {photos.length>1&&<div style={{position:"absolute",bottom:"calc(20px + env(safe-area-inset-bottom))",color:"#fff",fontSize:14,opacity:.7}}>{idx+1} / {photos.length}</div>}
         {photos.length>1&&idx>0&&<button onClick={e=>{e.stopPropagation();setIdx(idx-1);}} style={{position:"absolute",left:12,top:"50%",transform:"translateY(-50%)",background:"rgba(255,255,255,.15)",border:"none",borderRadius:20,width:40,height:40,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",color:"#fff"}}>{I.back()}</button>}
         {photos.length>1&&idx<photos.length-1&&<button onClick={e=>{e.stopPropagation();setIdx(idx+1);}} style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%) rotate(180deg)",background:"rgba(255,255,255,.15)",border:"none",borderRadius:20,width:40,height:40,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",color:"#fff"}}>{I.back()}</button>}
@@ -1909,7 +1903,7 @@
           </div>
         )}
         <div style={{marginTop:30,textAlign:"center"}}>
-          <p style={{fontSize:11,color:t.textMuted,opacity:.5,margin:0}}>v122</p>
+          <p style={{fontSize:11,color:t.textMuted,opacity:.5,margin:0}}>v123</p>
         </div>
         </div>
 
@@ -2640,7 +2634,7 @@
         <ConditionsDisplay conditions={c.conditions} L={L} t={t}/>
         {c.description&&<div style={{background:t.cardBg,borderRadius:12,padding:14,border:`1px solid ${t.cardBorder}`}}><p style={{fontSize:14,fontWeight:600,color:t.text,margin:"0 0 6px"}}>{L("detail_note")}</p><p style={{fontSize:15,color:t.textSec,lineHeight:1.6,margin:0}}>{c.description}</p></div>}
         {lightbox!==null&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.94)",zIndex:200,display:"flex",alignItems:"center",justifyContent:"center"}} onClick={()=>setLightbox(null)}>
-          <button onClick={()=>setLightbox(null)} style={{position:"absolute",top:"calc(12px + env(safe-area-inset-top))",right:16,background:"rgba(255,255,255,.15)",border:"none",borderRadius:20,width:40,height:40,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",color:"#fff",zIndex:201}}>{I.x()}</button>
+          <button onClick={()=>setLightbox(null)} className="spey-lightbox-close" style={{position:"absolute",right:16,background:"rgba(255,255,255,.15)",border:"none",borderRadius:20,width:40,height:40,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",color:"#fff",zIndex:201}}>{I.x()}</button>
           {photos.length>1&&<div style={{position:"absolute",bottom:"calc(20px + env(safe-area-inset-bottom))",color:"#fff",fontSize:14,opacity:.7}}>{lightbox+1} / {photos.length}</div>}
           {photos.length>1&&lightbox>0&&<button onClick={e=>{e.stopPropagation();setLightbox(lightbox-1);}} style={{position:"absolute",left:12,top:"50%",transform:"translateY(-50%)",background:"rgba(255,255,255,.15)",border:"none",borderRadius:20,width:40,height:40,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",color:"#fff"}}>{I.back()}</button>}
           {photos.length>1&&lightbox<photos.length-1&&<button onClick={e=>{e.stopPropagation();setLightbox(lightbox+1);}} style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%) rotate(180deg)",background:"rgba(255,255,255,.15)",border:"none",borderRadius:20,width:40,height:40,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",color:"#fff"}}>{I.back()}</button>}
