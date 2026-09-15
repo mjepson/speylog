@@ -273,6 +273,8 @@
       chip_public:{nb:"Offentlig",en:"Public"},
       // Catch counts
       catch_count_one:{nb:"fangst",en:"catch"},
+      river_count_one:{nb:"elv",en:"river"},
+      river_count_many:{nb:"elver",en:"rivers"},
       catch_count_many:{nb:"fangster",en:"catches"},
       member_one:{nb:"medlem",en:"member"},
       member_many:{nb:"medlemmer",en:"members"},
@@ -412,6 +414,10 @@
       profile_default_visibility_desc:{nb:"Du kan alltid overstyre på hver enkelt fangst.",en:"You can always override on each individual catch."},
       profile_theme:{nb:"Tema",en:"Theme"},
       profile_language:{nb:"Språk",en:"Language"},
+      profile_start_view:{nb:"Startside",en:"Start page"},
+      profile_start_view_desc:{nb:"Hvilken side appen åpner på.",en:"Which page the app opens on."},
+      start_view_list:{nb:"Loggbok",en:"Logbook"},
+      start_view_rivers:{nb:"Elver",en:"Rivers"},
       profile_logout:{nb:"Logg ut",en:"Log out"},
       profile_name_saved:{nb:"Navn lagret",en:"Name saved"},
       profile_photo_updated:{nb:"Bilde oppdatert",en:"Photo updated"},
@@ -495,6 +501,10 @@
     // Pluralisering av "fangst/fangster"
     function trCatches(n,lang){
       const word=n===1?tr("catch_count_one",lang):tr("catch_count_many",lang);
+      return `${n} ${word}`;
+    }
+    function trRivers(n,lang){
+      const word=n===1?tr("river_count_one",lang):tr("river_count_many",lang);
       return `${n} ${word}`;
     }
     function trMembers(n,lang){
@@ -1145,7 +1155,7 @@
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
             speylog.com
           </a>
-          <p style={{fontSize:11,color:t.textMuted,margin:"10px 0 0",opacity:.5}}>v119</p>
+          <p style={{fontSize:11,color:t.textMuted,margin:"10px 0 0",opacity:.5}}>v120</p>
         </div>
       );
     }
@@ -1168,7 +1178,7 @@
       const[customRivers,setCustomRivers]=useState(lsGet("fl_rivers")||[]);
       const[customFlies,setCustomFlies]=useState(lsGet("fl_flies")||[]);
       const[prefs,setPrefs]=useState(lsGet("fl_prefs")||{lastRiver:"",lastEquipment:"Flue"});
-      const[view,setView]=useState("list");
+      const[view,setView]=useState(lsGet("fl_startView")==="rivers"?"rivers":"list");
       const[tab,setTab]=useState("mine");
       const[viewMode,setViewMode]=useState(lsGet("fl_viewMode")||"compact");
       const[selected,setSelected]=useState(null);
@@ -1563,7 +1573,7 @@
         <div style={S.app}>
           {view==="list"&&<ListView L={L} lang={lang} catches={filtered} total={catches.length} fp={fp} S={S} t={t} tab={tab} setTab={setTab} viewMode={viewMode} switchViewMode={switchViewMode} hideOwnInFeed={hideOwnInFeed} toggleHideOwnInFeed={toggleHideOwnInFeed} myGroups={myGroups} following={following} feedFilter={feedFilter} setFeedFilter={(v)=>{setFeedFilter(v);lsSet("fl_feedFilter",v);}} feedNewCount={feedNewCount} session={session} profile={profile} initialScrollY={listScrollY} onSelect={c=>{setListScrollY(window.scrollY);setSelected(c);setView("detail")}} onViewUser={(uid)=>{if(uid&&uid!==session.user.id){setViewUserId(uid);setView("userProfile");}}} onAdd={()=>setView("add")} onStats={()=>setView("stats")} onRivers={()=>setView("rivers")} onLeaderboard={()=>setView("leaderboard")} onProfile={()=>setView("profile")} onRefresh={loadCatches} onExpandPhotos={(c,startIdx)=>setLightbox({photos:c.photos,index:startIdx||0})}/>}
           {view==="stats"&&<StatsView L={L} lang={lang} catches={catches} fp={fp} S={S} t={t} onBack={()=>setView("profile")}/>}
-          {view==="rivers"&&<RiversView L={L} lang={lang} catches={catches} S={S} t={t} onBack={()=>setView("list")}/>}
+          {view==="rivers"&&<RiversView L={L} lang={lang} catches={catches} session={session} profile={profile} S={S} t={t} onBack={()=>setView("list")} onAdd={()=>setView("add")} onProfile={()=>setView("profile")}/>}
           {view==="leaderboard"&&<LeaderboardView L={L} lang={lang} catches={catches} publicFeed={publicFeed} session={session} profile={profile} myGroups={myGroups} groupMembersByGroup={groupMembersByGroup} following={following} S={S} t={t} onBack={()=>setView("list")} onSelect={c=>{setSelected(c);setView("detail")}} onViewUser={(uid)=>{if(uid&&uid!==session.user.id){setViewUserId(uid);setView("userProfile");}}}/>}
           {view==="profile"&&<ProfileView L={L} lang={lang} switchLang={switchLang} session={session} profile={profile} catches={catches} myGroups={myGroups} onGroupsChange={loadMyGroups} following={following} onStats={()=>setView("stats")} onViewUser={(uid)=>{if(uid&&uid!==session.user.id){setViewUserId(uid);setView("userProfile");}}} S={S} t={t} themeKey={themeKey} switchTheme={switchTheme} onBack={()=>setView("list")} onUpdate={(p)=>setProfile(p)} onSignOut={signOut}/>}
           {view==="userProfile"&&viewUserId&&<UserProfileView L={L} lang={lang} userId={viewUserId} publicFeed={publicFeed} isFollowing={isFollowing(viewUserId)} onFollow={()=>followUser(viewUserId)} onUnfollow={()=>unfollowUser(viewUserId)} S={S} t={t} onBack={()=>setView(tab==="mine"?"list":"list")} onSelect={c=>{setSelected(c);setView("detail")}} onExpandPhotos={(c,startIdx)=>setLightbox({photos:c.photos,index:startIdx||0})}/>}
@@ -1879,7 +1889,7 @@
           </div>
         )}
         <div style={{marginTop:30,textAlign:"center"}}>
-          <p style={{fontSize:11,color:t.textMuted,opacity:.5,margin:0}}>v119</p>
+          <p style={{fontSize:11,color:t.textMuted,opacity:.5,margin:0}}>v120</p>
         </div>
         </div>
 
@@ -2158,6 +2168,7 @@
       const swipeRef=useEdgeSwipeBack(onBack);
       const fileRef=useRef();
       const[displayName,setDisplayName]=useState(profile?.display_name||"");
+      const[startView,setStartView]=useState(lsGet("fl_startView")==="rivers"?"rivers":"list");
       const[editingName,setEditingName]=useState(false);
       const[defaultVisibility,setDefaultVisibility]=useState(profile?.default_visibility||(profile?.default_public?"public":"private"));
       const[avatarUrl,setAvatarUrl]=useState(profile?.avatar_url||null);
@@ -2479,6 +2490,19 @@
           </div>
         </div>
 
+        <div style={S.sec}>
+          <p style={S.secT}>{L("profile_start_view")}</p>
+          <p style={{fontSize:12,color:t.textMuted,margin:"0 0 10px",lineHeight:1.4}}>{L("profile_start_view_desc")}</p>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+            {[{k:"list",label:L("start_view_list")},{k:"rivers",label:L("start_view_rivers")}].map(opt=>{
+              const sel=startView===opt.k;
+              return (
+                <button key={opt.k} onClick={()=>{setStartView(opt.k);lsSet("fl_startView",opt.k);}} style={{padding:"10px 8px",borderRadius:10,border:sel?`2px solid ${t.primary}`:`1px solid ${t.inputBorder}`,background:sel?t.primaryLight:t.cardBg,fontSize:14,fontWeight:sel?600:500,color:sel?t.primary:t.textSec,fontFamily:t.font,cursor:"pointer"}}>{opt.label}</button>
+              );
+            })}
+          </div>
+        </div>
+
         {msg&&<p style={{fontSize:14,color:msg.startsWith("Feil")?t.danger:t.primary,textAlign:"center",margin:"0 0 14px",fontWeight:500}}>{msg}</p>}
 
         <button onClick={shareApp} style={{...S.btnSec,width:"100%",display:"flex",alignItems:"center",justifyContent:"center",gap:8,marginTop:6,marginBottom:8}}>{I.share()} {L("share_app")}</button>
@@ -2792,7 +2816,7 @@
     // ── RiversView ──
     // Liste over elver med målestasjon: vannføring nå, trend siste døgn, lenke til Sildre.
     // Rekkefølgen kan endres med dra-og-slipp (håndtaket) og lagres i localStorage (fl_riverOrder).
-    function RiversView({L,lang,catches,S,t,onBack}){
+    function RiversView({L,lang,catches,session,profile,S,t,onBack,onAdd,onProfile}){
       const swipeRef=useEdgeSwipeBack(onBack);
       const[rows,setRows]=useState(null);
       const[err,setErr]=useState(false);
@@ -2804,6 +2828,8 @@
       const[fuzzyOk,setFuzzyOk]=useState(false);
       const[adding,setAdding]=useState(false);
       const[reloadKey,setReloadKey]=useState(0);
+      const addRef=useRef(null);
+      useEffect(()=>{if(addOpen&&addRef.current)addRef.current.scrollIntoView({behavior:"smooth",block:"end"});},[addOpen]);
       const[dragState,setDragState]=useState(null);
       const dragRef=useRef(null);
       const rowsRef=useRef(null);
@@ -2939,21 +2965,24 @@
       const draggedH=dragRef.current?dragRef.current.heights[dragRef.current.index]:0;
       const target=dragState&&dragRef.current?computeTarget(dragState.index,dragState.delta,dragRef.current.heights):null;
       return(<div ref={swipeRef} className="safe-top safe-bottom" style={{...S.page,touchAction:"pan-y",willChange:"transform"}}>
-        <div style={{...S.topBar,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-          <button style={S.backBtn} onClick={onBack}>{I.back()}</button>
-          <button style={S.circBtn} onClick={()=>{setAddOpen(o=>!o);setAddMsg("");}}>{I.plus()}</button>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:0,gap:12}}>
+          <div style={{minWidth:0,flex:1}}>
+            <div style={{display:"flex",alignItems:"center",gap:9}}>
+              <h1 style={{fontFamily:t.titleFont,fontSize:28,fontWeight:800,letterSpacing:"-0.03em",color:t.text,margin:0}}>{L("app_name")}</h1>
+            </div>
+            <div style={{marginTop:3,fontSize:13.5,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>
+              <span style={{color:t.textSec,fontWeight:600}}>{L("rivers_title")}</span>
+              {rows&&<span style={{color:t.textMuted,fontFamily:t.mono,letterSpacing:"-0.03em"}}>{"  ·  "+trRivers(rows.length,lang)}</span>}
+            </div>
+          </div>
+          <div style={{display:"flex",gap:8,alignItems:"center"}}>
+            <button style={S.circBtn} onClick={onBack} title={L("header_logbook")}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="9" y1="6" x2="20" y2="6"/><line x1="9" y1="12" x2="20" y2="12"/><line x1="9" y1="18" x2="20" y2="18"/><circle cx="4.4" cy="6" r="1.3" fill="currentColor" stroke="none"/><circle cx="4.4" cy="12" r="1.3" fill="currentColor" stroke="none"/><circle cx="4.4" cy="18" r="1.3" fill="currentColor" stroke="none"/></svg></button>
+            <button style={S.circPri} onClick={onAdd}>{I.plus()}</button>
+            <Avatar url={profile?.avatar_url} name={profile?.display_name||profile?.username} seed={profile?.username||session?.user?.id} size={44} t={t} onClick={onProfile}/>
+          </div>
         </div>
-        <h2 style={{fontFamily:t.titleFont,fontSize:26,fontWeight:700,color:t.text,margin:"0 0 4px"}}>{L("rivers_title")}</h2>
-        <p style={{fontSize:13.5,color:t.textSec,margin:"0 0 16px"}}>{L("rivers_sub")}</p>
-        {addOpen&&<div style={{background:t.cardBg,border:`1px solid ${t.cardBorder}`,borderRadius:12,padding:16,marginBottom:14}}>
-          <p style={{fontSize:14,fontWeight:600,color:t.text,margin:"0 0 10px"}}>{L("rivers_add_title")}</p>
-          <input value={newName} onChange={e=>{setNewName(e.target.value);setFuzzyOk(false);setAddOk("");}} placeholder={L("rivers_add_name_ph")} style={{...S.inp,marginBottom:8}}/>
-          <input value={newUrl} onChange={e=>{setNewUrl(e.target.value);setFuzzyOk(false);setAddOk("");}} placeholder="https://sildre.nve.no/station/33.8.0" inputMode="url" autoCapitalize="none" style={{...S.inp,marginBottom:10}}/>
-          <p style={{fontSize:12,color:t.textMuted,margin:"0 0 10px",lineHeight:1.4}}>{L("rivers_add_hint")}</p>
-          {addMsg&&<p style={{fontSize:13,color:t.danger||"#f87171",margin:"0 0 10px"}}>{addMsg}</p>}
-          {addOk&&<p style={{fontSize:13,color:t.primary,fontWeight:600,margin:"0 0 10px"}}>{addOk}</p>}
-          <button onClick={addRiver} disabled={adding} style={{...S.btnPriFull,opacity:adding?.6:1}}>{adding?"…":fuzzyOk?L("rivers_add_anyway"):L("rivers_add_save")}</button>
-        </div>}
+        <div className="spey-ruler" style={{height:7,marginTop:14,opacity:t.dark?.55:.7,"--tick":t.borderSoft,"--tickHi":t.primary}}/>
+        <p style={{fontSize:13.5,color:t.textSec,margin:"14px 0 16px"}}>{L("rivers_sub")}</p>
         {rows===null&&!err&&<div style={{display:"flex",justifyContent:"center",padding:40}}><div style={{width:32,height:32,borderRadius:16,border:`3px solid ${t.cardBorder}`,borderTopColor:t.primary,animation:"spin 0.8s linear infinite"}}/></div>}
         {err&&<p style={{color:t.textMuted,fontSize:14}}>{L("rivers_error")}</p>}
         {rows&&rows.map((r,i)=>{
@@ -3006,6 +3035,19 @@
           </a>);
         })}
         {rows&&rows.length>0&&<p style={{fontSize:11,color:t.textMuted,textAlign:"center",margin:"14px 0 0",opacity:.8}}>{L("rivers_attribution")}</p>}
+        <div ref={addRef} style={{marginTop:18}}>
+          {!addOpen&&<button onClick={()=>{setAddOpen(true);setAddMsg("");}} style={{...S.btnSec,width:"100%",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>{I.plus()} {L("rivers_add_title")}</button>}
+          {addOpen&&<div style={{background:t.cardBg,border:`1px solid ${t.cardBorder}`,borderRadius:12,padding:16}}>
+            <p style={{fontSize:14,fontWeight:600,color:t.text,margin:"0 0 10px"}}>{L("rivers_add_title")}</p>
+            <input value={newName} onChange={e=>{setNewName(e.target.value);setFuzzyOk(false);setAddOk("");}} placeholder={L("rivers_add_name_ph")} style={{...S.inp,marginBottom:8}}/>
+            <input value={newUrl} onChange={e=>{setNewUrl(e.target.value);setFuzzyOk(false);setAddOk("");}} placeholder="https://sildre.nve.no/station/33.8.0" inputMode="url" autoCapitalize="none" style={{...S.inp,marginBottom:10}}/>
+            <p style={{fontSize:12,color:t.textMuted,margin:"0 0 10px",lineHeight:1.4}}>{L("rivers_add_hint")}</p>
+            {addMsg&&<p style={{fontSize:13,color:t.danger||"#f87171",margin:"0 0 10px"}}>{addMsg}</p>}
+            {addOk&&<p style={{fontSize:13,color:t.primary,fontWeight:600,margin:"0 0 10px"}}>{addOk}</p>}
+            <button onClick={addRiver} disabled={adding} style={{...S.btnPriFull,opacity:adding?.6:1}}>{adding?"…":fuzzyOk?L("rivers_add_anyway"):L("rivers_add_save")}</button>
+            <button onClick={()=>{setAddOpen(false);setAddMsg("");setAddOk("");setFuzzyOk(false);}} style={{...S.btnSec,width:"100%",marginTop:8}}>{L("cancel")}</button>
+          </div>}
+        </div>
         <div style={{height:30}}/>
       </div>);
     }
