@@ -1201,7 +1201,7 @@
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
             speylog.com
           </a>
-          <p style={{fontSize:11,color:t.textMuted,margin:"10px 0 0",opacity:.5}}>v129</p>
+          <p style={{fontSize:11,color:t.textMuted,margin:"10px 0 0",opacity:.5}}>v130</p>
         </div>
       );
     }
@@ -2044,15 +2044,15 @@
             {sorted.map((c,i)=><CatchCard key={c.id} L={L} lang={lang} c={c} S={S} t={t} showOwner={tab==="feed"} currentUserId={session.user.id} onClick={()=>onSelect(c)} onViewUser={onViewUser} last={desktop?i>=sorted.length-(sorted.length%2===0?2:1):i===sorted.length-1} selected={!!selectedId&&c.id===selectedId}/>)}
           </div>
         ):(
-          <div style={desktop?{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(340px,1fr))",gap:20,alignItems:"start"}:{display:"flex",flexDirection:"column",gap:viewMode==="gallery"?16:14}}>
-            {sorted.map(c=>(<div key={c.id} style={selectedId&&c.id===selectedId?{outline:`2px solid ${t.primary}`,outlineOffset:2,borderRadius:18}:undefined}>{viewMode==="gallery"
+          <div style={desktop?{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(340px,1fr))",gap:20,alignItems:"stretch"}:{display:"flex",flexDirection:"column",gap:viewMode==="gallery"?16:14}}>
+            {sorted.map(c=>(<div key={c.id} style={{...(desktop?{height:"100%"}:{}),...(selectedId&&c.id===selectedId?{outline:`2px solid ${t.primary}`,outlineOffset:2,borderRadius:18}:{})}}>{viewMode==="gallery"
               ? <CatchCardGallery key={c.id} L={L} lang={lang} c={c} S={S} t={t} showOwner={tab==="feed"} currentUserId={session.user.id} onClick={()=>onSelect(c)} onViewUser={onViewUser} onExpandPhotos={(idx)=>onExpandPhotos(c,idx)}/>
-              : <CatchCardLarge key={c.id} L={L} lang={lang} c={c} S={S} t={t} showOwner={tab==="feed"} currentUserId={session.user.id} onClick={()=>onSelect(c)} onViewUser={onViewUser} onExpandPhotos={(idx)=>onExpandPhotos(c,idx)}/>
+              : <CatchCardLarge key={c.id} fill={desktop} L={L} lang={lang} c={c} S={S} t={t} showOwner={tab==="feed"} currentUserId={session.user.id} onClick={()=>onSelect(c)} onViewUser={onViewUser} onExpandPhotos={(idx)=>onExpandPhotos(c,idx)}/>
             }</div>))}
           </div>
         )}
         <div style={{marginTop:30,textAlign:"center"}}>
-          <p style={{fontSize:11,color:t.textMuted,opacity:.5,margin:0}}>v129</p>
+          <p style={{fontSize:11,color:t.textMuted,opacity:.5,margin:0}}>v130</p>
         </div>
         </div>
 
@@ -2175,7 +2175,10 @@
       </div>);
     }
 
-    function CatchCardLarge({L,lang,c,S,t,showOwner,currentUserId,onClick,onViewUser,onExpandPhotos}){
+    function CatchCardLarge({L,lang,c,S,t,showOwner,currentUserId,onClick,onViewUser,onExpandPhotos,fill}){
+      // fill: desktop-rutenett — kortet fyller radhøyden, så kort uten bilde ikke blir en
+      // lav stripe ved siden av bildekortene (tittel og metrikker legger seg nederst).
+      const fillStyle=fill?{height:"100%",boxSizing:"border-box",display:"flex",flexDirection:"column"}:{};
       const photos=c.photos||[];
       const isOwn=c.user_id===currentUserId;
       const ownerName=c.profiles?.display_name||c.profiles?.username||"";
@@ -2187,15 +2190,15 @@
 
       // ── photo-less → flat logbook card (no empty photo box) ──
       if(!hasPhotos){
-        return(<div onClick={onClick} className="spey-press" style={{position:"relative",overflow:"hidden",background:t.cardBg,border:`1px solid ${t.cardBorder}`,borderRadius:18,padding:"14px 16px 15px",cursor:"pointer",boxShadow:t.shadow}}>
+        return(<div onClick={onClick} className="spey-press" style={{position:"relative",overflow:"hidden",background:t.cardBg,border:`1px solid ${t.cardBorder}`,borderRadius:18,padding:"14px 16px 15px",cursor:"pointer",boxShadow:t.shadow,...fillStyle}}>
           <span style={{position:"absolute",left:0,top:14,bottom:14,width:3,borderRadius:"0 3px 3px 0",background:speciesColor(c.species,t)}}/>
-          <div style={{position:"absolute",right:-6,bottom:-16,opacity:.55,transform:"rotate(-8deg)",pointerEvents:"none",color:t.borderSoft}}>{I.fish(92,t.borderSoft)}</div>
-          <div style={{position:"relative"}}>
+          <div style={{position:"absolute",right:fill?-14:-6,bottom:fill?40:-16,opacity:.55,transform:"rotate(-8deg)",pointerEvents:"none",color:t.borderSoft}}>{I.fish(fill?180:92,t.borderSoft)}</div>
+          <div style={{position:"relative",...(fill?{flex:1,display:"flex",flexDirection:"column"}:{})}}>
             <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:11}}>
               {showOwner?<div style={{display:"flex",alignItems:"center",gap:8,minWidth:0,flex:1}}><Avatar url={avatarUrl} name={ownerName} seed={seed} size={28} t={t}/><span style={{fontSize:14,fontWeight:600,color:t.text,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{displayedName}</span></div>:<VisInline vis={vis} t={t} L={L}/>}
               <span style={{marginLeft:"auto",fontSize:12.5,fontWeight:600,color:t.textMuted,fontFamily:t.mono,flexShrink:0}}>{shortDate(c.date,lang)}</span>
             </div>
-            <div style={{display:"flex",alignItems:"center",gap:9,marginBottom:12,minWidth:0}}>
+            <div style={{display:"flex",alignItems:"center",gap:9,marginBottom:12,minWidth:0,...(fill?{marginTop:"auto"}:{})}}>
               <span style={{width:9,height:9,borderRadius:5,background:speciesColor(c.species,t),flexShrink:0}}/>
               <span style={{flex:1,minWidth:0,fontSize:18,fontWeight:700,color:t.text,letterSpacing:"-0.015em",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{catchTitle(c,lang)}</span>
             </div>
@@ -2210,8 +2213,8 @@
       }
 
       // ── banner card (photo on top, metrics strip below) ──
-      return(<div onClick={onClick} className="spey-press" style={{background:t.cardBg,border:`1px solid ${t.cardBorder}`,borderRadius:18,overflow:"hidden",cursor:"pointer",boxShadow:t.shadow}}>
-        <div style={{position:"relative",width:"100%",aspectRatio:"16/10",background:t.cardElev,overflow:"hidden"}}>
+      return(<div onClick={onClick} className="spey-press" style={{background:t.cardBg,border:`1px solid ${t.cardBorder}`,borderRadius:18,overflow:"hidden",cursor:"pointer",boxShadow:t.shadow,...fillStyle}}>
+        <div style={{position:"relative",width:"100%",flexShrink:0,aspectRatio:"16/10",background:t.cardElev,overflow:"hidden"}}>
           {photos.length===1?<img src={photos[0]} alt="" style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover",display:"block"}}/>:<SwipeableImages photos={photos} onExpand={onExpandPhotos} t={t} style={{position:"absolute",inset:0}}/>}
           <div style={{position:"absolute",inset:0,pointerEvents:"none",background:"linear-gradient(180deg,rgba(0,0,0,.5) 0%,rgba(0,0,0,0) 32%,rgba(0,0,0,0) 55%,rgba(0,0,0,.66) 100%)"}}/>
           <div style={{position:"absolute",top:0,left:0,right:0,padding:"12px 13px",display:"flex",alignItems:"center",gap:8,zIndex:2}}>
