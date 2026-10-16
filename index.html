@@ -63,6 +63,13 @@
     .spey-press:active{transform:scale(.985)}
     @keyframes speySheetIn{from{transform:translateY(101%)}to{transform:translateY(0)}}
     @keyframes speyFadeIn{from{opacity:0}to{opacity:1}}
+    /* Desktop-layout (≥1024px, se useIsDesktop): sidemeny + to kolonner i full bredde.
+       body.spey-desk settes fra MainApp — da skal den sentrerte mobil-skyggen rundt #root bort. */
+    body.spey-desk #root{box-shadow:none !important}
+    @keyframes speyDrawerIn{from{transform:translateX(100%)}to{transform:translateX(0)}}
+    .spey-rail{transition:background .15s,color .15s}
+    .spey-rail:not(.on):hover{background:rgba(140,170,155,.13)}
+    .spey-col{scrollbar-width:thin}
     .spey-ruler{background-image:repeating-linear-gradient(90deg,var(--tickHi) 0 1.5px,transparent 1.5px 60px),repeating-linear-gradient(90deg,var(--tick) 0 1px,transparent 1px 12px),linear-gradient(var(--tick),var(--tick));background-size:100% 7px,100% 5px,100% 1px;background-position:left bottom,left bottom,left bottom;background-repeat:no-repeat,repeat-x,no-repeat}
     /* Date/time-inputene er skjult bak en custom display-div (se DateTimeInput-komponenten),
        men vi nuker fortsatt iOS sin standard appearance for sikkerhets skyld. */
@@ -85,6 +92,21 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script type="text/babel" data-type="module">
     const {useState,useEffect,useRef}=React;
+
+    // ── Desktop-deteksjon ──
+    // Fra 1024px bytter MainApp til desktop-layout: ikonmeny til venstre, fangstliste og
+    // detalj side om side, og fangstskjemaet som sidepanel. Under 1024px er alt som før.
+    const DESK_MQ="(min-width: 1024px)";
+    function useIsDesktop(){
+      const[d,setD]=useState(()=>window.matchMedia(DESK_MQ).matches);
+      useEffect(()=>{
+        const mq=window.matchMedia(DESK_MQ);
+        const on=()=>setD(mq.matches);
+        if(mq.addEventListener)mq.addEventListener("change",on);else mq.addListener(on);
+        return()=>{if(mq.removeEventListener)mq.removeEventListener("change",on);else mq.removeListener(on);};
+      },[]);
+      return d;
+    }
 
     // ── Edge-swipe-back hook (iOS-stil) ──
     // Sveip fra venstre kant for å gå tilbake. Gir visuell feedback
@@ -273,6 +295,8 @@
       // List view / tabs
       tab_mine: { nb: "Personlig", en: "Personal" },
       tab_feed: { nb: "Felles", en: "Public" },
+      desk_pick_catch:{nb:"Velg en fangst i listen",en:"Pick a catch from the list"},
+      desk_drop_photos:{nb:"Slipp bildene her",en:"Drop the photos here"},
       filter_title:{nb:"Filter",en:"Filter"},
       filter_river:{nb:"Elv",en:"River"},
       filter_year:{nb:"År",en:"Year"},
@@ -1170,7 +1194,7 @@
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
             speylog.com
           </a>
-          <p style={{fontSize:11,color:t.textMuted,margin:"10px 0 0",opacity:.5}}>v125</p>
+          <p style={{fontSize:11,color:t.textMuted,margin:"10px 0 0",opacity:.5}}>v126</p>
         </div>
       );
     }
@@ -1209,6 +1233,15 @@
       const[delModal,setDelModal]=useState(null);
       const[lightbox,setLightbox]=useState(null);
       const[dbRivers,setDbRivers]=useState([]);
+      // Desktop-layout. Hooks MÅ ligge her oppe — før de tidlige returnene (loading/navnesteg).
+      const isDesktop=useIsDesktop();
+      const detailColRef=useRef(null);
+      useEffect(()=>{
+        document.body.classList.toggle("spey-desk",isDesktop);
+        return()=>document.body.classList.remove("spey-desk");
+      },[isDesktop]);
+      // Detaljkolonnen scroller for seg selv på desktop — start på toppen ved ny fangst.
+      useEffect(()=>{if(detailColRef.current)detailColRef.current.scrollTop=0;},[selected&&selected.id]);
       useEffect(()=>{
         let cancelled=false;
         (async()=>{
@@ -1589,6 +1622,103 @@
 
       const fp={fR,setFR,fS,setFS,fY,setFY,years,rivers:usedRivers};
 
+      // Modaler og lysboks — felles for mobil- og desktop-layout.
+      const overlays=(<>
+        {delModal&&<div style={S.overlay}><div style={S.modal}>
+          <p style={{fontSize:17,fontWeight:600,margin:"0 0 6px",color:t.text}}>{L("delete_catch_title")}</p>
+          <p style={{fontSize:14,color:t.textMuted,margin:"0 0 20px"}}>{L("delete_warn")}</p>
+          <div style={{display:"flex",gap:10}}>
+            <button style={{...S.btnSec,flex:1}} onClick={()=>setDelModal(null)}>{L("cancel")}</button>
+            <button style={{...S.btnDng,flex:1}} onClick={()=>deleteCatch(delModal)}>{L("delete")}</button>
+          </div>
+        </div></div>}
+
+        {inviteModal&&<div style={S.overlay}><div style={S.modal}>
+          <p style={{fontSize:13,color:t.textMuted,margin:"0 0 4px",textTransform:"uppercase",letterSpacing:0.5,fontWeight:600}}>{L("groups_invitation")}</p>
+          <p style={{fontSize:19,fontWeight:700,margin:"0 0 4px",color:t.text}}>{inviteModal.group.name}</p>
+          <p style={{fontSize:14,color:t.textMuted,margin:"0 0 18px"}}>{trMembers(inviteModal.group.member_count,lang)}</p>
+          <div style={{display:"flex",gap:10}}>
+            <button style={{...S.btnSec,flex:1}} onClick={declineInvite}>{L("groups_decline")}</button>
+            <button style={{...S.btnPri,flex:1}} onClick={acceptInvite}>{L("groups_join")}</button>
+          </div>
+        </div></div>}
+
+        {lightbox&&<Lightbox photos={lightbox.photos} startIndex={lightbox.index} onClose={()=>setLightbox(null)}/>}
+      </>);
+
+      // ══ Desktop-layout (≥1024px) ══
+      // Ikonmeny til venstre. Fangster: liste (440px) + valgt fangst side om side, hver kolonne
+      // scroller for seg. Ny/rediger fangst åpnes som sidepanel over listen. Øvrige visninger
+      // (elver, toppliste, statistikk, profil) vises i en sentrert kolonne.
+      if(isDesktop){
+        const openUser=(uid)=>{if(uid&&uid!==session.user.id){setViewUserId(uid);setView("userProfile");}};
+        const catchesView=view==="list"||view==="detail"||view==="add"||view==="edit";
+        const goTab=(tb)=>{if(tb!==tab)setSelected(null);setTab(tb);setView("list");};
+        const usersIcon=<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>;
+        const wavesIcon=<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M2 7c2-1.8 4-1.8 6 0s4 1.8 6 0 4-1.8 6 0"/><path d="M2 12c2-1.8 4-1.8 6 0s4 1.8 6 0 4-1.8 6 0"/><path d="M2 17c2-1.8 4-1.8 6 0s4 1.8 6 0 4-1.8 6 0"/></svg>;
+        const railItems=[
+          {key:"mine",label:L("tab_mine"),icon:I.fish(22),on:catchesView&&tab==="mine",go:()=>goTab("mine")},
+          {key:"feed",label:L("tab_feed"),icon:usersIcon,on:catchesView&&tab==="feed",go:()=>goTab("feed"),badge:tab!=="feed"&&feedNewCount>0?(feedNewCount>9?"9+":String(feedNewCount)):null},
+          {key:"rivers",label:L("rivers_title"),icon:wavesIcon,on:view==="rivers",go:()=>setView("rivers")},
+          {key:"lb",label:L("lb_title"),icon:I.trophy(),on:view==="leaderboard",go:()=>setView("leaderboard")},
+          {key:"stats",label:L("stats_title"),icon:I.chart(),on:view==="stats",go:()=>setView("stats")},
+        ];
+        const formOpen=view==="add"||(view==="edit"&&!!editing);
+        return(
+          <div style={{display:"flex",height:"100vh",overflow:"hidden",background:t.bg,fontFamily:t.font,color:t.text}}>
+            <nav aria-label={L("app_name")} style={{width:76,flexShrink:0,display:"flex",flexDirection:"column",alignItems:"center",gap:8,padding:"18px 0",background:t.cardBg,borderRight:`1px solid ${t.cardBorder}`}}>
+              <div style={{marginBottom:14}}><AppLogo size={42} t={t}/></div>
+              {railItems.map(it=>(
+                <button key={it.key} type="button" onClick={it.go} title={it.label} aria-label={it.label} aria-current={it.on?"page":undefined} className={"spey-rail"+(it.on?" on":"")} style={{position:"relative",width:48,height:48,borderRadius:12,border:"none",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",background:it.on?t.primaryLight:"transparent",color:it.on?t.primary:t.textSec}}>
+                  {it.icon}
+                  {it.badge&&<span style={{position:"absolute",top:5,right:3,minWidth:17,height:17,padding:"0 5px",borderRadius:9,background:t.primary,color:t.primaryInk,fontSize:11,fontWeight:700,lineHeight:"17px",textAlign:"center",boxShadow:`0 0 0 2px ${t.cardBg}`}}>{it.badge}</span>}
+                </button>
+              ))}
+              <div style={{flex:1}}/>
+              <button type="button" onClick={()=>setView("profile")} title={L("profile_title")} aria-label={L("profile_title")} className={"spey-rail"+(view==="profile"?" on":"")} style={{width:52,height:52,borderRadius:14,border:"none",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",background:view==="profile"?t.primaryLight:"transparent"}}>
+                <Avatar url={profile?.avatar_url} name={profile?.display_name||profile?.username} seed={profile?.username||session.user.id} size={36} t={t}/>
+              </button>
+            </nav>
+
+            {catchesView?(<>
+              <div className="spey-col" style={{width:440,flexShrink:0,overflowY:"auto",borderRight:`1px solid ${t.borderSoft}`}}>
+                <ListView L={L} lang={lang} catches={filtered} total={catches.length} fp={fp} S={S} t={t} tab={tab} setTab={(tb)=>goTab(tb)} viewMode={viewMode} switchViewMode={switchViewMode} hideOwnInFeed={hideOwnInFeed} toggleHideOwnInFeed={toggleHideOwnInFeed} myGroups={myGroups} following={following} feedFilter={feedFilter} setFeedFilter={(v)=>{setFeedFilter(v);lsSet("fl_feedFilter",v);}} feedNewCount={feedNewCount} session={session} profile={profile} initialScrollY={0} desktop selectedId={selected?selected.id:null} onSelect={c=>{setSelected(c);setView("detail");}} onViewUser={openUser} onAdd={()=>setView("add")} onStats={()=>setView("stats")} onRivers={()=>setView("rivers")} onLeaderboard={()=>setView("leaderboard")} onProfile={()=>setView("profile")} onRefresh={loadCatches} onExpandPhotos={(c,startIdx)=>setLightbox({photos:c.photos,index:startIdx||0})}/>
+              </div>
+              <div ref={detailColRef} className="spey-col" style={{flex:1,minWidth:0,overflowY:"auto"}}>
+                {selected
+                  ?<div style={{maxWidth:680,margin:"0 auto",padding:"0 16px"}}>
+                    <DetailView key={selected.id} desktop L={L} lang={lang} c={selected} session={session} profile={profile} myGroups={myGroups} catchGroupIds={catchGroupsMap[selected.id]||[]} isFollowing={isFollowing(selected.user_id)} onFollow={()=>followUser(selected.user_id)} onUnfollow={()=>unfollowUser(selected.user_id)} onViewUser={openUser} S={S} t={t} onBack={()=>{setSelected(null);setView("list");}} onEdit={()=>{setEditing({...selected});setView("edit")}} onDelete={()=>setDelModal(selected.id)}/>
+                  </div>
+                  :<div style={{height:"100%",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:12,padding:40,textAlign:"center"}}>
+                    {I.fish(44,t.textMuted)}
+                    <p style={{fontSize:15,color:t.textMuted,margin:0}}>{L("desk_pick_catch")}</p>
+                  </div>}
+              </div>
+            </>):(
+              <div className="spey-col" style={{flex:1,minWidth:0,overflowY:"auto"}}>
+                <div style={{maxWidth:760,margin:"0 auto",padding:"0 16px"}}>
+                  {view==="stats"&&<StatsView L={L} lang={lang} catches={catches} fp={fp} S={S} t={t} onBack={()=>setView("profile")}/>}
+                  {view==="rivers"&&<RiversView L={L} lang={lang} catches={catches} session={session} profile={profile} S={S} t={t} onBack={()=>setView("list")} onAdd={()=>setView("add")} onProfile={()=>setView("profile")}/>}
+                  {view==="leaderboard"&&<LeaderboardView L={L} lang={lang} catches={catches} publicFeed={publicFeed} session={session} profile={profile} myGroups={myGroups} groupMembersByGroup={groupMembersByGroup} following={following} S={S} t={t} onBack={()=>setView("list")} onSelect={c=>{setSelected(c);setView("detail")}} onViewUser={openUser}/>}
+                  {view==="profile"&&<ProfileView L={L} lang={lang} switchLang={switchLang} session={session} profile={profile} catches={catches} myGroups={myGroups} onGroupsChange={loadMyGroups} following={following} onStats={()=>setView("stats")} onViewUser={openUser} S={S} t={t} themeKey={themeKey} switchTheme={switchTheme} onBack={()=>setView("list")} onUpdate={(p)=>setProfile(p)} onSignOut={signOut}/>}
+                  {view==="userProfile"&&viewUserId&&<UserProfileView L={L} lang={lang} userId={viewUserId} publicFeed={publicFeed} isFollowing={isFollowing(viewUserId)} onFollow={()=>followUser(viewUserId)} onUnfollow={()=>unfollowUser(viewUserId)} S={S} t={t} onBack={()=>setView("list")} onSelect={c=>{setSelected(c);setView("detail")}} onExpandPhotos={(c,startIdx)=>setLightbox({photos:c.photos,index:startIdx||0})}/>}
+                </div>
+              </div>
+            )}
+
+            {formOpen&&<>
+              <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.45)",zIndex:90,animation:"speyFadeIn .2s ease"}}/>
+              <aside role="dialog" aria-modal="true" aria-label={view==="edit"?L("form_edit"):L("form_new")} className="spey-col" style={{position:"fixed",top:0,right:0,bottom:0,width:540,maxWidth:"100%",overflowY:"auto",background:t.solidBg,borderLeft:`1px solid ${t.cardBorder}`,boxShadow:"-20px 0 60px rgba(0,0,0,.35)",zIndex:91,animation:"speyDrawerIn .28s cubic-bezier(.32,.72,.3,1)"}}>
+                {view==="add"&&<FormView L={L} lang={lang} allRivers={allRivers} allFlies={allFlies} prefs={prefs} profile={profile} myGroups={myGroups} S={S} t={t} onSave={addCatch} onCancel={()=>setView(selected?"detail":"list")}/>}
+                {view==="edit"&&editing&&<FormView L={L} lang={lang} allRivers={allRivers} allFlies={allFlies} initial={editing} initialGroupIds={catchGroupsMap[editing.id]||[]} profile={profile} myGroups={myGroups} S={S} t={t} onSave={updateCatch} onCancel={()=>setView("detail")} isEdit/>}
+              </aside>
+            </>}
+
+            {overlays}
+          </div>
+        );
+      }
+
       return (
         <div style={S.app}>
           {view==="list"&&<ListView L={L} lang={lang} catches={filtered} total={catches.length} fp={fp} S={S} t={t} tab={tab} setTab={setTab} viewMode={viewMode} switchViewMode={switchViewMode} hideOwnInFeed={hideOwnInFeed} toggleHideOwnInFeed={toggleHideOwnInFeed} myGroups={myGroups} following={following} feedFilter={feedFilter} setFeedFilter={(v)=>{setFeedFilter(v);lsSet("fl_feedFilter",v);}} feedNewCount={feedNewCount} session={session} profile={profile} initialScrollY={listScrollY} onSelect={c=>{setListScrollY(window.scrollY);setSelected(c);setView("detail")}} onViewUser={(uid)=>{if(uid&&uid!==session.user.id){setViewUserId(uid);setView("userProfile");}}} onAdd={()=>setView("add")} onStats={()=>setView("stats")} onRivers={()=>setView("rivers")} onLeaderboard={()=>setView("leaderboard")} onProfile={()=>setView("profile")} onRefresh={loadCatches} onExpandPhotos={(c,startIdx)=>setLightbox({photos:c.photos,index:startIdx||0})}/>}
@@ -1600,26 +1730,7 @@
           {view==="add"&&<FormView L={L} lang={lang} allRivers={allRivers} allFlies={allFlies} prefs={prefs} profile={profile} myGroups={myGroups} S={S} t={t} onSave={addCatch} onCancel={()=>setView("list")}/>}
           {view==="detail"&&selected&&<DetailView L={L} lang={lang} c={selected} session={session} profile={profile} myGroups={myGroups} catchGroupIds={catchGroupsMap[selected.id]||[]} isFollowing={isFollowing(selected.user_id)} onFollow={()=>followUser(selected.user_id)} onUnfollow={()=>unfollowUser(selected.user_id)} onViewUser={(uid)=>{if(uid&&uid!==session.user.id){setViewUserId(uid);setView("userProfile");}}} S={S} t={t} onBack={()=>setView("list")} onEdit={()=>{setEditing({...selected});setView("edit")}} onDelete={()=>setDelModal(selected.id)}/>}
           {view==="edit"&&editing&&<FormView L={L} lang={lang} allRivers={allRivers} allFlies={allFlies} initial={editing} initialGroupIds={catchGroupsMap[editing.id]||[]} profile={profile} myGroups={myGroups} S={S} t={t} onSave={updateCatch} onCancel={()=>setView("detail")} isEdit/>}
-          {delModal&&<div style={S.overlay}><div style={S.modal}>
-            <p style={{fontSize:17,fontWeight:600,margin:"0 0 6px",color:t.text}}>{L("delete_catch_title")}</p>
-            <p style={{fontSize:14,color:t.textMuted,margin:"0 0 20px"}}>{L("delete_warn")}</p>
-            <div style={{display:"flex",gap:10}}>
-              <button style={{...S.btnSec,flex:1}} onClick={()=>setDelModal(null)}>{L("cancel")}</button>
-              <button style={{...S.btnDng,flex:1}} onClick={()=>deleteCatch(delModal)}>{L("delete")}</button>
-            </div>
-          </div></div>}
-
-          {inviteModal&&<div style={S.overlay}><div style={S.modal}>
-            <p style={{fontSize:13,color:t.textMuted,margin:"0 0 4px",textTransform:"uppercase",letterSpacing:0.5,fontWeight:600}}>{L("groups_invitation")}</p>
-            <p style={{fontSize:19,fontWeight:700,margin:"0 0 4px",color:t.text}}>{inviteModal.group.name}</p>
-            <p style={{fontSize:14,color:t.textMuted,margin:"0 0 18px"}}>{trMembers(inviteModal.group.member_count,lang)}</p>
-            <div style={{display:"flex",gap:10}}>
-              <button style={{...S.btnSec,flex:1}} onClick={declineInvite}>{L("groups_decline")}</button>
-              <button style={{...S.btnPri,flex:1}} onClick={acceptInvite}>{L("groups_join")}</button>
-            </div>
-          </div></div>}
-
-          {lightbox&&<Lightbox photos={lightbox.photos} startIndex={lightbox.index} onClose={()=>setLightbox(null)}/>}
+          {overlays}
         </div>
       );
     }
@@ -1763,7 +1874,7 @@
     }
 
     // ── ListView ──
-    function ListView({L,lang,catches,total,fp,S,t,tab,setTab,viewMode,switchViewMode,hideOwnInFeed,toggleHideOwnInFeed,myGroups,following,feedFilter,setFeedFilter,feedNewCount,session,profile,initialScrollY,onSelect,onViewUser,onAdd,onStats,onRivers,onLeaderboard,onProfile,onRefresh,onExpandPhotos}){
+    function ListView({L,lang,catches,total,fp,S,t,tab,setTab,viewMode,switchViewMode,hideOwnInFeed,toggleHideOwnInFeed,myGroups,following,feedFilter,setFeedFilter,feedNewCount,session,profile,initialScrollY,desktop,selectedId,onSelect,onViewUser,onAdd,onStats,onRivers,onLeaderboard,onProfile,onRefresh,onExpandPhotos}){
       const sorted=[...catches].sort((a,b)=>new Date(b.date)-new Date(a.date));
       const[filterModalOpen,setFilterModalOpen]=useState(false);
       const[welcomeDismissed,setWelcomeDismissed]=useState(lsGet("fl_dismissedWelcome")||false);
@@ -1785,6 +1896,7 @@
       const MAX_PULL=120;
 
       const handleTouchStart=(e)=>{
+        if(desktop)return; // desktop: lista scroller i egen kolonne, window.scrollY er alltid 0
         if(window.scrollY<=0&&!refreshing){
           startY.current=e.touches[0].clientY;
           isPulling.current=true;
@@ -1834,9 +1946,9 @@
             </div>
           </div>
           <div style={{display:"flex",gap:8,alignItems:"center"}}>
-            <button style={S.circBtn} onClick={onRivers}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M2 7c2-1.8 4-1.8 6 0s4 1.8 6 0 4-1.8 6 0"/><path d="M2 12c2-1.8 4-1.8 6 0s4 1.8 6 0 4-1.8 6 0"/><path d="M2 17c2-1.8 4-1.8 6 0s4 1.8 6 0 4-1.8 6 0"/></svg></button>
-            <button style={S.circPri} onClick={onAdd}>{I.plus()}</button>
-            <Avatar url={profile?.avatar_url} name={profile?.display_name||profile?.username} seed={profile?.username||session.user.id} size={44} t={t} onClick={onProfile}/>
+            {!desktop&&<button style={S.circBtn} onClick={onRivers}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M2 7c2-1.8 4-1.8 6 0s4 1.8 6 0 4-1.8 6 0"/><path d="M2 12c2-1.8 4-1.8 6 0s4 1.8 6 0 4-1.8 6 0"/><path d="M2 17c2-1.8 4-1.8 6 0s4 1.8 6 0 4-1.8 6 0"/></svg></button>}
+            <button style={S.circPri} onClick={onAdd} title={L("form_new")} aria-label={L("form_new")}>{I.plus()}</button>
+            {!desktop&&<Avatar url={profile?.avatar_url} name={profile?.display_name||profile?.username} seed={profile?.username||session.user.id} size={44} t={t} onClick={onProfile}/>}
           </div>
         </div>
         <div className="spey-ruler" style={{height:7,marginTop:14,opacity:t.dark?.55:.7,"--tick":t.borderSoft,"--tickHi":t.primary}}/>
@@ -1898,18 +2010,18 @@
         )}
         {sorted.length===0?(<div style={{textAlign:"center",padding:"50px 20px"}}>{I.fish(44,t.textMuted)}<p style={{marginTop:10,color:t.textMuted,fontSize:15}}>{tab==="mine"?(total===0?L("empty_no_catches_yet"):L("empty_no_results")):L("empty_no_feed")}</p></div>):viewMode==="compact"?(
           <div style={{background:t.cardBg,border:`1px solid ${t.cardBorder}`,borderRadius:16,padding:"2px 12px",boxShadow:t.shadow}}>
-            {sorted.map((c,i)=><CatchCard key={c.id} L={L} lang={lang} c={c} S={S} t={t} showOwner={tab==="feed"} currentUserId={session.user.id} onClick={()=>onSelect(c)} onViewUser={onViewUser} last={i===sorted.length-1}/>)}
+            {sorted.map((c,i)=><CatchCard key={c.id} L={L} lang={lang} c={c} S={S} t={t} showOwner={tab==="feed"} currentUserId={session.user.id} onClick={()=>onSelect(c)} onViewUser={onViewUser} last={i===sorted.length-1} selected={!!selectedId&&c.id===selectedId}/>)}
           </div>
         ):(
           <div style={{display:"flex",flexDirection:"column",gap:viewMode==="gallery"?16:14}}>
-            {sorted.map(c=>viewMode==="gallery"
+            {sorted.map(c=>(<div key={c.id} style={selectedId&&c.id===selectedId?{outline:`2px solid ${t.primary}`,outlineOffset:2,borderRadius:18}:undefined}>{viewMode==="gallery"
               ? <CatchCardGallery key={c.id} L={L} lang={lang} c={c} S={S} t={t} showOwner={tab==="feed"} currentUserId={session.user.id} onClick={()=>onSelect(c)} onViewUser={onViewUser} onExpandPhotos={(idx)=>onExpandPhotos(c,idx)}/>
               : <CatchCardLarge key={c.id} L={L} lang={lang} c={c} S={S} t={t} showOwner={tab==="feed"} currentUserId={session.user.id} onClick={()=>onSelect(c)} onViewUser={onViewUser} onExpandPhotos={(idx)=>onExpandPhotos(c,idx)}/>
-            )}
+            }</div>))}
           </div>
         )}
         <div style={{marginTop:30,textAlign:"center"}}>
-          <p style={{fontSize:11,color:t.textMuted,opacity:.5,margin:0}}>v125</p>
+          <p style={{fontSize:11,color:t.textMuted,opacity:.5,margin:0}}>v126</p>
         </div>
         </div>
 
@@ -2005,14 +2117,14 @@
       return <span/>;
     }
 
-    function CatchCard({L,lang,c,S,t,showOwner,currentUserId,onClick,onViewUser,last}){
+    function CatchCard({L,lang,c,S,t,showOwner,currentUserId,onClick,onViewUser,last,selected}){
       const isOwn=c.user_id===currentUserId;
       const ownerName=c.profiles?.display_name||c.profiles?.username||"";
       const seed=c.profiles?.username||c.user_id;
       const avatarUrl=c.profiles?.avatar_url;
       const displayedName=isOwn?L("you"):ownerName;
       const hasSize=c.weight!=null||c.length!=null;
-      return(<div onClick={onClick} className="spey-press" style={{display:"flex",alignItems:"center",gap:12,cursor:"pointer",padding:"11px 4px",borderBottom:last?"none":`1px solid ${t.borderSoft}`}}>
+      return(<div onClick={onClick} className="spey-press" style={{display:"flex",alignItems:"center",gap:12,cursor:"pointer",padding:"11px 4px",borderBottom:last?"none":`1px solid ${t.borderSoft}`,...(selected?{background:t.primaryLight,margin:"0 -8px",padding:"11px 12px",borderRadius:10}:{})}}>
         <span style={{width:3,alignSelf:"stretch",minHeight:34,borderRadius:3,background:speciesColor(c.species,t),flexShrink:0}}/>
         {showOwner&&<Avatar url={avatarUrl} name={ownerName} seed={seed} size={30} t={t}/>}
         <div style={{flex:1,minWidth:0}}>
@@ -2564,7 +2676,7 @@
     }
 
     // ── DetailView ──
-    function DetailView({L,lang,c,session,profile,myGroups,catchGroupIds,isFollowing,onFollow,onUnfollow,onViewUser,S,t,onBack,onEdit,onDelete}){
+    function DetailView({L,lang,c,session,profile,myGroups,catchGroupIds,isFollowing,onFollow,onUnfollow,onViewUser,S,t,onBack,onEdit,onDelete,desktop}){
       const swipeRef=useEdgeSwipeBack(onBack);
       const[lightbox,setLightbox]=useState(null);
       const[sharing,setSharing]=useState(false);
@@ -2589,8 +2701,8 @@
             {isOwn&&<><button style={S.circBtn} onClick={onEdit}>{I.edit()}</button><button style={{...S.circBtn,color:t.danger}} onClick={onDelete}>{I.trash()}</button></>}
           </div>
         </div>
-        {photos.length===1&&<div style={{borderRadius:14,overflow:"hidden",marginBottom:14,aspectRatio:"3/4",cursor:"pointer"}} onClick={()=>setLightbox(0)}><img src={photos[0]} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/></div>}
-        {photos.length>1&&<div className="photo-scroll" style={{marginBottom:14}}>{photos.map((p,i)=>(<div key={i} style={{width:"80%",aspectRatio:"3/4",borderRadius:14,overflow:"hidden",cursor:"pointer"}} onClick={()=>setLightbox(i)}><img src={p} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/></div>))}</div>}
+        {photos.length===1&&<div style={{borderRadius:14,overflow:"hidden",marginBottom:14,aspectRatio:desktop?"4/3":"3/4",cursor:"pointer"}} onClick={()=>setLightbox(0)}><img src={photos[0]} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/></div>}
+        {photos.length>1&&<div className="photo-scroll" style={{marginBottom:14}}>{photos.map((p,i)=>(<div key={i} style={{width:desktop?"46%":"80%",aspectRatio:"3/4",borderRadius:14,overflow:"hidden",cursor:"pointer"}} onClick={()=>setLightbox(i)}><img src={p} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/></div>))}</div>}
         {!isOwn&&ownerName&&<div style={{display:"flex",alignItems:"center",gap:11,marginBottom:14,padding:"4px 0"}}>
           <div onClick={()=>onViewUser&&onViewUser(c.user_id)} style={{display:"flex",alignItems:"center",gap:11,flex:1,minWidth:0,cursor:"pointer"}}>
             <Avatar url={avatarUrl} name={ownerName} seed={seed} size={40} t={t}/>
@@ -3280,6 +3392,7 @@
         return{river:prefs?.lastRiver||"",beat:"",date:new Date().toISOString().split("T")[0],time:"",length:"",weight:"",equipment:prefs?.lastEquipment||"Flue",fly_pattern:"",species:"Laks",released:true,photos:[],description:"",visibility:defaultVis,selectedGroupIds:allGroupIds,conditions:{}};
       });
       const[newPhotoFiles,setNewPhotoFiles]=useState([]);
+      const[dragOver,setDragOver]=useState(false); // dra-og-slipp av bilder (desktop)
       const[newPhotoPreviews,setNewPhotoPreviews]=useState([]);
       const[weightManual,setWeightManual]=useState(false);
       const[estimatedWt,setEstimatedWt]=useState(null);
@@ -3296,6 +3409,12 @@
         setNewPhotoFiles(prev=>[...prev,...blobs]);
         setNewPhotoPreviews(prev=>[...prev,...previews]);
         e.target.value="";
+      };
+      // Dra-og-slipp av bilder (desktop). Gjenbruker handlePhotos med et minimalt event-objekt.
+      const onPhotoDrop=(e)=>{
+        e.preventDefault();setDragOver(false);
+        const files=Array.from((e.dataTransfer&&e.dataTransfer.files)||[]).filter(f=>f.type.startsWith("image/"));
+        if(files.length>0)handlePhotos({target:{files,value:""}});
       };
 
       const removeExistingPhoto=idx=>set("photos",form.photos.filter((_,i)=>i!==idx));
@@ -3319,8 +3438,8 @@
               {newPhotoPreviews.map((p,i)=>(<div key={"n"+i} style={{position:"relative",width:140,height:105,borderRadius:12,overflow:"hidden",flexShrink:0}}><img src={p} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/><button onClick={()=>removeNewPhoto(i)} style={{position:"absolute",top:4,right:4,background:"rgba(0,0,0,.6)",border:"none",borderRadius:12,width:24,height:24,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",color:"#fff"}}>{I.x()}</button></div>))}
             </div>
           )}
-          <button onClick={()=>fileRef.current?.click()} style={{display:"flex",alignItems:"center",gap:8,padding:"12px 16px",borderRadius:12,border:`2px dashed ${t.inputBorder}`,background:t.primaryLight,cursor:"pointer",color:t.textSec,fontSize:15,fontFamily:t.font,width:"100%",justifyContent:"center"}}>
-            {I.imgPlus()} {(form.photos.length+newPhotoPreviews.length)===0?L("form_add_photos"):L("form_add_more_photos")}
+          <button onClick={()=>fileRef.current?.click()} onDragOver={e=>{e.preventDefault();if(!dragOver)setDragOver(true);}} onDragLeave={()=>setDragOver(false)} onDrop={onPhotoDrop} style={{display:"flex",alignItems:"center",gap:8,padding:"12px 16px",borderRadius:12,border:`2px dashed ${dragOver?t.primary:t.inputBorder}`,background:t.primaryLight,cursor:"pointer",color:t.textSec,fontSize:15,fontFamily:t.font,width:"100%",justifyContent:"center"}}>
+            {I.imgPlus()} {dragOver?L("desk_drop_photos"):(form.photos.length+newPhotoPreviews.length)===0?L("form_add_photos"):L("form_add_more_photos")}
           </button>
           <input ref={fileRef} type="file" accept="image/*" multiple style={{display:"none"}} onChange={handlePhotos}/>
         </div>
