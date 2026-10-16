@@ -297,6 +297,9 @@
       tab_feed: { nb: "Felles", en: "Public" },
       desk_pick_catch:{nb:"Velg en fangst i listen",en:"Pick a catch from the list"},
       desk_drop_photos:{nb:"Slipp bildene her",en:"Drop the photos here"},
+      desk_prev:{nb:"Forrige fangst",en:"Previous catch"},
+      desk_next:{nb:"Neste fangst",en:"Next catch"},
+      desk_close:{nb:"Lukk",en:"Close"},
       desk_drag_hint:{nb:"dra kortene for å sortere",en:"drag the cards to reorder"},
       desk_this_year:{nb:"i år",en:"this year"},
       stats_time_of_day:{nb:"Tid på døgnet",en:"Time of day"},
@@ -1198,7 +1201,7 @@
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
             speylog.com
           </a>
-          <p style={{fontSize:11,color:t.textMuted,margin:"10px 0 0",opacity:.5}}>v128</p>
+          <p style={{fontSize:11,color:t.textMuted,margin:"10px 0 0",opacity:.5}}>v129</p>
         </div>
       );
     }
@@ -1613,6 +1616,35 @@
         return true;
       });
 
+      // ── Desktop: fangst-panel ──
+      // Forrige/neste følger samme rekkefølge som lista (nyeste først). Esc lukker, ←/→ blar.
+      // Siden bak panelene låses så den ikke ruller under. Hooks her — før de tidlige returnene.
+      const deskOrder=[...filtered].sort((a,b)=>new Date(b.date)-new Date(a.date));
+      const deskIdx=selected?deskOrder.findIndex(c=>c.id===selected.id):-1;
+      const deskPrev=deskIdx>0?deskOrder[deskIdx-1]:null;
+      const deskNext=deskIdx>=0&&deskIdx<deskOrder.length-1?deskOrder[deskIdx+1]:null;
+      const closeDeskDetail=()=>{setView("list");setSelected(null);};
+      const deskPanelOpen=isDesktop&&((view==="detail"&&!!selected)||view==="add"||view==="edit");
+      useEffect(()=>{
+        if(!deskPanelOpen)return;
+        const before=document.body.style.overflow;
+        document.body.style.overflow="hidden";
+        return()=>{document.body.style.overflow=before;};
+      },[deskPanelOpen]);
+      useEffect(()=>{
+        if(!isDesktop||view!=="detail"||!selected)return;
+        const onKey=(e)=>{
+          const tg=e.target;
+          if(tg&&(tg.tagName==="INPUT"||tg.tagName==="TEXTAREA"||tg.tagName==="SELECT"||tg.isContentEditable))return;
+          if(delModal||lightbox||document.querySelector(".spey-lightbox-close"))return;
+          if(e.key==="Escape")closeDeskDetail();
+          else if(e.key==="ArrowLeft"&&deskPrev){e.preventDefault();setSelected(deskPrev);}
+          else if(e.key==="ArrowRight"&&deskNext){e.preventDefault();setSelected(deskNext);}
+        };
+        window.addEventListener("keydown",onKey);
+        return()=>window.removeEventListener("keydown",onKey);
+      });
+
       if(loading)return <div style={S.center}><div className="spinner"/></div>;
 
       // Be om navn ved innlogging hvis brukeren ikke har bekreftet et navn ennå.
@@ -1651,9 +1683,9 @@
       </>);
 
       // ══ Desktop-layout (≥1024px) ══
-      // Ikonmeny til venstre. Fangster: liste (440px) + valgt fangst side om side, hver kolonne
-      // scroller for seg. Ny/rediger fangst åpnes som sidepanel over listen. Øvrige visninger
-      // (elver, toppliste, statistikk, profil) vises i en sentrert kolonne.
+      // Én flate: ikonmenyen står fast til venstre, resten ruller som en vanlig nettside (ingen
+      // indre rullefelt). Fangster vises i et rutenett over hele bredden. Valgt fangst og
+      // ny/rediger fangst åpnes som sidepanel fra høyre. Øvrige visninger i en sentrert kolonne.
       if(isDesktop){
         const openUser=(uid)=>{if(uid&&uid!==session.user.id){setViewUserId(uid);setView("userProfile");}};
         const catchesView=view==="list"||view==="detail"||view==="add"||view==="edit";
@@ -1668,9 +1700,11 @@
           {key:"stats",label:L("stats_title"),icon:I.chart(),on:view==="stats",go:()=>setView("stats")},
         ];
         const formOpen=view==="add"||(view==="edit"&&!!editing);
+        const detailOpen=view==="detail"&&!!selected;
+        const drawerStyle={position:"fixed",top:0,right:0,bottom:0,maxWidth:"100%",overflowY:"auto",background:t.solidBg,borderLeft:`1px solid ${t.cardBorder}`,boxShadow:"-20px 0 60px rgba(0,0,0,.35)",zIndex:91};
         return(
-          <div style={{display:"flex",height:"100vh",overflow:"hidden",background:t.bg,fontFamily:t.font,color:t.text}}>
-            <nav aria-label={L("app_name")} style={{width:76,flexShrink:0,display:"flex",flexDirection:"column",alignItems:"center",gap:8,padding:"18px 0",background:t.cardBg,borderRight:`1px solid ${t.cardBorder}`}}>
+          <div style={{display:"flex",minHeight:"100vh",fontFamily:t.font,color:t.text}}>
+            <nav aria-label={L("app_name")} style={{position:"sticky",top:0,height:"100vh",alignSelf:"flex-start",width:76,flexShrink:0,display:"flex",flexDirection:"column",alignItems:"center",gap:8,padding:"18px 0",boxSizing:"border-box",background:t.cardBg,borderRight:`1px solid ${t.cardBorder}`,zIndex:5}}>
               <div style={{marginBottom:14}}><AppLogo size={42} t={t}/></div>
               {railItems.map(it=>(
                 <button key={it.key} type="button" onClick={it.go} title={it.label} aria-label={it.label} aria-current={it.on?"page":undefined} className={"spey-rail"+(it.on?" on":"")} style={{position:"relative",width:48,height:48,borderRadius:12,border:"none",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",background:it.on?t.primaryLight:"transparent",color:it.on?t.primary:t.textSec}}>
@@ -1684,37 +1718,29 @@
               </button>
             </nav>
 
-            {catchesView?(<>
-              <div className="spey-col" style={{width:440,flexShrink:0,overflowY:"auto",borderRight:`1px solid ${t.borderSoft}`}}>
-                <ListView L={L} lang={lang} catches={filtered} total={catches.length} fp={fp} S={S} t={t} tab={tab} setTab={(tb)=>goTab(tb)} viewMode={viewMode} switchViewMode={switchViewMode} hideOwnInFeed={hideOwnInFeed} toggleHideOwnInFeed={toggleHideOwnInFeed} myGroups={myGroups} following={following} feedFilter={feedFilter} setFeedFilter={(v)=>{setFeedFilter(v);lsSet("fl_feedFilter",v);}} feedNewCount={feedNewCount} session={session} profile={profile} initialScrollY={0} desktop selectedId={selected?selected.id:null} onSelect={c=>{setSelected(c);setView("detail");}} onViewUser={openUser} onAdd={()=>setView("add")} onStats={()=>setView("stats")} onRivers={()=>setView("rivers")} onLeaderboard={()=>setView("leaderboard")} onProfile={()=>setView("profile")} onRefresh={loadCatches} onExpandPhotos={(c,startIdx)=>setLightbox({photos:c.photos,index:startIdx||0})}/>
+            <main style={{flex:1,minWidth:0}}>
+              <div style={{maxWidth:catchesView?1280:view==="rivers"?1240:view==="stats"?1080:760,margin:"0 auto",padding:"0 24px"}}>
+                {catchesView&&<ListView L={L} lang={lang} catches={filtered} total={catches.length} fp={fp} S={S} t={t} tab={tab} setTab={(tb)=>goTab(tb)} viewMode={viewMode} switchViewMode={switchViewMode} hideOwnInFeed={hideOwnInFeed} toggleHideOwnInFeed={toggleHideOwnInFeed} myGroups={myGroups} following={following} feedFilter={feedFilter} setFeedFilter={(v)=>{setFeedFilter(v);lsSet("fl_feedFilter",v);}} feedNewCount={feedNewCount} session={session} profile={profile} initialScrollY={0} desktop selectedId={detailOpen?selected.id:null} onSelect={c=>{setSelected(c);setView("detail");}} onViewUser={openUser} onAdd={()=>setView("add")} onStats={()=>setView("stats")} onRivers={()=>setView("rivers")} onLeaderboard={()=>setView("leaderboard")} onProfile={()=>setView("profile")} onRefresh={loadCatches} onExpandPhotos={(c,startIdx)=>setLightbox({photos:c.photos,index:startIdx||0})}/>}
+                {view==="stats"&&<StatsView desktop L={L} lang={lang} catches={catches} fp={fp} S={S} t={t} onBack={()=>setView("profile")}/>}
+                {view==="rivers"&&<RiversView desktop L={L} lang={lang} catches={catches} session={session} profile={profile} S={S} t={t} onBack={()=>setView("list")} onAdd={()=>setView("add")} onProfile={()=>setView("profile")}/>}
+                {view==="leaderboard"&&<LeaderboardView L={L} lang={lang} catches={catches} publicFeed={publicFeed} session={session} profile={profile} myGroups={myGroups} groupMembersByGroup={groupMembersByGroup} following={following} S={S} t={t} onBack={()=>setView("list")} onSelect={c=>{setSelected(c);setView("detail")}} onViewUser={openUser}/>}
+                {view==="profile"&&<ProfileView L={L} lang={lang} switchLang={switchLang} session={session} profile={profile} catches={catches} myGroups={myGroups} onGroupsChange={loadMyGroups} following={following} onStats={()=>setView("stats")} onViewUser={openUser} S={S} t={t} themeKey={themeKey} switchTheme={switchTheme} onBack={()=>setView("list")} onUpdate={(p)=>setProfile(p)} onSignOut={signOut}/>}
+                {view==="userProfile"&&viewUserId&&<UserProfileView L={L} lang={lang} userId={viewUserId} publicFeed={publicFeed} isFollowing={isFollowing(viewUserId)} onFollow={()=>followUser(viewUserId)} onUnfollow={()=>unfollowUser(viewUserId)} S={S} t={t} onBack={()=>setView("list")} onSelect={c=>{setSelected(c);setView("detail")}} onExpandPhotos={(c,startIdx)=>setLightbox({photos:c.photos,index:startIdx||0})}/>}
               </div>
-              <div ref={detailColRef} className="spey-col" style={{flex:1,minWidth:0,overflowY:"auto"}}>
-                {selected
-                  ?<div style={{maxWidth:680,margin:"0 auto",padding:"0 16px"}}>
-                    <DetailView key={selected.id} desktop L={L} lang={lang} c={selected} session={session} profile={profile} myGroups={myGroups} catchGroupIds={catchGroupsMap[selected.id]||[]} isFollowing={isFollowing(selected.user_id)} onFollow={()=>followUser(selected.user_id)} onUnfollow={()=>unfollowUser(selected.user_id)} onViewUser={openUser} S={S} t={t} onBack={()=>{setSelected(null);setView("list");}} onEdit={()=>{setEditing({...selected});setView("edit")}} onDelete={()=>setDelModal(selected.id)}/>
-                  </div>
-                  :<div style={{height:"100%",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:12,padding:40,textAlign:"center"}}>
-                    {I.fish(44,t.textMuted)}
-                    <p style={{fontSize:15,color:t.textMuted,margin:0}}>{L("desk_pick_catch")}</p>
-                  </div>}
-              </div>
-            </>):(
-              <div className="spey-col" style={{flex:1,minWidth:0,overflowY:"auto"}}>
-                <div style={{maxWidth:view==="rivers"?1240:view==="stats"?1080:760,margin:"0 auto",padding:"0 16px"}}>
-                  {view==="stats"&&<StatsView desktop L={L} lang={lang} catches={catches} fp={fp} S={S} t={t} onBack={()=>setView("profile")}/>}
-                  {view==="rivers"&&<RiversView desktop L={L} lang={lang} catches={catches} session={session} profile={profile} S={S} t={t} onBack={()=>setView("list")} onAdd={()=>setView("add")} onProfile={()=>setView("profile")}/>}
-                  {view==="leaderboard"&&<LeaderboardView L={L} lang={lang} catches={catches} publicFeed={publicFeed} session={session} profile={profile} myGroups={myGroups} groupMembersByGroup={groupMembersByGroup} following={following} S={S} t={t} onBack={()=>setView("list")} onSelect={c=>{setSelected(c);setView("detail")}} onViewUser={openUser}/>}
-                  {view==="profile"&&<ProfileView L={L} lang={lang} switchLang={switchLang} session={session} profile={profile} catches={catches} myGroups={myGroups} onGroupsChange={loadMyGroups} following={following} onStats={()=>setView("stats")} onViewUser={openUser} S={S} t={t} themeKey={themeKey} switchTheme={switchTheme} onBack={()=>setView("list")} onUpdate={(p)=>setProfile(p)} onSignOut={signOut}/>}
-                  {view==="userProfile"&&viewUserId&&<UserProfileView L={L} lang={lang} userId={viewUserId} publicFeed={publicFeed} isFollowing={isFollowing(viewUserId)} onFollow={()=>followUser(viewUserId)} onUnfollow={()=>unfollowUser(viewUserId)} S={S} t={t} onBack={()=>setView("list")} onSelect={c=>{setSelected(c);setView("detail")}} onExpandPhotos={(c,startIdx)=>setLightbox({photos:c.photos,index:startIdx||0})}/>}
-                </div>
-              </div>
-            )}
+            </main>
+
+            {detailOpen&&<>
+              <div onClick={closeDeskDetail} style={{position:"fixed",inset:0,background:"rgba(0,0,0,.45)",zIndex:90,animation:"speyFadeIn .2s ease"}}/>
+              <aside ref={detailColRef} role="dialog" aria-modal="true" aria-label={catchTitle(selected,lang)} className="spey-col" style={{...drawerStyle,width:580,animation:"speyDrawerIn .28s cubic-bezier(.32,.72,.3,1)"}}>
+                <DetailView key={selected.id} desktop onPrev={deskPrev?()=>setSelected(deskPrev):null} onNext={deskNext?()=>setSelected(deskNext):null} L={L} lang={lang} c={selected} session={session} profile={profile} myGroups={myGroups} catchGroupIds={catchGroupsMap[selected.id]||[]} isFollowing={isFollowing(selected.user_id)} onFollow={()=>followUser(selected.user_id)} onUnfollow={()=>unfollowUser(selected.user_id)} onViewUser={openUser} S={S} t={t} onBack={closeDeskDetail} onEdit={()=>{setEditing({...selected});setView("edit")}} onDelete={()=>setDelModal(selected.id)}/>
+              </aside>
+            </>}
 
             {formOpen&&<>
               <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.45)",zIndex:90,animation:"speyFadeIn .2s ease"}}/>
-              <aside role="dialog" aria-modal="true" aria-label={view==="edit"?L("form_edit"):L("form_new")} className="spey-col" style={{position:"fixed",top:0,right:0,bottom:0,width:540,maxWidth:"100%",overflowY:"auto",background:t.solidBg,borderLeft:`1px solid ${t.cardBorder}`,boxShadow:"-20px 0 60px rgba(0,0,0,.35)",zIndex:91,animation:"speyDrawerIn .28s cubic-bezier(.32,.72,.3,1)"}}>
-                {view==="add"&&<FormView L={L} lang={lang} allRivers={allRivers} allFlies={allFlies} prefs={prefs} profile={profile} myGroups={myGroups} S={S} t={t} onSave={addCatch} onCancel={()=>setView(selected?"detail":"list")}/>}
-                {view==="edit"&&editing&&<FormView L={L} lang={lang} allRivers={allRivers} allFlies={allFlies} initial={editing} initialGroupIds={catchGroupsMap[editing.id]||[]} profile={profile} myGroups={myGroups} S={S} t={t} onSave={updateCatch} onCancel={()=>setView("detail")} isEdit/>}
+              <aside role="dialog" aria-modal="true" aria-label={view==="edit"?L("form_edit"):L("form_new")} className="spey-col" style={{...drawerStyle,width:540,animation:"speyDrawerIn .28s cubic-bezier(.32,.72,.3,1)"}}>
+                {view==="add"&&<FormView desktop L={L} lang={lang} allRivers={allRivers} allFlies={allFlies} prefs={prefs} profile={profile} myGroups={myGroups} S={S} t={t} onSave={addCatch} onCancel={()=>setView("list")}/>}
+                {view==="edit"&&editing&&<FormView desktop L={L} lang={lang} allRivers={allRivers} allFlies={allFlies} initial={editing} initialGroupIds={catchGroupsMap[editing.id]||[]} profile={profile} myGroups={myGroups} S={S} t={t} onSave={updateCatch} onCancel={()=>setView("detail")} isEdit/>}
               </aside>
             </>}
 
@@ -1957,7 +1983,7 @@
         </div>
         <div className="spey-ruler" style={{height:7,marginTop:14,opacity:t.dark?.55:.7,"--tick":t.borderSoft,"--tickHi":t.primary}}/>
         <div style={{display:"flex",gap:8,marginBottom:14,marginTop:14,alignItems:"center"}}>
-          <div style={{...S.tabBar,marginBottom:0,flex:1}}>
+          <div style={{...S.tabBar,marginBottom:0,flex:desktop?"0 0 320px":1}}>
             <button style={tab==="mine"?S.tabActive:S.tab} onClick={()=>setTab("mine")}>{L("tab_mine")}</button>
             <button style={{...(tab==="feed"?S.tabActive:S.tab),position:"relative"}} onClick={()=>setTab("feed")}>
               {L("tab_feed")}
@@ -1966,6 +1992,7 @@
               )}
             </button>
           </div>
+          {desktop&&<div style={{flex:1}}/>}
           <button onClick={onLeaderboard} style={{width:42,height:42,borderRadius:11,background:t.cardBg,color:t.primary,border:`1px solid ${t.cardBorder}`,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",flexShrink:0}}>
             {I.trophy()}
           </button>
@@ -2013,11 +2040,11 @@
           </div>
         )}
         {sorted.length===0?(<div style={{textAlign:"center",padding:"50px 20px"}}>{I.fish(44,t.textMuted)}<p style={{marginTop:10,color:t.textMuted,fontSize:15}}>{tab==="mine"?(total===0?L("empty_no_catches_yet"):L("empty_no_results")):L("empty_no_feed")}</p></div>):viewMode==="compact"?(
-          <div style={{background:t.cardBg,border:`1px solid ${t.cardBorder}`,borderRadius:16,padding:"2px 12px",boxShadow:t.shadow}}>
-            {sorted.map((c,i)=><CatchCard key={c.id} L={L} lang={lang} c={c} S={S} t={t} showOwner={tab==="feed"} currentUserId={session.user.id} onClick={()=>onSelect(c)} onViewUser={onViewUser} last={i===sorted.length-1} selected={!!selectedId&&c.id===selectedId}/>)}
+          <div style={{background:t.cardBg,border:`1px solid ${t.cardBorder}`,borderRadius:16,padding:desktop?"2px 20px":"2px 12px",boxShadow:t.shadow,...(desktop?{display:"grid",gridTemplateColumns:"repeat(2,minmax(0,1fr))",columnGap:36}:{})}}>
+            {sorted.map((c,i)=><CatchCard key={c.id} L={L} lang={lang} c={c} S={S} t={t} showOwner={tab==="feed"} currentUserId={session.user.id} onClick={()=>onSelect(c)} onViewUser={onViewUser} last={desktop?i>=sorted.length-(sorted.length%2===0?2:1):i===sorted.length-1} selected={!!selectedId&&c.id===selectedId}/>)}
           </div>
         ):(
-          <div style={{display:"flex",flexDirection:"column",gap:viewMode==="gallery"?16:14}}>
+          <div style={desktop?{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(340px,1fr))",gap:20,alignItems:"start"}:{display:"flex",flexDirection:"column",gap:viewMode==="gallery"?16:14}}>
             {sorted.map(c=>(<div key={c.id} style={selectedId&&c.id===selectedId?{outline:`2px solid ${t.primary}`,outlineOffset:2,borderRadius:18}:undefined}>{viewMode==="gallery"
               ? <CatchCardGallery key={c.id} L={L} lang={lang} c={c} S={S} t={t} showOwner={tab==="feed"} currentUserId={session.user.id} onClick={()=>onSelect(c)} onViewUser={onViewUser} onExpandPhotos={(idx)=>onExpandPhotos(c,idx)}/>
               : <CatchCardLarge key={c.id} L={L} lang={lang} c={c} S={S} t={t} showOwner={tab==="feed"} currentUserId={session.user.id} onClick={()=>onSelect(c)} onViewUser={onViewUser} onExpandPhotos={(idx)=>onExpandPhotos(c,idx)}/>
@@ -2025,7 +2052,7 @@
           </div>
         )}
         <div style={{marginTop:30,textAlign:"center"}}>
-          <p style={{fontSize:11,color:t.textMuted,opacity:.5,margin:0}}>v128</p>
+          <p style={{fontSize:11,color:t.textMuted,opacity:.5,margin:0}}>v129</p>
         </div>
         </div>
 
@@ -2680,11 +2707,11 @@
     }
 
     // ── DetailView ──
-    function DetailView({L,lang,c,session,profile,myGroups,catchGroupIds,isFollowing,onFollow,onUnfollow,onViewUser,S,t,onBack,onEdit,onDelete,desktop}){
+    function DetailView({L,lang,c,session,profile,myGroups,catchGroupIds,isFollowing,onFollow,onUnfollow,onViewUser,S,t,onBack,onEdit,onDelete,desktop,onPrev,onNext}){
       const swipeRef=useEdgeSwipeBack(onBack);
       const[lightbox,setLightbox]=useState(null);
       const[sharing,setSharing]=useState(false);
-      useEffect(()=>{window.scrollTo(0,0);},[]);
+      useEffect(()=>{if(!desktop)window.scrollTo(0,0);},[]); // desktop: i sidepanel — siden bak skal ikke hoppe
       const photos=c.photos||[];
       const isOwn=c.user_id===session.user.id;
       const ownerName=c.profiles?.display_name||c.profiles?.username||"";
@@ -2699,10 +2726,16 @@
       };
       return(<div ref={swipeRef} className="safe-top safe-bottom" style={{...S.page,touchAction:"pan-y",willChange:"transform"}}>
         <div style={S.topBar}>
-          <button style={S.backBtn} onClick={onBack}>{I.back()}</button>
+          {desktop
+            ?<div style={{display:"flex",gap:8}}>
+              <button style={{...S.circBtn,opacity:onPrev?1:.35,cursor:onPrev?"pointer":"default"}} onClick={onPrev||undefined} disabled={!onPrev} aria-label={L("desk_prev")} title={L("desk_prev")+" (←)"}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
+              <button style={{...S.circBtn,opacity:onNext?1:.35,cursor:onNext?"pointer":"default"}} onClick={onNext||undefined} disabled={!onNext} aria-label={L("desk_next")} title={L("desk_next")+" (→)"}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>
+            </div>
+            :<button style={S.backBtn} onClick={onBack}>{I.back()}</button>}
           <div style={{display:"flex",gap:8}}>
             {photos.length>0&&<button style={S.circBtn} onClick={handleShare} disabled={sharing}>{sharing?<div className="spinner" style={{width:14,height:14,borderWidth:2}}/>:I.share()}</button>}
             {isOwn&&<><button style={S.circBtn} onClick={onEdit}>{I.edit()}</button><button style={{...S.circBtn,color:t.danger}} onClick={onDelete}>{I.trash()}</button></>}
+            {desktop&&<button style={{...S.circBtn,color:t.textSec}} onClick={onBack} aria-label={L("desk_close")} title={L("desk_close")+" (Esc)"}>{I.x()}</button>}
           </div>
         </div>
         {photos.length===1&&<div style={{borderRadius:14,overflow:"hidden",marginBottom:14,aspectRatio:desktop?"4/3":"3/4",cursor:"pointer"}} onClick={()=>setLightbox(0)}><img src={photos[0]} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/></div>}
@@ -3461,9 +3494,9 @@
     }
 
     // ── FormView ──
-    function FormView({L,lang,onSave,onCancel,initial,initialGroupIds,isEdit,prefs,profile,myGroups,allRivers,allFlies,S,t}){
+    function FormView({L,lang,onSave,onCancel,initial,initialGroupIds,isEdit,prefs,profile,myGroups,allRivers,allFlies,S,t,desktop}){
       const fileRef=useRef();
-      useEffect(()=>{window.scrollTo(0,0);},[]);
+      useEffect(()=>{if(!desktop)window.scrollTo(0,0);},[]); // desktop: i sidepanel — siden bak skal ikke hoppe
       const[form,setForm]=useState(()=>{
         const allGroupIds=(myGroups||[]).map(g=>g.id);
         if(initial){
