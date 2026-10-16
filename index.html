@@ -1198,7 +1198,7 @@
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
             speylog.com
           </a>
-          <p style={{fontSize:11,color:t.textMuted,margin:"10px 0 0",opacity:.5}}>v127</p>
+          <p style={{fontSize:11,color:t.textMuted,margin:"10px 0 0",opacity:.5}}>v128</p>
         </div>
       );
     }
@@ -2025,7 +2025,7 @@
           </div>
         )}
         <div style={{marginTop:30,textAlign:"center"}}>
-          <p style={{fontSize:11,color:t.textMuted,opacity:.5,margin:0}}>v127</p>
+          <p style={{fontSize:11,color:t.textMuted,opacity:.5,margin:0}}>v128</p>
         </div>
         </div>
 
@@ -2485,7 +2485,7 @@
         <div style={{display:"flex",flexDirection:"column",alignItems:"center",marginBottom:22}}>
           <div style={{position:"relative"}}>
             <Avatar url={avatarUrl} name={profile?.display_name||profile?.username} seed={profile?.username||session.user.id} size={96} t={t}/>
-            <button onClick={()=>fileRef.current?.click()} disabled={uploading} style={{position:"absolute",bottom:-2,right:-2,width:34,height:34,borderRadius:17,border:`2px solid ${t.cardBg}`,background:t.primary,color:t.name==="Mørk"?"#0f1a17":"#fff",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",padding:0,boxShadow:t.btnShadow}}>
+            <button onClick={()=>fileRef.current?.click()} disabled={uploading} style={{position:"absolute",bottom:-2,right:-2,width:34,height:34,borderRadius:17,border:`2px solid ${t.cardBg}`,background:t.primary,color:t.primaryInk,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",padding:0,boxShadow:t.btnShadow}}>
               {uploading?<div className="spinner" style={{width:14,height:14,borderWidth:2}}/>:I.edit()}
             </button>
             <input ref={fileRef} type="file" accept="image/*" onChange={handleAvatar} style={{display:"none"}}/>
@@ -2497,7 +2497,7 @@
               </div>
             : <div style={{display:"flex",alignItems:"center",gap:8,margin:"12px 0 0",width:"100%",maxWidth:340}}>
                 <input value={displayName} onChange={e=>setDisplayName(e.target.value)} autoFocus onKeyDown={e=>{if(e.key==="Enter"&&displayName.trim()&&!nameUnchanged)saveName();if(e.key==="Escape")setEditingName(false);}} style={{...S.inp,flex:1,textAlign:"center"}}/>
-                <button onClick={saveName} disabled={saving||!displayName.trim()||nameUnchanged} style={{width:42,height:42,borderRadius:11,border:"none",background:t.primary,color:t.name==="Mørk"?"#0f1a17":"#fff",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,opacity:(saving||!displayName.trim()||nameUnchanged)?.45:1}}>
+                <button onClick={saveName} disabled={saving||!displayName.trim()||nameUnchanged} style={{width:42,height:42,borderRadius:11,border:"none",background:t.primary,color:t.primaryInk,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,opacity:(saving||!displayName.trim()||nameUnchanged)?.45:1}}>
                   {saving?<div className="spinner" style={{width:14,height:14,borderWidth:2}}/>:I.checkSm(18)}
                 </button>
                 <button onClick={()=>setEditingName(false)} style={{width:42,height:42,borderRadius:11,border:`1px solid ${t.cardBorder}`,background:t.cardBg,color:t.textSec,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{I.x()}</button>
@@ -3265,7 +3265,7 @@
       const specC={},eqC={},rivC={},moC={};const moN=lang==="en"?["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]:["Jan","Feb","Mar","Apr","Mai","Jun","Jul","Aug","Sep","Okt","Nov","Des"];
       filtered.forEach(c=>{specC[c.species]=(specC[c.species]||0)+1;eqC[c.equipment]=(eqC[c.equipment]||0)+1;rivC[c.river]=(rivC[c.river]||0)+1;moC[new Date(c.date).getMonth()]=(moC[new Date(c.date).getMonth()]||0)+1;});
       const maxMo=Math.max(...Object.values(moC),1);
-      const monthSec=(h,wide)=>n>0&&<div style={{...S.sec,...(wide?{gridColumn:"1 / -1"}:{})}}><p style={S.secT}>{L("stats_per_month")}</p><div style={{display:"flex",gap:3,alignItems:"flex-end",height:h}}>{moN.map((m,i)=>(<div key={i} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center"}}><div style={{width:"100%",minHeight:2,height:Math.round(((moC[i]||0)/maxMo)*(h-18)),background:`linear-gradient(${t.primary},${t.accent})`,borderRadius:"3px 3px 0 0",display:"flex",alignItems:"flex-start",justifyContent:"center"}}>{moC[i]>0&&<span style={{fontSize:9,color:t.name==="Mørk"?"#0f1a17":"#fff",fontWeight:700,marginTop:2}}>{moC[i]}</span>}</div><span style={{fontSize:10,color:t.textMuted,marginTop:3}}>{m}</span></div>))}</div></div>;
+      const monthSec=(h,wide)=>n>0&&<div style={{...S.sec,...(wide?{gridColumn:"1 / -1"}:{})}}><p style={S.secT}>{L("stats_per_month")}</p><div style={{display:"flex",gap:3,alignItems:"flex-end",height:h}}>{moN.map((m,i)=>(<div key={i} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center"}}><div style={{width:"100%",minHeight:2,height:Math.round(((moC[i]||0)/maxMo)*(h-18)),background:`linear-gradient(${t.primary},${t.accent})`,borderRadius:"3px 3px 0 0",display:"flex",alignItems:"flex-start",justifyContent:"center"}}>{moC[i]>0&&<span style={{fontSize:9,color:t.primaryInk,fontWeight:700,marginTop:2}}>{moC[i]}</span>}</div><span style={{fontSize:10,color:t.textMuted,marginTop:3}}>{m}</span></div>))}</div></div>;
       // Desktop-ekstra: tid på døgnet (4-timers bolker, fra c.time) og beste fluer (topp 5).
       const tod=[0,0,0,0,0,0];let nT=0;
       filtered.forEach(c=>{if(!c.time)return;const hh=parseInt(String(c.time).slice(0,2),10);if(isNaN(hh))return;tod[Math.min(5,Math.floor(hh/4))]++;nT++;});
