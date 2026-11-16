@@ -73,6 +73,18 @@
     .spey-tabbar button.on{font-weight:700;background:rgba(26,138,82,.13);box-shadow:inset 0 0 0 1px rgba(26,138,82,.32)}
     body.t-dark .spey-tabbar button.on{background:rgba(94,230,160,.15);box-shadow:inset 0 0 0 1px rgba(94,230,160,.36)}
     .spey-tabbar button:active{transform:scale(.95)}
+    /* Flytende pluss over menyen, til høyre. Skjult til siden er rullet forbi toppen. */
+    .spey-fab{position:fixed;right:max(14px,calc(50% - 226px));bottom:calc(max(12px,calc(env(safe-area-inset-bottom, 0px) - 10px)) + 76px);width:52px;height:52px;border-radius:50%;
+      border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:60;box-shadow:0 8px 22px rgba(22,39,29,.28),inset 0 1px 0 rgba(255,255,255,.25);
+      opacity:0;transform:scale(.8);pointer-events:none;transition:opacity .2s ease,transform .2s ease}
+    .spey-fab.on{opacity:1;transform:none;pointer-events:auto}
+    .spey-fab svg{width:24px;height:24px}
+    /* Meldinger og feil vises som et lite kort øverst (speyToast), ikke som systemdialog. */
+    #spey-toast{position:fixed;left:50%;top:calc(env(safe-area-inset-top, 0px) + 14px);transform:translate(-50%,-160%);width:max-content;max-width:min(calc(100% - 28px),420px);z-index:300;
+      padding:12px 16px;border-radius:14px;font:500 14.5px/1.35 'Outfit',sans-serif;text-align:center;background:#fff;color:#16271d;border:1px solid #e2eadf;
+      box-shadow:0 10px 30px rgba(22,39,29,.22);opacity:0;pointer-events:none;transition:transform .28s ease,opacity .28s ease}
+    #spey-toast.on{transform:translate(-50%,0);opacity:1;pointer-events:auto}
+    body.t-dark #spey-toast{background:#1c2e28;color:#e8f0ec;border-color:#2a4038;box-shadow:0 10px 30px rgba(0,0,0,.5)}
     .spey-tabbar svg{width:27px;height:27px;flex:none}
     @media (max-width:350px){.spey-tabbar button{min-width:64px;padding:0 9px}}
     /* iOS 27 tegner en progressiv blur over toppkanten i standalone-webapper som bruker
@@ -627,6 +639,21 @@
     }
     function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){console.error(e);}}
 
+    // Kort melding øverst i skjermen. Forsvinner etter seks sekunder, eller når man trykker på den.
+    function speyToast(msg){
+      let el=document.getElementById("spey-toast");
+      if(!el){
+        el=document.createElement("div");el.id="spey-toast";el.setAttribute("role","alert");
+        el.addEventListener("click",()=>el.classList.remove("on"));
+        document.body.appendChild(el);
+      }
+      el.textContent=String(msg);
+      requestAnimationFrame(()=>el.classList.add("on"));
+      clearTimeout(speyToast.timer);
+      speyToast.timer=setTimeout(()=>el.classList.remove("on"),6000);
+    }
+    window.speyToast=speyToast;
+
     function avatarColor(seed){
       const colors=["#1a5c3a","#2d6a4f","#52796f","#386641","#6a994e","#3d7a68","#4f7f5b","#5b8c7a","#2f6b5e","#7a8c5a","#8a7a4f","#6b7f3a"];
       let h=0;
@@ -918,7 +945,7 @@
       }catch(e){
         if(e.name!=="AbortError"){
           const lang=detectLang();
-          alert(STRINGS.share_failed[lang]+" "+(e.message||STRINGS.error_unknown[lang]));
+          speyToast(STRINGS.share_failed[lang]+" "+(e.message||STRINGS.error_unknown[lang]));
         }
       }
     }
@@ -1253,7 +1280,7 @@
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
             speylog.com
           </a>
-          <p style={{fontSize:11,color:t.textMuted,margin:"10px 0 0",opacity:.5}}>v138</p>
+          <p style={{fontSize:11,color:t.textMuted,margin:"10px 0 0",opacity:.5}}>v139</p>
         </div>
       );
     }
@@ -1302,6 +1329,14 @@
         document.body.classList.toggle("spey-desk",isDesktop);
         return()=>document.body.classList.remove("spey-desk");
       },[isDesktop]);
+      // Flytende pluss på mobil: vises når toppen (med pluss-knappen) er rullet ut av syne.
+      const[scrolled,setScrolled]=useState(false);
+      useEffect(()=>{
+        const f=()=>setScrolled(window.scrollY>140);
+        f();
+        window.addEventListener("scroll",f,{passive:true});
+        return()=>window.removeEventListener("scroll",f);
+      },[view]);
       // Bunnmenyen vises på mobil i alle visninger unntatt fangstdetaljer og skjema (se NAV_VIEWS).
       useEffect(()=>{
         document.body.classList.toggle("spey-nav",!isDesktop&&NAV_VIEWS.includes(view));
@@ -1491,7 +1526,7 @@
         // Rydd URL
         window.history.replaceState({},document.title,window.location.pathname);
         if(error&&!error.message.includes("duplicate")){
-          alert(L("group_join_failed")+" "+error.message);
+          speyToast(L("group_join_failed")+" "+error.message);
         }
         setInviteModal(null);
         await loadMyGroups();
@@ -1551,12 +1586,12 @@
           conditions:(form.conditions&&Object.keys(form.conditions).length>0)?form.conditions:null,
         };
         const {data,error}=await sb.from("catches").insert(row).select().single();
-        if(error){alert(L("error_prefix")+" "+error.message);return;}
+        if(error){speyToast(L("error_prefix")+" "+error.message);return;}
         // Lagre gruppe-koblinger hvis visibility=groups
         if(form.visibility==="groups"&&form.selectedGroupIds&&form.selectedGroupIds.length>0){
           const cgRows=form.selectedGroupIds.map(gid=>({catch_id:data.id,group_id:gid}));
           const {error:cgErr}=await sb.from("catch_groups").insert(cgRows);
-          if(cgErr){console.error("catch_groups insert feilet",cgErr);alert(L("error_prefix")+" "+cgErr.message);}
+          if(cgErr){console.error("catch_groups insert feilet",cgErr);speyToast(L("error_prefix")+" "+cgErr.message);}
           else{
             setCatchGroupsMap(prev=>({...prev,[data.id]:form.selectedGroupIds}));
           }
@@ -1617,14 +1652,14 @@
           conditions:(form.conditions&&Object.keys(form.conditions).length>0)?form.conditions:null,
         };
         const {data,error}=await sb.from("catches").update(row).eq("id",form.id).select().single();
-        if(error){alert(L("error_prefix")+" "+error.message);return;}
+        if(error){speyToast(L("error_prefix")+" "+error.message);return;}
         // Synkroniser catch_groups: slett alle gamle, sett inn nye hvis groups-mode
         const {error:delErr}=await sb.from("catch_groups").delete().eq("catch_id",form.id);
         if(delErr)console.error("catch_groups delete feilet",delErr);
         if(form.visibility==="groups"&&form.selectedGroupIds&&form.selectedGroupIds.length>0){
           const cgRows=form.selectedGroupIds.map(gid=>({catch_id:form.id,group_id:gid}));
           const {error:cgErr}=await sb.from("catch_groups").insert(cgRows);
-          if(cgErr){console.error("catch_groups insert feilet",cgErr);alert(L("error_prefix")+" "+cgErr.message);}
+          if(cgErr){console.error("catch_groups insert feilet",cgErr);speyToast(L("error_prefix")+" "+cgErr.message);}
           else{
             setCatchGroupsMap(prev=>({...prev,[form.id]:form.selectedGroupIds}));
           }
@@ -1640,7 +1675,7 @@
 
       const deleteCatch=async(id)=>{
         const {error}=await sb.from("catches").delete().eq("id",id);
-        if(error){alert(L("error_prefix")+" "+error.message);return;}
+        if(error){speyToast(L("error_prefix")+" "+error.message);return;}
         setCatches(prev=>prev.filter(x=>x.id!==id));
         setDelModal(null);setView("list");
       };
@@ -1834,6 +1869,7 @@
           {view==="add"&&<FormView L={L} lang={lang} allRivers={allRivers} allFlies={allFlies} prefs={prefs} profile={profile} myGroups={myGroups} S={S} t={t} onSave={addCatch} onCancel={()=>setView("list")}/>}
           {view==="detail"&&selected&&<DetailView L={L} lang={lang} c={selected} session={session} profile={profile} myGroups={myGroups} catchGroupIds={catchGroupsMap[selected.id]||[]} isFollowing={isFollowing(selected.user_id)} onFollow={()=>followUser(selected.user_id)} onUnfollow={()=>unfollowUser(selected.user_id)} onViewUser={(uid)=>{if(uid&&uid!==session.user.id){setViewUserId(uid);setView("userProfile");}}} S={S} t={t} onBack={()=>setView("list")} onEdit={()=>{setEditing({...selected});setView("edit")}} onDelete={()=>setDelModal(selected.id)}/>}
           {view==="edit"&&editing&&<FormView L={L} lang={lang} allRivers={allRivers} allFlies={allFlies} initial={editing} initialGroupIds={catchGroupsMap[editing.id]||[]} profile={profile} myGroups={myGroups} S={S} t={t} onSave={updateCatch} onCancel={()=>setView("detail")} isEdit/>}
+          {navOn&&(view==="list"||view==="rivers")&&<button type="button" className={"spey-fab"+(scrolled?" on":"")} tabIndex={scrolled?0:-1} onClick={()=>setView("add")} aria-label={L("form_new")} style={{background:t.primary,color:t.primaryInk}}>{I.plus()}</button>}
           {navOn&&<nav className="spey-tabbar" aria-label={L("nav_menu")}>
             {navItems.map(it=>{
               const on=view===it.key;
@@ -2132,7 +2168,7 @@
           </div>
         )}
         <div style={{marginTop:30,textAlign:"center"}}>
-          <p style={{fontSize:11,color:t.textMuted,opacity:.5,margin:0}}>v138</p>
+          <p style={{fontSize:11,color:t.textMuted,opacity:.5,margin:0}}>v139</p>
         </div>
         </div>
 
@@ -2465,7 +2501,7 @@
             setMsg(L("share_app_copied"));
             setTimeout(()=>setMsg(""),2000);
           }catch(e){
-            alert(url);
+            speyToast(url);
           }
         }
       };
@@ -2554,7 +2590,7 @@
           // Vis invitasjons-modal med en gang så brukeren kan dele
           setShareGroup({...group,member_count:1});
         }catch(e){
-          alert(L("group_create_failed")+" "+(e.message||L("error_unknown")));
+          speyToast(L("group_create_failed")+" "+(e.message||L("error_unknown")));
         }
         setCreatingGroup(false);
       };
@@ -2581,7 +2617,7 @@
           setMsg(L("groups_link_copied"));
           setTimeout(()=>setMsg(""),2000);
         }catch(e){
-          alert(L("copy_failed")+" "+text);
+          speyToast(L("copy_failed")+" "+text);
         }
       };
 
@@ -2593,9 +2629,9 @@
           // Databasetriggeren blokkerer at oppretteren forlater en gruppe med
           // andre medlemmer, og kaster da en feil med "OWNER_CANNOT_LEAVE".
           if((error.message||"").includes("OWNER_CANNOT_LEAVE")){
-            alert(L("groups_owner_cannot_leave"));
+            speyToast(L("groups_owner_cannot_leave"));
           }else{
-            alert(L("error_prefix")+" "+error.message);
+            speyToast(L("error_prefix")+" "+error.message);
           }
           return;
         }
@@ -2825,7 +2861,7 @@
       const profileForShare=isOwn?profile:(c.profiles||null);
       const handleShare=async()=>{
         if(sharing)return;
-        if(!photos||photos.length===0){alert(L("no_photo_for_share"));return;}
+        if(!photos||photos.length===0){speyToast(L("no_photo_for_share"));return;}
         setSharing(true);
         try{await shareCatch(c,profileForShare,lang);}finally{setSharing(false);}
       };
@@ -3765,11 +3801,13 @@
         <ConditionsSection value={form.conditions} onChange={v=>set("conditions",v)} L={L} t={t} river={form.river} date={form.date} time={form.time}/>
 
         <Lbl t={L("form_note")} th={t}/><textarea style={{...S.inp,minHeight:70,resize:"vertical"}} placeholder={L("form_note_placeholder")} value={form.description||""} onChange={e=>set("description",e.target.value)}/>
-        {tried&&!valid&&<p role="alert" style={{color:t.danger,fontSize:14,fontWeight:500,margin:"16px 0 -8px",textAlign:"center"}}>{missingMsg}</p>}
-        <button style={{...S.btnPriFull,opacity:saving?.45:1,marginTop:20}} disabled={saving} onClick={submit}>
-          {saving?L("form_saving"):(isEdit?L("form_save_edit"):L("form_save"))}
-        </button>
-        <div style={{height:30}}/>
+        {/* Lagre-linjen står fast nederst i skjermen (sticky), så knappen er synlig uten å rulle helt ned */}
+        <div style={{position:"sticky",bottom:0,zIndex:5,margin:"8px -16px 0",padding:"26px 16px calc(12px + env(safe-area-inset-bottom, 0px))",background:`linear-gradient(180deg, transparent, ${t.solidBg} 20px)`}}>
+          {tried&&!valid&&<p role="alert" style={{color:t.danger,fontSize:14,fontWeight:500,margin:"0 0 8px",textAlign:"center"}}>{missingMsg}</p>}
+          <button style={{...S.btnPriFull,opacity:saving?.45:1}} disabled={saving} onClick={submit}>
+            {saving?L("form_saving"):(isEdit?L("form_save_edit"):L("form_save"))}
+          </button>
+        </div>
         {confirmDiscard&&<div style={S.overlay}><div style={S.modal}>
           <p style={{fontSize:17,fontWeight:600,margin:"0 0 6px",color:t.text}}>{L("form_discard_title")}</p>
           <p style={{fontSize:14,color:t.textMuted,margin:"0 0 20px"}}>{L("form_discard_text")}</p>
