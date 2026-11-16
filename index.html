@@ -7,7 +7,7 @@
   }
 </script>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -390,6 +390,13 @@
       // Form
       form_new:{nb:"Ny fangst",en:"New catch"},
       form_edit:{nb:"Rediger fangst",en:"Edit catch"},
+      form_missing_river:{nb:"Velg elv for å registrere fangsten.",en:"Choose a river to register the catch."},
+      form_missing_group:{nb:"Velg minst én gruppe, eller en annen synlighet.",en:"Choose at least one group, or another visibility."},
+      form_missing:{nb:"Fyll ut feltene merket med *.",en:"Fill in the fields marked with *."},
+      form_discard_title:{nb:"Forkaste det du har fylt inn?",en:"Discard what you have entered?"},
+      form_discard_text:{nb:"Fangsten er ikke lagret.",en:"The catch has not been saved."},
+      form_discard_keep:{nb:"Fortsett",en:"Keep editing"},
+      form_discard_yes:{nb:"Forkast",en:"Discard"},
       form_add_photos:{nb:"Legg til bilder",en:"Add photos"},
       form_add_more_photos:{nb:"Legg til flere bilder",en:"Add more photos"},
       form_river_label:{nb:"Elv *",en:"River *"},
@@ -621,7 +628,7 @@
     function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){console.error(e);}}
 
     function avatarColor(seed){
-      const colors=["#1a5c3a","#2d6a4f","#52796f","#386641","#6a994e","#8b5cf6","#7c3aed","#0891b2","#0e7490","#b45309","#a16207","#be123c","#9f1239","#9333ea","#1e40af"];
+      const colors=["#1a5c3a","#2d6a4f","#52796f","#386641","#6a994e","#3d7a68","#4f7f5b","#5b8c7a","#2f6b5e","#7a8c5a","#8a7a4f","#6b7f3a"];
       let h=0;
       const s=seed||"?";
       for(let i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))>>>0;
@@ -1246,7 +1253,7 @@
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
             speylog.com
           </a>
-          <p style={{fontSize:11,color:t.textMuted,margin:"10px 0 0",opacity:.5}}>v137</p>
+          <p style={{fontSize:11,color:t.textMuted,margin:"10px 0 0",opacity:.5}}>v138</p>
         </div>
       );
     }
@@ -2125,7 +2132,7 @@
           </div>
         )}
         <div style={{marginTop:30,textAlign:"center"}}>
-          <p style={{fontSize:11,color:t.textMuted,opacity:.5,margin:0}}>v137</p>
+          <p style={{fontSize:11,color:t.textMuted,opacity:.5,margin:0}}>v138</p>
         </div>
         </div>
 
@@ -2216,11 +2223,13 @@
         <span style={{opacity:.62,fontWeight:600,fontSize:11}}>{unit}</span>
       </span>;
     }
-    function TextChip({children,t,onPhoto}){
+    function TextChip({children,t,onPhoto,shrink}){
       const base=onPhoto
         ?{background:"rgba(10,18,15,.42)",border:"1px solid rgba(255,255,255,.16)",color:"#fff",backdropFilter:"blur(8px)"}
         :{background:t.chipBg,border:`1px solid ${t.chipBorder}`,color:t.chipText};
-      return <span style={{...base,display:"inline-flex",alignItems:"center",fontSize:12.5,fontWeight:600,padding:"4px 9px",borderRadius:8,whiteSpace:"nowrap",lineHeight:1.1}}>{children}</span>;
+      // shrink: brikken kan krympe og forkortes med … når raden blir for trang
+      const fit=shrink?{display:"block",minWidth:0,overflow:"hidden",textOverflow:"ellipsis"}:{display:"inline-flex",alignItems:"center"};
+      return <span style={{...base,...fit,fontSize:12.5,fontWeight:600,padding:"4px 9px",borderRadius:8,whiteSpace:"nowrap",lineHeight:1.1}}>{children}</span>;
     }
     function StatusTag({released,t,onPhoto,L}){
       const col=onPhoto?(released?"#aef4cd":"#ffc4b6"):(released?t.released:t.kept);
@@ -2296,11 +2305,11 @@
               </div>
             </div>
           </div>
-          <div style={{padding:"11px 13px 13px",display:"flex",alignItems:"center",gap:7,flexWrap:"wrap"}}>
+          <div style={{padding:"11px 13px 13px",display:"flex",alignItems:"center",gap:7,minWidth:0}}>
             {c.weight!=null&&<Metric value={c.weight} unit="kg" t={t}/>}
             {c.length!=null&&<Metric value={c.length} unit="cm" t={t}/>}
-            <TextChip t={t}>{flyLabel(c,lang)}</TextChip>
-            <span style={{marginLeft:"auto"}}><StatusTag released={c.released} t={t} L={L}/></span>
+            <TextChip t={t} shrink>{flyLabel(c,lang)}</TextChip>
+            <span style={{marginLeft:"auto",flexShrink:0}}><StatusTag released={c.released} t={t} L={L}/></span>
           </div>
         </div>);
       }
@@ -2322,11 +2331,11 @@
             </div>
           </div>
         </div>
-        <div style={{padding:"11px 13px 13px",display:"flex",alignItems:"center",gap:7,flexWrap:"wrap"}}>
+        <div style={{padding:"11px 13px 13px",display:"flex",alignItems:"center",gap:7,minWidth:0}}>
           {c.weight!=null&&<Metric value={c.weight} unit="kg" t={t}/>}
           {c.length!=null&&<Metric value={c.length} unit="cm" t={t}/>}
-          <TextChip t={t}>{flyLabel(c,lang)}</TextChip>
-          <span style={{marginLeft:"auto"}}><StatusTag released={c.released} t={t} L={L}/></span>
+          <TextChip t={t} shrink>{flyLabel(c,lang)}</TextChip>
+          <span style={{marginLeft:"auto",flexShrink:0}}><StatusTag released={c.released} t={t} L={L}/></span>
         </div>
       </div>);
     }
@@ -3639,10 +3648,22 @@
       };
 
       const valid=form.river&&form.date&&form.species&&(form.visibility!=="groups"||(form.selectedGroupIds&&form.selectedGroupIds.length>0));
-      const submit=async()=>{setSaving(true);await onSave(form,newPhotoFiles);setSaving(false);};
+      // Lagre-knappen er alltid trykkbar: mangler noe, sier skjemaet hva, i stedet for en grå knapp uten forklaring.
+      const[tried,setTried]=useState(false);
+      const missingMsg=!form.river?L("form_missing_river"):(form.visibility==="groups"&&!(form.selectedGroupIds&&form.selectedGroupIds.length>0))?L("form_missing_group"):L("form_missing");
+      const submit=async()=>{
+        if(!valid){setTried(true);if(!form.river&&!desktop)window.scrollTo({top:0,behavior:"smooth"});return;}
+        setSaving(true);await onSave(form,newPhotoFiles);setSaving(false);
+      };
+      // Krysset spør først hvis noe er fylt inn eller endret siden skjemaet ble åpnet.
+      const startRef=useRef(null);
+      if(startRef.current===null)startRef.current=JSON.stringify(form);
+      const dirty=JSON.stringify(form)!==startRef.current||newPhotoFiles.length>0;
+      const[confirmDiscard,setConfirmDiscard]=useState(false);
+      const cancel=()=>{if(dirty&&!saving)setConfirmDiscard(true);else onCancel();};
 
       return(<div className="safe-top safe-bottom" style={S.page}>
-        <div style={S.topBar}><button style={S.backBtn} onClick={onCancel} aria-label={L("a11y_close")}>{I.xLarge()}</button></div>
+        <div style={S.topBar}><button style={S.backBtn} onClick={cancel} aria-label={L("a11y_close")}>{I.xLarge()}</button></div>
         <h2 style={{fontFamily:t.titleFont,fontSize:24,fontWeight:700,color:t.text,margin:"0 0 14px"}}>{isEdit?L("form_edit"):L("form_new")}</h2>
 
         <div style={{marginBottom:10}}>
@@ -3658,11 +3679,11 @@
           <input ref={fileRef} type="file" accept="image/*" multiple style={{display:"none"}} onChange={handlePhotos}/>
         </div>
 
-        <Lbl t={L("form_river_label")} th={t}/><RiverInput value={form.river} onChange={v=>set("river",v)} allRivers={allRivers} placeholder={L("form_river_placeholder")} addLabel={L("form_add_river")} S={S} t={t}/>
+        <Lbl t={L("form_river_label")} th={t}/><div style={tried&&!form.river?{borderRadius:12,boxShadow:`0 0 0 2px ${t.danger}`}:null}><RiverInput value={form.river} onChange={v=>set("river",v)} allRivers={allRivers} placeholder={L("form_river_placeholder")} addLabel={L("form_add_river")} S={S} t={t}/></div>
         <Lbl t={L("form_beat_label")} th={t}/><input style={S.inp} placeholder={L("form_beat_placeholder")} value={form.beat||""} onChange={e=>set("beat",e.target.value)}/>
         <div style={{display:"grid",gridTemplateColumns:"3fr 2fr",gap:8}}><div><Lbl t={L("form_date")} th={t}/><DateTimeInput type="date" value={form.date} onChange={v=>set("date",v)} lang={lang} S={S} t={t}/></div><div><Lbl t={L("form_time")} th={t}/><DateTimeInput type="time" value={form.time||""} onChange={v=>set("time",v)} lang={lang} S={S} t={t}/></div></div>
         <div style={{height:1,background:t.cardBorder,margin:"12px 0"}}/>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}><div><Lbl t={L("form_length")} th={t}/><NumInput placeholder="70" value={form.length} onChange={handleLength} S={S}/></div><div><Lbl t={L("form_weight")} th={t}/><NumInput placeholder="3,3" value={form.weight} onChange={handleWeight} S={S}/></div></div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}><div><Lbl t={L("form_length")} th={t}/><NumInput placeholder={(lang==="en"?"e.g. ":"f.eks. ")+"70"} value={form.length} onChange={handleLength} S={S}/></div><div><Lbl t={L("form_weight")} th={t}/><NumInput placeholder={(lang==="en"?"e.g. ":"f.eks. ")+"3,3"} value={form.weight} onChange={handleWeight} S={S}/></div></div>
         {estimatedWt&&!weightManual&&<p style={{fontSize:13,color:t.textSec,margin:"4px 0 0",fontStyle:"italic"}}>{L("form_estimated_weight")} {estimatedWt} kg</p>}
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
           <div><Lbl t={L("form_species")} th={t}/><select style={S.inp} value={form.species} onChange={e=>set("species",e.target.value)}>{SPECIES.map((s,i)=><option key={s} value={s}>{L("species_options")[i]||s}</option>)}</select></div>
@@ -3744,10 +3765,19 @@
         <ConditionsSection value={form.conditions} onChange={v=>set("conditions",v)} L={L} t={t} river={form.river} date={form.date} time={form.time}/>
 
         <Lbl t={L("form_note")} th={t}/><textarea style={{...S.inp,minHeight:70,resize:"vertical"}} placeholder={L("form_note_placeholder")} value={form.description||""} onChange={e=>set("description",e.target.value)}/>
-        <button style={{...S.btnPriFull,opacity:(valid&&!saving)?1:.45,marginTop:20}} disabled={!valid||saving} onClick={submit}>
+        {tried&&!valid&&<p role="alert" style={{color:t.danger,fontSize:14,fontWeight:500,margin:"16px 0 -8px",textAlign:"center"}}>{missingMsg}</p>}
+        <button style={{...S.btnPriFull,opacity:saving?.45:1,marginTop:20}} disabled={saving} onClick={submit}>
           {saving?L("form_saving"):(isEdit?L("form_save_edit"):L("form_save"))}
         </button>
         <div style={{height:30}}/>
+        {confirmDiscard&&<div style={S.overlay}><div style={S.modal}>
+          <p style={{fontSize:17,fontWeight:600,margin:"0 0 6px",color:t.text}}>{L("form_discard_title")}</p>
+          <p style={{fontSize:14,color:t.textMuted,margin:"0 0 20px"}}>{L("form_discard_text")}</p>
+          <div style={{display:"flex",gap:10}}>
+            <button style={{...S.btnSec,flex:1}} onClick={()=>setConfirmDiscard(false)}>{L("form_discard_keep")}</button>
+            <button style={{...S.btnDng,flex:1}} onClick={onCancel}>{L("form_discard_yes")}</button>
+          </div>
+        </div></div>}
       </div>);
     }
 
