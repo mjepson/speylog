@@ -16,14 +16,18 @@ enum Shell {
     }
 }
 
-struct WebShell: UIViewRepresentable {
-    /// Settes etter nettappens tema, så statuslinjen og tastaturet følger det (se SpeylogApp).
-    @Binding var dark: Bool
+/// Sier fra når webviewen har fått et vindu, så utseendet kan settes før første tegning.
+final class ShellWebView: WKWebView {
+    var onMoveToWindow: (() -> Void)?
 
-    func makeCoordinator() -> Coordinator {
-        let dark = $dark
-        return Coordinator { dark.wrappedValue = $0 }
+    override func didMoveToWindow() {
+        super.didMoveToWindow()
+        onMoveToWindow?()
     }
+}
+
+struct WebShell: UIViewRepresentable {
+    func makeCoordinator() -> Coordinator { Coordinator() }
 
     func makeUIView(context: Context) -> WKWebView {
         let config = WKWebViewConfiguration()
@@ -37,8 +41,12 @@ struct WebShell: UIViewRepresentable {
         let mark = WKUserScript(source: "document.documentElement.classList.add('native-ios')",
                                 injectionTime: .atDocumentStart, forMainFrameOnly: true)
         config.userContentController.addUserScript(mark)
+        // Nettappen melder temavalget sitt («dark», «daylight» eller «system»), se Coordinator.
+        config.userContentController.add(context.coordinator, name: Coordinator.themeMessage)
 
-        let web = WKWebView(frame: .zero, configuration: config)
+        let web = ShellWebView(frame: .zero, configuration: config)
+        context.coordinator.web = web
+        web.onMoveToWindow = { [weak coordinator = context.coordinator] in coordinator?.applyAppearance() }
         web.navigationDelegate = context.coordinator
         web.uiDelegate = context.coordinator
         web.scrollView.contentInsetAdjustmentBehavior = .never // siden håndterer trygge soner selv
@@ -56,24 +64,41 @@ struct WebShell: UIViewRepresentable {
 
     func updateUIView(_ web: WKWebView, context: Context) {}
 
-    final class Coordinator: NSObject, WKNavigationDelegate, WKUIDelegate {
+    final class Coordinator: NSObject, WKNavigationDelegate, WKUIDelegate, WKScriptMessageHandler {
         /// Bakgrunnen i nettappens lyse tema, som er standard. Vises til siden har meldt sin egen farge.
         static let background = UIColor(red: 0.965, green: 0.976, blue: 0.957, alpha: 1) // #f6f9f4
+        static let themeMessage = "speylogTheme"
 
+        weak var web: WKWebView?
         private var themeObservation: NSKeyValueObservation?
-        private let setDark: (Bool) -> Void
 
-        init(setDark: @escaping (Bool) -> Void) {
-            self.setDark = setDark
+        // Husket mellom oppstarter, så statuslinjen er riktig før siden har meldt fra.
+        // Uten lagret verdi: lyst og ikke «system», som er nettappens standard.
+        private var dark = UserDefaults.standard.bool(forKey: "themeDark")
+        private var followSystem = UserDefaults.standard.bool(forKey: "themeFollowSystem")
+
+        /// Lyst eller mørkt for klokken, tastaturet og det siden ser som telefonens innstilling.
+        /// Med et fast tema i nettappen tvinges vinduet til det temaet. Med «system» slippes
+        /// telefonens innstilling gjennom, ellers ville siden bare sett det skallet selv har satt.
+        func applyAppearance() {
+            web?.window?.overrideUserInterfaceStyle = followSystem ? .unspecified : (dark ? .dark : .light)
+        }
+
+        func userContentController(_ controller: WKUserContentController, didReceive message: WKScriptMessage) {
+            guard message.name == Self.themeMessage, message.frameInfo.isMainFrame,
+                  let choice = message.body as? String else { return }
+            followSystem = choice == "system"
+            UserDefaults.standard.set(followSystem, forKey: "themeFollowSystem")
+            applyAppearance()
         }
 
         func load(in web: WKWebView) {
             web.load(URLRequest(url: Shell.url))
         }
 
-        /// Speylog har eget temavalg (lyst og mørkt) uavhengig av telefonens, og skriver temaets
-        /// bakgrunnsfarge til <meta name="theme-color">. Skallet følger den, så klokken, tastaturet og
-        /// bakgrunnen bak siden passer til temaet.
+        /// Speylog har eget temavalg (lyst, mørkt eller «system») og skriver temaets bakgrunnsfarge
+        /// til <meta name="theme-color">. Skallet følger den, så klokken, tastaturet og bakgrunnen
+        /// bak siden passer til temaet.
         func followTheme(of web: WKWebView) {
             themeObservation = web.observe(\.themeColor, options: [.new]) { [weak self] web, _ in
                 DispatchQueue.main.async {
@@ -82,7 +107,9 @@ struct WebShell: UIViewRepresentable {
                     guard color.getRed(&r, green: &g, blue: &b, alpha: nil) else { return }
                     web.backgroundColor = color
                     web.scrollView.backgroundColor = color
-                    self.setDark((0.299 * r + 0.587 * g + 0.114 * b) < 0.5)
+                    self.dark = (0.299 * r + 0.587 * g + 0.114 * b) < 0.5
+                    UserDefaults.standard.set(self.dark, forKey: "themeDark")
+                    self.applyAppearance()
                 }
             }
         }

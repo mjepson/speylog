@@ -18,7 +18,7 @@
     // så siden ikke blinker i feil farge mens appen starter. React tar over når den er oppe.
     (function(){
       var dark=false;
-      try{dark=JSON.parse(localStorage.getItem('fl_theme'))==='dark';}catch(e){}
+      try{var s=JSON.parse(localStorage.getItem('fl_theme'));dark=s==='dark'||(s==='system'&&!!window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches);}catch(e){}
       var c=dark?'#0a1310':'#f6f9f4';
       document.documentElement.style.setProperty('--boot-bg',c);
       var m=document.querySelector('meta[name="theme-color"]');
@@ -526,6 +526,8 @@
       profile_default_visibility:{nb:"Standard synlighet for nye fangster",en:"Default visibility for new catches"},
       profile_default_visibility_desc:{nb:"Du kan alltid overstyre på hver enkelt fangst.",en:"You can always override on each individual catch."},
       profile_theme:{nb:"Tema",en:"Theme"},
+      theme_system:{nb:"System",en:"System"},
+      theme_system_hint:{nb:"Følger enhetens innstilling for lyst og mørkt.",en:"Follows your device's light and dark setting."},
       profile_language:{nb:"Språk",en:"Language"},
       profile_start_view:{nb:"Startside",en:"Start page"},
       profile_start_view_desc:{nb:"Hvilken side appen åpner på.",en:"Which page the app opens on."},
@@ -1150,7 +1152,10 @@
     function App(){
       const[session,setSession]=useState(null);
       const[loading,setLoading]=useState(true);
-      const[themeKey,setThemeKey]=useState(()=>{const s=lsGet("fl_theme");return THEMES[s]?s:"daylight";});
+      // Temavalget: "dark", "daylight" eller "system" (følger enhetens innstilling for lyst og mørkt).
+      const[themePref,setThemePref]=useState(()=>{const s=lsGet("fl_theme");return (THEMES[s]||s==="system")?s:"daylight";});
+      const[sysDark,setSysDark]=useState(()=>{try{return window.matchMedia("(prefers-color-scheme: dark)").matches;}catch(e){return false;}});
+      const themeKey=themePref==="system"?(sysDark?"dark":"daylight"):themePref;
       const[lang,setLang]=useState(detectLang());
       const t=THEMES[themeKey]||THEMES.daylight;
       const S=makeStyles(t);
@@ -1189,6 +1194,21 @@
       },[themeKey]);
 
       useEffect(()=>{
+        let mq;
+        try{mq=window.matchMedia("(prefers-color-scheme: dark)");}catch(e){return;}
+        const on=()=>setSysDark(mq.matches);
+        on();
+        if(mq.addEventListener)mq.addEventListener("change",on);else if(mq.addListener)mq.addListener(on);
+        return()=>{if(mq.removeEventListener)mq.removeEventListener("change",on);else if(mq.removeListener)mq.removeListener(on);};
+      },[]);
+
+      // iOS-skallet tvinger ellers appen til lyst eller mørkt etter temaet. Det må vite når valget er
+      // «system», så telefonens innstilling slipper gjennom til siden.
+      useEffect(()=>{
+        try{const h=window.webkit&&window.webkit.messageHandlers&&window.webkit.messageHandlers.speylogTheme;if(h)h.postMessage(themePref);}catch(e){}
+      },[themePref]);
+
+      useEffect(()=>{
         document.documentElement.lang=lang==="en"?"en":"no";
       },[lang]);
 
@@ -1207,12 +1227,12 @@
         return()=>listener.subscription.unsubscribe();
       },[]);
 
-      const switchTheme=(k)=>{setThemeKey(k);lsSet("fl_theme",k);};
+      const switchTheme=(k)=>{setThemePref(k);lsSet("fl_theme",k);};
       const switchLang=(l)=>{setLang(l);lsSet("fl_lang",l);};
 
       if(loading)return <div style={S.center}><div className="spinner"/></div>;
       if(!session)return <AuthView S={S} t={t} L={L} lang={lang}/>;
-      return <MainApp session={session} S={S} t={t} L={L} lang={lang} themeKey={themeKey} switchTheme={switchTheme} switchLang={switchLang}/>;
+      return <MainApp session={session} S={S} t={t} L={L} lang={lang} themePref={themePref} switchTheme={switchTheme} switchLang={switchLang}/>;
     }
 
     // ══════════════════════════════════════
@@ -1320,7 +1340,7 @@
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
             speylog.com
           </a>
-          <p style={{fontSize:11,color:t.textMuted,margin:"10px 0 0",opacity:.5}}>v141</p>
+          <p style={{fontSize:11,color:t.textMuted,margin:"10px 0 0",opacity:.5}}>v142</p>
         </div>
       );
     }
@@ -1331,7 +1351,7 @@
     // Visninger der bunnmenyen på mobil er synlig. Detaljer og skjema har egne knapper nederst.
     const NAV_VIEWS=["list","rivers","leaderboard","stats","profile","userProfile"];
 
-    function MainApp({session,S,t,L,lang,themeKey,switchTheme,switchLang}){
+    function MainApp({session,S,t,L,lang,themePref,switchTheme,switchLang}){
       const[catches,setCatches]=useState([]);
       const[publicFeed,setPublicFeed]=useState([]);
       const[profile,setProfile]=useState(null);
@@ -1874,7 +1894,7 @@
                 {view==="stats"&&<StatsView desktop L={L} lang={lang} catches={catches} fp={fp} S={S} t={t} onBack={()=>setView("profile")}/>}
                 {view==="rivers"&&<RiversView desktop L={L} lang={lang} catches={catches} session={session} profile={profile} S={S} t={t} onBack={()=>setView("list")} onAdd={()=>setView("add")} onProfile={()=>setView("profile")}/>}
                 {view==="leaderboard"&&<LeaderboardView L={L} lang={lang} catches={catches} publicFeed={publicFeed} session={session} profile={profile} myGroups={myGroups} groupMembersByGroup={groupMembersByGroup} following={following} S={S} t={t} onBack={()=>setView("list")} onSelect={c=>{setSelected(c);setView("detail")}} onViewUser={openUser}/>}
-                {view==="profile"&&<ProfileView L={L} lang={lang} switchLang={switchLang} session={session} profile={profile} catches={catches} myGroups={myGroups} onGroupsChange={loadMyGroups} following={following} blocked={blocked} onUnblock={unblockUser} onStats={()=>setView("stats")} onViewUser={openUser} S={S} t={t} themeKey={themeKey} switchTheme={switchTheme} onBack={()=>setView("list")} onUpdate={(p)=>setProfile(p)} onSignOut={signOut}/>}
+                {view==="profile"&&<ProfileView L={L} lang={lang} switchLang={switchLang} session={session} profile={profile} catches={catches} myGroups={myGroups} onGroupsChange={loadMyGroups} following={following} blocked={blocked} onUnblock={unblockUser} onStats={()=>setView("stats")} onViewUser={openUser} S={S} t={t} themePref={themePref} switchTheme={switchTheme} onBack={()=>setView("list")} onUpdate={(p)=>setProfile(p)} onSignOut={signOut}/>}
                 {view==="userProfile"&&viewUserId&&<UserProfileView L={L} lang={lang} userId={viewUserId} publicFeed={publicFeed} isFollowing={isFollowing(viewUserId)} onFollow={()=>followUser(viewUserId)} onUnfollow={()=>unfollowUser(viewUserId)} onBlocked={afterBlock} S={S} t={t} onBack={()=>setView("list")} onSelect={c=>{setSelected(c);setView("detail")}} onExpandPhotos={(c,startIdx)=>setLightbox({photos:c.photos,index:startIdx||0})}/>}
               </div>
             </main>
@@ -1919,7 +1939,7 @@
           {view==="stats"&&<StatsView L={L} lang={lang} catches={catches} fp={fp} S={S} t={t} onBack={()=>setView("profile")}/>}
           {view==="rivers"&&<RiversView nav L={L} lang={lang} catches={catches} session={session} profile={profile} S={S} t={t} onBack={()=>setView("list")} onAdd={()=>setView("add")} onProfile={()=>setView("profile")}/>}
           {view==="leaderboard"&&<LeaderboardView nav L={L} lang={lang} catches={catches} publicFeed={publicFeed} session={session} profile={profile} myGroups={myGroups} groupMembersByGroup={groupMembersByGroup} following={following} S={S} t={t} onBack={()=>setView("list")} onSelect={c=>{setSelected(c);setView("detail")}} onViewUser={(uid)=>{if(uid&&uid!==session.user.id){setViewUserId(uid);setView("userProfile");}}}/>}
-          {view==="profile"&&<ProfileView L={L} lang={lang} switchLang={switchLang} session={session} profile={profile} catches={catches} myGroups={myGroups} onGroupsChange={loadMyGroups} following={following} blocked={blocked} onUnblock={unblockUser} onStats={()=>setView("stats")} onViewUser={(uid)=>{if(uid&&uid!==session.user.id){setViewUserId(uid);setView("userProfile");}}} S={S} t={t} themeKey={themeKey} switchTheme={switchTheme} onBack={()=>setView("list")} onUpdate={(p)=>setProfile(p)} onSignOut={signOut}/>}
+          {view==="profile"&&<ProfileView L={L} lang={lang} switchLang={switchLang} session={session} profile={profile} catches={catches} myGroups={myGroups} onGroupsChange={loadMyGroups} following={following} blocked={blocked} onUnblock={unblockUser} onStats={()=>setView("stats")} onViewUser={(uid)=>{if(uid&&uid!==session.user.id){setViewUserId(uid);setView("userProfile");}}} S={S} t={t} themePref={themePref} switchTheme={switchTheme} onBack={()=>setView("list")} onUpdate={(p)=>setProfile(p)} onSignOut={signOut}/>}
           {view==="userProfile"&&viewUserId&&<UserProfileView L={L} lang={lang} userId={viewUserId} publicFeed={publicFeed} isFollowing={isFollowing(viewUserId)} onFollow={()=>followUser(viewUserId)} onUnfollow={()=>unfollowUser(viewUserId)} onBlocked={afterBlock} S={S} t={t} onBack={()=>setView(tab==="mine"?"list":"list")} onSelect={c=>{setSelected(c);setView("detail")}} onExpandPhotos={(c,startIdx)=>setLightbox({photos:c.photos,index:startIdx||0})}/>}
           {view==="add"&&<FormView L={L} lang={lang} allRivers={allRivers} allFlies={allFlies} prefs={prefs} profile={profile} myGroups={myGroups} S={S} t={t} onSave={addCatch} onCancel={()=>setView("list")}/>}
           {view==="detail"&&selected&&<DetailView L={L} lang={lang} c={selected} session={session} profile={profile} myGroups={myGroups} catchGroupIds={catchGroupsMap[selected.id]||[]} isFollowing={isFollowing(selected.user_id)} onFollow={()=>followUser(selected.user_id)} onUnfollow={()=>unfollowUser(selected.user_id)} onBlocked={afterBlock} onViewUser={(uid)=>{if(uid&&uid!==session.user.id){setViewUserId(uid);setView("userProfile");}}} S={S} t={t} onBack={()=>setView("list")} onEdit={()=>{setEditing({...selected});setView("edit")}} onDelete={()=>setDelModal(selected.id)}/>}
@@ -2222,7 +2242,7 @@
           </div>
         )}
         <div style={{marginTop:30,textAlign:"center"}}>
-          <p style={{fontSize:11,color:t.textMuted,opacity:.5,margin:0}}>v141</p>
+          <p style={{fontSize:11,color:t.textMuted,opacity:.5,margin:0}}>v142</p>
         </div>
         </div>
 
@@ -2607,7 +2627,7 @@
     }
 
     // ── ProfileView ──
-    function ProfileView({L,lang,switchLang,session,profile,catches,myGroups,onGroupsChange,following,blocked,onUnblock,onViewUser,S,t,themeKey,switchTheme,onBack,onStats,onUpdate,onSignOut}){
+    function ProfileView({L,lang,switchLang,session,profile,catches,myGroups,onGroupsChange,following,blocked,onUnblock,onViewUser,S,t,themePref,switchTheme,onBack,onStats,onUpdate,onSignOut}){
       const swipeRef=useEdgeSwipeBack(onBack);
       const fileRef=useRef();
       const[displayName,setDisplayName]=useState(profile?.display_name||"");
@@ -2931,11 +2951,12 @@
 
         <div style={S.sec}>
           <p style={S.secT}>{L("profile_theme")}</p>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
-            {Object.entries(THEMES).map(([k,th])=>(
-              <button key={k} onClick={()=>switchTheme(k)} style={{padding:"10px 8px",borderRadius:10,border:k===themeKey?`2px solid ${t.primary}`:`1px solid ${t.inputBorder}`,background:k===themeKey?t.primaryLight:t.cardBg,fontSize:14,fontWeight:k===themeKey?600:500,color:k===themeKey?t.primary:t.textSec,fontFamily:t.font,cursor:"pointer"}}>{th.name[lang]||th.name.nb}</button>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
+            {[...Object.entries(THEMES).map(([k,th])=>[k,th.name[lang]||th.name.nb]),["system",L("theme_system")]].map(([k,label])=>(
+              <button key={k} onClick={()=>switchTheme(k)} style={{padding:"10px 8px",borderRadius:10,border:k===themePref?`2px solid ${t.primary}`:`1px solid ${t.inputBorder}`,background:k===themePref?t.primaryLight:t.cardBg,fontSize:14,fontWeight:k===themePref?600:500,color:k===themePref?t.primary:t.textSec,fontFamily:t.font,cursor:"pointer"}}>{label}</button>
             ))}
           </div>
+          {themePref==="system"&&<p style={{fontSize:12.5,color:t.textSec,margin:"8px 0 0"}}>{L("theme_system_hint")}</p>}
         </div>
 
         <div style={S.sec}>
