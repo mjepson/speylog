@@ -521,7 +521,9 @@ let state = {
   loading: true,
   session: null,
   denied: false,
-  tab: 'users', // 'users' | 'groups' | 'rivers'
+  tab: 'users', // 'users' | 'groups' | 'rivers' | 'reports'
+  reports: [],
+  reportBusy: null,
   users: [],
   groups: [],
   groupsByUser: {},
@@ -599,6 +601,12 @@ async function loadData() {
   // Elver/målestasjoner — inkluderer ventende forslag (verified=false)
   const { data: rivers } = await sb.from('river_stations').select('*');
   state.rivers = (rivers || []).sort((a, b) => a.river_name.localeCompare(b.river_name, 'nb'));
+
+  // Rapporter fra brukerne (RLS: bare admin kan lese). Nyeste først.
+  const { data: reports } = await sb.from('reports').select('*').order('created_at', { ascending: false });
+  state.reports = reports || [];
+  state.catchesById = {};
+  (catches || []).forEach(c => { state.catchesById[c.id] = c; });
 
   // Build memberships lookups
   const membersByGroup = {};
@@ -684,6 +692,8 @@ function render() {
     renderGroups();
   } else if (state.tab === 'rivers') {
     renderRivers();
+  } else if (state.tab === 'reports') {
+    renderReports();
   } else {
     renderList();
   }
@@ -706,12 +716,106 @@ function headerHTML(sub) {
 }
 function tabsHTML() {
   const pending = state.rivers.filter(r => !r.verified).length;
+  const openReports = state.reports.filter(r => r.status === 'open').length;
   const t = (id, label, extra = '') => `<button class="tab-btn ${state.tab === id ? 'active' : ''}" onclick="state.tab='${id}'; render();">${label}${extra}</button>`;
   return `<div class="tabs">
     ${t('users', 'Brukere')}
     ${t('groups', 'Grupper')}
     ${t('rivers', 'Elver', pending > 0 ? `<span class="badge-num">${pending}</span>` : '')}
+    ${t('reports', 'Rapporter', openReports > 0 ? `<span class="badge-num">${openReports}</span>` : '')}
   </div>`;
+}
+
+// ── Rapporter: innhold brukerne har meldt fra om ──
+// Tekst fra brukere (navn, notat, elv) settes alltid inn via escHTML.
+function escHTML(v) {
+  return String(v == null ? '' : v).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+}
+const REPORT_REASONS = {
+  inappropriate: 'Upassende bilde eller tekst',
+  harassment: 'Trakassering',
+  spam: 'Spam eller reklame',
+  other: 'Annet',
+};
+const REPORT_STATUS = {
+  dismissed: 'Avvist',
+  catch_deleted: 'Fangsten slettet',
+  user_banned: 'Brukeren stengt',
+};
+function fmtDateTime(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  return `${fmtDate(iso)} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+}
+async function dismissReport(id) {
+  state.reportBusy = id; render();
+  const { error } = await sb.from('reports').update({ status: 'dismissed', resolved_at: new Date().toISOString() }).eq('id', id);
+  state.reportBusy = null;
+  if (error) { alert('Feil: ' + error.message); render(); return; }
+  await loadData();
+  render();
+}
+async function moderate(reportId, body, question) {
+  if (!confirm(question)) return;
+  state.reportBusy = reportId; render();
+  const { data, error } = await sb.functions.invoke('moderate', { body });
+  state.reportBusy = null;
+  if (error || (data && data.error)) { alert('Feil: ' + ((data && data.error) || error.message)); render(); return; }
+  await loadData();
+  render();
+}
+function deleteReportedCatch(reportId) {
+  const r = state.reports.find(x => x.id === reportId);
+  if (!r || !r.catch_id) return;
+  moderate(reportId, { action: 'delete_catch', catch_id: r.catch_id }, 'Slette fangsten og bildene for godt? Dette kan ikke angres.');
+}
+function banReportedUser(reportId) {
+  const r = state.reports.find(x => x.id === reportId);
+  if (!r || !r.reported_user_id) return;
+  const u = state.users.find(x => x.id === r.reported_user_id);
+  moderate(reportId, { action: 'ban_user', user_id: r.reported_user_id },
+    `Stenge ${u ? u.name : 'brukeren'}? Brukeren kan ikke logge inn, og alle fangstene deres gjøres private.`);
+}
+function reportCardHTML(r) {
+  const c = r.catch_id ? state.catchesById[r.catch_id] : null;
+  const reported = state.users.find(u => u.id === r.reported_user_id);
+  const reporter = state.users.find(u => u.id === r.reporter_id);
+  const open = r.status === 'open';
+  const busy = state.reportBusy === r.id;
+  const who = escHTML(reported ? reported.name : 'slettet bruker');
+  const title = c ? `${escHTML(c.species)} · ${escHTML(c.river)} — ${who}`
+    : r.status === 'catch_deleted' ? `Slettet fangst — ${who}`
+    : `Profil: ${who}`;
+  const photos = c && Array.isArray(c.photos) ? c.photos.filter(p => /^https:\/\//.test(p)) : [];
+  return `
+    <div class="river-card">
+      <div class="top">
+        <div style="min-width: 0;">
+          <h3>${title}</h3>
+          <div class="meta">${escHTML(REPORT_REASONS[r.reason] || r.reason)} · rapportert av ${escHTML(reporter ? reporter.name : 'slettet bruker')} · ${fmtDateTime(r.created_at)}${open ? '' : ` · <strong>${escHTML(REPORT_STATUS[r.status] || r.status)}</strong> ${fmtDateTime(r.resolved_at)}`}</div>
+        </div>
+      </div>
+      ${r.note ? `<div class="hint hint-warn" style="white-space: pre-wrap;">${escHTML(r.note)}</div>` : ''}
+      ${c && c.description ? `<div class="meta" style="margin: 8px 0; white-space: pre-wrap;">Notat på fangsten: ${escHTML(c.description)}</div>` : ''}
+      ${photos.length ? `<div style="display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0;">${photos.map(p => `<a href="${escHTML(p)}" target="_blank" rel="noopener"><img src="${escHTML(p)}" alt="" style="width: 120px; height: 120px; object-fit: cover; border-radius: 10px; display: block;"></a>`).join('')}</div>` : ''}
+      ${open ? `<div class="btn-row" style="margin-top: 10px;">
+        <button class="btn btn-ok" ${busy ? 'disabled' : ''} onclick="dismissReport('${r.id}')">Avvis</button>
+        ${c ? `<button class="btn btn-danger" ${busy ? 'disabled' : ''} onclick="deleteReportedCatch('${r.id}')">Slett fangsten</button>` : ''}
+        ${reported ? `<button class="btn btn-danger" ${busy ? 'disabled' : ''} onclick="banReportedUser('${r.id}')">Steng brukeren</button>` : ''}
+      </div>` : ''}
+    </div>`;
+}
+function renderReports() {
+  const open = state.reports.filter(r => r.status === 'open');
+  const done = state.reports.filter(r => r.status !== 'open').slice(0, 30);
+  app.innerHTML = `
+    ${headerHTML('Admin · Rapporter')}
+    <div class="container fade-in">
+      ${tabsHTML()}
+      <h3 style="font-size: 14px; font-weight: 700; margin: 8px 0 12px; color: var(--text-sec);">Nye ${open.length > 0 ? `(${open.length})` : ''}</h3>
+      ${open.length === 0 ? `<div class="empty-state" style="padding: 20px;">Ingen nye rapporter</div>` : open.map(reportCardHTML).join('')}
+      ${done.length === 0 ? '' : `<h3 style="font-size: 14px; font-weight: 700; margin: 24px 0 12px; color: var(--text-sec);">Behandlet</h3>${done.map(reportCardHTML).join('')}`}
+    </div>`;
 }
 
 function renderList() {

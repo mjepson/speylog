@@ -80,6 +80,12 @@
     #spey-toast.on{transform:translate(-50%,0);opacity:1;pointer-events:auto}
     body.t-dark #spey-toast{background:#1c2e28;color:#e8f0ec;border-color:#2a4038;box-shadow:0 10px 30px rgba(0,0,0,.5)}
     .spey-tabbar svg{width:27px;height:27px;flex:none}
+    /* Ark for rapporter/blokker: nederst på mobil, midtstilt på desktop. */
+    .spey-sheet-wrap{position:fixed;inset:0;z-index:220;background:rgba(0,0,0,.45);display:flex;align-items:flex-end;justify-content:center;animation:speyFadeIn .18s ease}
+    .spey-sheet{width:100%;max-width:480px;max-height:92vh;overflow-y:auto;box-sizing:border-box;border-radius:22px 22px 0 0;padding:10px 16px calc(18px + env(safe-area-inset-bottom, 0px));box-shadow:0 -10px 40px rgba(0,0,0,.3);animation:speySheetIn .24s cubic-bezier(.32,.72,.3,1)}
+    .spey-sheet .grab{width:36px;height:4px;border-radius:4px;margin:0 auto 10px;opacity:.5}
+    @keyframes speySheetIn{from{transform:translateY(40%);opacity:0}to{transform:translateY(0);opacity:1}}
+    @media (min-width:1024px){.spey-sheet-wrap{align-items:center;padding:20px}.spey-sheet{max-width:400px;border-radius:18px;padding:16px 18px 18px}.spey-sheet .grab{display:none}}
     @media (max-width:350px){.spey-tabbar button{min-width:64px;padding:0 9px}}
     /* iOS 27 tegner en progressiv blur over toppkanten i standalone-webapper som bruker
        black-translucent. Den er UBETINGET: den reagerer ikke på scroll, og sticky/fixed chrome
@@ -526,6 +532,40 @@
       start_view_list:{nb:"Loggbok",en:"Logbook"},
       start_view_rivers:{nb:"Elver",en:"Rivers"},
       profile_logout:{nb:"Logg ut",en:"Log out"},
+      account_delete:{nb:"Slett konto",en:"Delete account"},
+      account_delete_title:{nb:"Slette kontoen for godt?",en:"Delete your account for good?"},
+      account_delete_text:{nb:"Alle fangstene og bildene dine slettes, og du fjernes fra gruppene dine. Dette kan ikke angres.",en:"All your catches and photos are deleted, and you are removed from your groups. This cannot be undone."},
+      account_delete_yes:{nb:"Slett kontoen",en:"Delete account"},
+      account_deleting:{nb:"Sletter…",en:"Deleting…"},
+      account_deleted:{nb:"Kontoen er slettet.",en:"Your account has been deleted."},
+      account_delete_failed:{nb:"Kunne ikke slette kontoen. Prøv igjen.",en:"Could not delete the account. Try again."},
+      blocked_title:{nb:"Blokkerte brukere",en:"Blocked users"},
+      blocked_unblock:{nb:"Opphev",en:"Unblock"},
+      mod_more:{nb:"Flere valg",en:"More options"},
+      mod_this_user:{nb:"brukeren",en:"this user"},
+      mod_report_catch:{nb:"Rapporter fangsten",en:"Report this catch"},
+      mod_report_user:{nb:"Rapporter brukeren",en:"Report this user"},
+      mod_block:{nb:(n)=>`Blokker ${n}`,en:(n)=>`Block ${n}`},
+      mod_block_title:{nb:(n)=>`Blokkere ${n}?`,en:(n)=>`Block ${n}?`},
+      mod_block_text:{nb:"Du ser ikke lenger fangstene deres, og dere slutter å følge hverandre. De får ikke beskjed.",en:"You will no longer see their catches, and you stop following each other. They are not notified."},
+      mod_block_yes:{nb:"Blokker",en:"Block"},
+      mod_blocked_toast:{nb:"Brukeren er blokkert. Du kan oppheve det i Profil.",en:"User blocked. You can undo this in Profile."},
+      mod_block_failed:{nb:"Kunne ikke blokkere. Prøv igjen.",en:"Could not block. Try again."},
+      mod_reason_inappropriate:{nb:"Upassende bilde eller tekst",en:"Inappropriate photo or text"},
+      mod_reason_harassment:{nb:"Trakassering",en:"Harassment"},
+      mod_reason_spam:{nb:"Spam eller reklame",en:"Spam or advertising"},
+      mod_reason_other:{nb:"Annet",en:"Other"},
+      mod_note_placeholder:{nb:"Vil du legge til noe? (valgfritt)",en:"Anything to add? (optional)"},
+      mod_send_report:{nb:"Send rapport",en:"Send report"},
+      mod_sending:{nb:"Sender…",en:"Sending…"},
+      mod_report_failed:{nb:"Kunne ikke sende rapporten. Prøv igjen.",en:"Could not send the report. Try again."},
+      mod_thanks_title:{nb:"Takk for rapporten",en:"Thanks for the report"},
+      mod_thanks_text:{nb:"Vi ser på det innen 24 timer.",en:"We will look at it within 24 hours."},
+      mod_done:{nb:"Ferdig",en:"Done"},
+      auth_terms_pre:{nb:"Ved å fortsette godtar du",en:"By continuing you accept the"},
+      auth_terms:{nb:"vilkårene",en:"terms"},
+      auth_terms_and:{nb:"og",en:"and the"},
+      auth_privacy:{nb:"personvernerklæringen",en:"privacy policy"},
       profile_name_saved:{nb:"Navn lagret",en:"Name saved"},
       profile_photo_updated:{nb:"Bilde oppdatert",en:"Photo updated"},
       // Groups
@@ -700,6 +740,9 @@
       rel:(r)=>r?<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>:<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
       search:()=><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>,
       x:()=><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
+      more:()=><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.9"/><circle cx="12" cy="12" r="1.9"/><circle cx="19" cy="12" r="1.9"/></svg>,
+      flag:()=><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 21V4"/><path d="M5 4.5c4-2 6 2 10 0 1.3-.6 2.5-.7 4-.3v10c-1.5-.4-2.7-.3-4 .3-4 2-6-2-10 0"/></svg>,
+      block:()=><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><line x1="5.6" y1="5.6" x2="18.4" y2="18.4"/></svg>,
       xLarge:()=><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
       palette:()=><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="8" r="1.5" fill="currentColor"/><circle cx="8" cy="12" r="1.5" fill="currentColor"/><circle cx="15.5" cy="10.5" r="1.5" fill="currentColor"/><circle cx="9" cy="15.5" r="1.5" fill="currentColor"/></svg>,
       imgPlus:()=><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/><line x1="14" y1="4" x2="14" y2="10"/><line x1="11" y1="7" x2="17" y2="7"/></svg>,
@@ -1269,12 +1312,15 @@
             <button style={{...S.btnPriFull,opacity:busy?.6:1}} disabled={busy||!email} onClick={sendCode}>
               {busy?L("auth_sending"):L("auth_send_code")}
             </button>
+            <p style={{fontSize:12,color:t.textMuted,margin:"12px 0 0",textAlign:"center",lineHeight:1.45}}>
+              {L("auth_terms_pre")} <a href={lang==="en"?"https://speylog.com/en/terms.html":"https://speylog.com/vilkar.html"} target="_blank" rel="noopener" style={{color:t.primary,fontWeight:500,textDecoration:"none"}}>{L("auth_terms")}</a> {L("auth_terms_and")} <a href={lang==="en"?"https://speylog.com/en/privacy.html":"https://speylog.com/personvern.html"} target="_blank" rel="noopener" style={{color:t.primary,fontWeight:500,textDecoration:"none"}}>{L("auth_privacy")}</a>.
+            </p>
           </div>
           <a href="https://speylog.com" style={{marginTop:24,fontSize:13,color:t.textMuted,textDecoration:"none",display:"inline-flex",alignItems:"center",gap:6}}>
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
             speylog.com
           </a>
-          <p style={{fontSize:11,color:t.textMuted,margin:"10px 0 0",opacity:.5}}>v140</p>
+          <p style={{fontSize:11,color:t.textMuted,margin:"10px 0 0",opacity:.5}}>v141</p>
         </div>
       );
     }
@@ -1295,6 +1341,7 @@
       // catchGroupsMap: { catch_id: [group_id, ...] } — hvilke grupper hver fangst er delt med
       const[catchGroupsMap,setCatchGroupsMap]=useState({});
       const[following,setFollowing]=useState([]); // array av profil-objekter jeg følger
+      const[blocked,setBlocked]=useState([]); // array av profil-objekter jeg har blokkert
       const[viewUserId,setViewUserId]=useState(null); // hvilken brukerprofil som vises i userProfile-view
       const[nameSkipped,setNameSkipped]=useState(false); // brukeren valgte å hoppe over navnesteget denne økten
       const[customRivers,setCustomRivers]=useState(lsGet("fl_rivers")||[]);
@@ -1383,6 +1430,7 @@
           await loadMyGroups();
           console.log("[DEBUG] Loading following...");
           await loadFollowing();
+          await loadBlocked();
           console.log("[DEBUG] loadCatches: complete");
         }catch(err){
           console.error("[DEBUG] loadCatches CRASHED:",err);
@@ -1445,6 +1493,27 @@
       };
 
       const isFollowing=(userId)=>following.some(p=>p.id===userId);
+
+      // ── Blokkering ──
+      // Databasen holder selv fangstene til blokkerte brukere unna (RLS), så etter en endring
+      // er det nok å laste fangstene på nytt.
+      const loadBlocked=async()=>{
+        const {data:rows,error}=await sb.from("blocks").select("blocked_id").eq("blocker_id",session.user.id);
+        if(error){console.error("[DEBUG] blocks load error:",error);setBlocked([]);return;}
+        const ids=(rows||[]).map(r=>r.blocked_id);
+        if(ids.length===0){setBlocked([]);return;}
+        const {data:profs}=await sb.from("profiles").select("id, display_name, username, avatar_url").in("id",ids);
+        setBlocked((profs||[]).sort((a,b)=>(a.display_name||a.username||"").localeCompare(b.display_name||b.username||"","nb")));
+      };
+      const afterBlock=async()=>{
+        setSelected(null);setViewUserId(null);setView("list");
+        await loadCatches();
+      };
+      const unblockUser=async(userId)=>{
+        const {error}=await sb.from("blocks").delete().eq("blocker_id",session.user.id).eq("blocked_id",userId);
+        if(error){console.error("unblock failed",error);speyToast(L("error_prefix")+" "+error.message);return;}
+        await loadCatches();
+      };
 
       // Hvis feedFilter peker på noe som ikke lenger finnes (f.eks. 'following'
       // etter at man har sluttet å følge alle, eller en gruppe man har forlatt),
@@ -1805,15 +1874,15 @@
                 {view==="stats"&&<StatsView desktop L={L} lang={lang} catches={catches} fp={fp} S={S} t={t} onBack={()=>setView("profile")}/>}
                 {view==="rivers"&&<RiversView desktop L={L} lang={lang} catches={catches} session={session} profile={profile} S={S} t={t} onBack={()=>setView("list")} onAdd={()=>setView("add")} onProfile={()=>setView("profile")}/>}
                 {view==="leaderboard"&&<LeaderboardView L={L} lang={lang} catches={catches} publicFeed={publicFeed} session={session} profile={profile} myGroups={myGroups} groupMembersByGroup={groupMembersByGroup} following={following} S={S} t={t} onBack={()=>setView("list")} onSelect={c=>{setSelected(c);setView("detail")}} onViewUser={openUser}/>}
-                {view==="profile"&&<ProfileView L={L} lang={lang} switchLang={switchLang} session={session} profile={profile} catches={catches} myGroups={myGroups} onGroupsChange={loadMyGroups} following={following} onStats={()=>setView("stats")} onViewUser={openUser} S={S} t={t} themeKey={themeKey} switchTheme={switchTheme} onBack={()=>setView("list")} onUpdate={(p)=>setProfile(p)} onSignOut={signOut}/>}
-                {view==="userProfile"&&viewUserId&&<UserProfileView L={L} lang={lang} userId={viewUserId} publicFeed={publicFeed} isFollowing={isFollowing(viewUserId)} onFollow={()=>followUser(viewUserId)} onUnfollow={()=>unfollowUser(viewUserId)} S={S} t={t} onBack={()=>setView("list")} onSelect={c=>{setSelected(c);setView("detail")}} onExpandPhotos={(c,startIdx)=>setLightbox({photos:c.photos,index:startIdx||0})}/>}
+                {view==="profile"&&<ProfileView L={L} lang={lang} switchLang={switchLang} session={session} profile={profile} catches={catches} myGroups={myGroups} onGroupsChange={loadMyGroups} following={following} blocked={blocked} onUnblock={unblockUser} onStats={()=>setView("stats")} onViewUser={openUser} S={S} t={t} themeKey={themeKey} switchTheme={switchTheme} onBack={()=>setView("list")} onUpdate={(p)=>setProfile(p)} onSignOut={signOut}/>}
+                {view==="userProfile"&&viewUserId&&<UserProfileView L={L} lang={lang} userId={viewUserId} publicFeed={publicFeed} isFollowing={isFollowing(viewUserId)} onFollow={()=>followUser(viewUserId)} onUnfollow={()=>unfollowUser(viewUserId)} onBlocked={afterBlock} S={S} t={t} onBack={()=>setView("list")} onSelect={c=>{setSelected(c);setView("detail")}} onExpandPhotos={(c,startIdx)=>setLightbox({photos:c.photos,index:startIdx||0})}/>}
               </div>
             </main>
 
             {detailOpen&&<>
               <div onClick={closeDeskDetail} style={{position:"fixed",inset:0,background:"rgba(0,0,0,.45)",zIndex:90,animation:"speyFadeIn .2s ease"}}/>
               <aside ref={detailColRef} role="dialog" aria-modal="true" aria-label={catchTitle(selected,lang)} className="spey-col" style={{...drawerStyle,width:580,animation:"speyDrawerIn .28s cubic-bezier(.32,.72,.3,1)"}}>
-                <DetailView key={selected.id} desktop onPrev={deskPrev?()=>setSelected(deskPrev):null} onNext={deskNext?()=>setSelected(deskNext):null} L={L} lang={lang} c={selected} session={session} profile={profile} myGroups={myGroups} catchGroupIds={catchGroupsMap[selected.id]||[]} isFollowing={isFollowing(selected.user_id)} onFollow={()=>followUser(selected.user_id)} onUnfollow={()=>unfollowUser(selected.user_id)} onViewUser={openUser} S={S} t={t} onBack={closeDeskDetail} onEdit={()=>{setEditing({...selected});setView("edit")}} onDelete={()=>setDelModal(selected.id)}/>
+                <DetailView key={selected.id} desktop onPrev={deskPrev?()=>setSelected(deskPrev):null} onNext={deskNext?()=>setSelected(deskNext):null} L={L} lang={lang} c={selected} session={session} profile={profile} myGroups={myGroups} catchGroupIds={catchGroupsMap[selected.id]||[]} isFollowing={isFollowing(selected.user_id)} onFollow={()=>followUser(selected.user_id)} onUnfollow={()=>unfollowUser(selected.user_id)} onBlocked={afterBlock} onViewUser={openUser} S={S} t={t} onBack={closeDeskDetail} onEdit={()=>{setEditing({...selected});setView("edit")}} onDelete={()=>setDelModal(selected.id)}/>
               </aside>
             </>}
 
@@ -1850,10 +1919,10 @@
           {view==="stats"&&<StatsView L={L} lang={lang} catches={catches} fp={fp} S={S} t={t} onBack={()=>setView("profile")}/>}
           {view==="rivers"&&<RiversView nav L={L} lang={lang} catches={catches} session={session} profile={profile} S={S} t={t} onBack={()=>setView("list")} onAdd={()=>setView("add")} onProfile={()=>setView("profile")}/>}
           {view==="leaderboard"&&<LeaderboardView nav L={L} lang={lang} catches={catches} publicFeed={publicFeed} session={session} profile={profile} myGroups={myGroups} groupMembersByGroup={groupMembersByGroup} following={following} S={S} t={t} onBack={()=>setView("list")} onSelect={c=>{setSelected(c);setView("detail")}} onViewUser={(uid)=>{if(uid&&uid!==session.user.id){setViewUserId(uid);setView("userProfile");}}}/>}
-          {view==="profile"&&<ProfileView L={L} lang={lang} switchLang={switchLang} session={session} profile={profile} catches={catches} myGroups={myGroups} onGroupsChange={loadMyGroups} following={following} onStats={()=>setView("stats")} onViewUser={(uid)=>{if(uid&&uid!==session.user.id){setViewUserId(uid);setView("userProfile");}}} S={S} t={t} themeKey={themeKey} switchTheme={switchTheme} onBack={()=>setView("list")} onUpdate={(p)=>setProfile(p)} onSignOut={signOut}/>}
-          {view==="userProfile"&&viewUserId&&<UserProfileView L={L} lang={lang} userId={viewUserId} publicFeed={publicFeed} isFollowing={isFollowing(viewUserId)} onFollow={()=>followUser(viewUserId)} onUnfollow={()=>unfollowUser(viewUserId)} S={S} t={t} onBack={()=>setView(tab==="mine"?"list":"list")} onSelect={c=>{setSelected(c);setView("detail")}} onExpandPhotos={(c,startIdx)=>setLightbox({photos:c.photos,index:startIdx||0})}/>}
+          {view==="profile"&&<ProfileView L={L} lang={lang} switchLang={switchLang} session={session} profile={profile} catches={catches} myGroups={myGroups} onGroupsChange={loadMyGroups} following={following} blocked={blocked} onUnblock={unblockUser} onStats={()=>setView("stats")} onViewUser={(uid)=>{if(uid&&uid!==session.user.id){setViewUserId(uid);setView("userProfile");}}} S={S} t={t} themeKey={themeKey} switchTheme={switchTheme} onBack={()=>setView("list")} onUpdate={(p)=>setProfile(p)} onSignOut={signOut}/>}
+          {view==="userProfile"&&viewUserId&&<UserProfileView L={L} lang={lang} userId={viewUserId} publicFeed={publicFeed} isFollowing={isFollowing(viewUserId)} onFollow={()=>followUser(viewUserId)} onUnfollow={()=>unfollowUser(viewUserId)} onBlocked={afterBlock} S={S} t={t} onBack={()=>setView(tab==="mine"?"list":"list")} onSelect={c=>{setSelected(c);setView("detail")}} onExpandPhotos={(c,startIdx)=>setLightbox({photos:c.photos,index:startIdx||0})}/>}
           {view==="add"&&<FormView L={L} lang={lang} allRivers={allRivers} allFlies={allFlies} prefs={prefs} profile={profile} myGroups={myGroups} S={S} t={t} onSave={addCatch} onCancel={()=>setView("list")}/>}
-          {view==="detail"&&selected&&<DetailView L={L} lang={lang} c={selected} session={session} profile={profile} myGroups={myGroups} catchGroupIds={catchGroupsMap[selected.id]||[]} isFollowing={isFollowing(selected.user_id)} onFollow={()=>followUser(selected.user_id)} onUnfollow={()=>unfollowUser(selected.user_id)} onViewUser={(uid)=>{if(uid&&uid!==session.user.id){setViewUserId(uid);setView("userProfile");}}} S={S} t={t} onBack={()=>setView("list")} onEdit={()=>{setEditing({...selected});setView("edit")}} onDelete={()=>setDelModal(selected.id)}/>}
+          {view==="detail"&&selected&&<DetailView L={L} lang={lang} c={selected} session={session} profile={profile} myGroups={myGroups} catchGroupIds={catchGroupsMap[selected.id]||[]} isFollowing={isFollowing(selected.user_id)} onFollow={()=>followUser(selected.user_id)} onUnfollow={()=>unfollowUser(selected.user_id)} onBlocked={afterBlock} onViewUser={(uid)=>{if(uid&&uid!==session.user.id){setViewUserId(uid);setView("userProfile");}}} S={S} t={t} onBack={()=>setView("list")} onEdit={()=>{setEditing({...selected});setView("edit")}} onDelete={()=>setDelModal(selected.id)}/>}
           {view==="edit"&&editing&&<FormView L={L} lang={lang} allRivers={allRivers} allFlies={allFlies} initial={editing} initialGroupIds={catchGroupsMap[editing.id]||[]} profile={profile} myGroups={myGroups} S={S} t={t} onSave={updateCatch} onCancel={()=>setView("detail")} isEdit/>}
           {navOn&&<nav className="spey-tabbar" aria-label={L("nav_menu")}>
             {navItems.map(it=>{
@@ -2153,7 +2222,7 @@
           </div>
         )}
         <div style={{marginTop:30,textAlign:"center"}}>
-          <p style={{fontSize:11,color:t.textMuted,opacity:.5,margin:0}}>v140</p>
+          <p style={{fontSize:11,color:t.textMuted,opacity:.5,margin:0}}>v141</p>
         </div>
         </div>
 
@@ -2401,7 +2470,91 @@
     }
 
     // ── UserProfileView — annen brukers offentlige profil (bokmerke-følging) ──
-    function UserProfileView({L,lang,userId,publicFeed,isFollowing,onFollow,onUnfollow,S,t,onBack,onSelect,onExpandPhotos}){
+    // ── Rapporter og blokker ──
+    // «⋯» på andres fangster og profiler. Arket tegnes rett i <body> (portal), fordi visningene
+    // det ligger i flyttes med transform ved sveip, og da ville position:fixed fulgt visningen.
+    const REPORT_REASONS=["inappropriate","harassment","spam","other"];
+    function ModMenu({L,S,t,userId,userName,catchId,onBlocked}){
+      const[step,setStep]=useState(null); // null | "menu" | "report" | "thanks" | "block"
+      const[reason,setReason]=useState(REPORT_REASONS[0]);
+      const[note,setNote]=useState("");
+      const[busy,setBusy]=useState(false);
+      const name=userName||L("mod_this_user");
+      const close=()=>{if(busy)return;setStep(null);setNote("");setReason(REPORT_REASONS[0]);};
+      useEffect(()=>{
+        if(!step)return;
+        const onKey=(e)=>{if(e.key==="Escape"){e.stopPropagation();close();}};
+        window.addEventListener("keydown",onKey,true);
+        return()=>window.removeEventListener("keydown",onKey,true);
+      },[step,busy]);
+      const sendReport=async()=>{
+        if(busy)return;
+        setBusy(true);
+        const {error}=await sb.from("reports").insert({reported_user_id:userId,catch_id:catchId||null,reason,note:note.trim()||null});
+        setBusy(false);
+        // 23505: du har allerede en åpen rapport på dette — regnes som sendt.
+        if(error&&error.code!=="23505"){console.error("report failed",error);speyToast(L("mod_report_failed"));return;}
+        setStep("thanks");
+      };
+      const block=async()=>{
+        if(busy)return;
+        setBusy(true);
+        const {error}=await sb.rpc("block_user",{p_user:userId});
+        setBusy(false);
+        if(error){console.error("block failed",error);speyToast(L("mod_block_failed"));return;}
+        setStep(null);
+        speyToast(L("mod_blocked_toast"));
+        if(onBlocked)onBlocked(userId);
+      };
+      const item={display:"flex",alignItems:"center",gap:12,width:"100%",padding:"14px 4px",background:"none",border:"none",fontSize:16,fontWeight:500,fontFamily:t.font,color:t.text,cursor:"pointer",textAlign:"left"};
+      const title={fontFamily:t.titleFont,fontSize:18,fontWeight:700,color:t.text,margin:"2px 0 12px"};
+      const sheet=step&&ReactDOM.createPortal(
+        <div className="spey-sheet-wrap" onClick={close}>
+          <div className="spey-sheet" role="dialog" aria-modal="true" onClick={e=>e.stopPropagation()} style={{background:t.solidBg,color:t.text,fontFamily:t.font,border:`1px solid ${t.cardBorder}`}}>
+            <div className="grab" style={{background:t.textMuted}}/>
+            {step==="menu"&&<>
+              <button type="button" style={{...item,borderBottom:`1px solid ${t.cardBorder}`}} onClick={()=>setStep("report")}>{I.flag()} {catchId?L("mod_report_catch"):L("mod_report_user")}</button>
+              <button type="button" style={{...item,color:t.danger}} onClick={()=>setStep("block")}>{I.block()} {L("mod_block",name)}</button>
+            </>}
+            {step==="report"&&<>
+              <p style={title}>{catchId?L("mod_report_catch"):L("mod_report_user")}</p>
+              <div role="radiogroup">
+                {REPORT_REASONS.map(r=>{
+                  const on=reason===r;
+                  return <button key={r} type="button" role="radio" aria-checked={on} onClick={()=>setReason(r)} style={{display:"flex",alignItems:"center",gap:10,width:"100%",padding:on?"10px 11px":"11px 12px",marginBottom:6,borderRadius:10,border:on?`2px solid ${t.primary}`:`1px solid ${t.inputBorder}`,background:on?t.primaryLight:t.cardBg,color:on?t.primary:t.text,fontSize:15,fontWeight:on?600:400,fontFamily:t.font,cursor:"pointer",textAlign:"left"}}>
+                    <span style={{width:16,height:16,borderRadius:8,flex:"none",boxSizing:"border-box",border:on?`5px solid ${t.primary}`:`1.5px solid ${t.textMuted}`}}/>{L("mod_reason_"+r)}
+                  </button>;
+                })}
+              </div>
+              <textarea style={{...S.inp,minHeight:64,resize:"none",marginTop:2,fontFamily:t.font}} maxLength={1000} placeholder={L("mod_note_placeholder")} value={note} onChange={e=>setNote(e.target.value)}/>
+              <div style={{display:"flex",gap:10,marginTop:12}}>
+                <button type="button" style={{...S.btnSec,flex:1}} disabled={busy} onClick={close}>{L("cancel")}</button>
+                <button type="button" style={{...S.btnPri,flex:1.4,opacity:busy?.6:1}} disabled={busy} onClick={sendReport}>{busy?L("mod_sending"):L("mod_send_report")}</button>
+              </div>
+            </>}
+            {step==="thanks"&&<>
+              <p style={title}>{L("mod_thanks_title")}</p>
+              <p style={{fontSize:15,color:t.textSec,margin:"0 0 16px",lineHeight:1.45}}>{L("mod_thanks_text")}</p>
+              <button type="button" style={{...S.btnSec,width:"100%",marginBottom:8,color:t.danger}} onClick={()=>setStep("block")}>{L("mod_block",name)}</button>
+              <button type="button" style={{...S.btnPri,width:"100%"}} onClick={close}>{L("mod_done")}</button>
+            </>}
+            {step==="block"&&<>
+              <p style={title}>{L("mod_block_title",name)}</p>
+              <p style={{fontSize:15,color:t.textSec,margin:"0 0 16px",lineHeight:1.45}}>{L("mod_block_text")}</p>
+              <div style={{display:"flex",gap:10}}>
+                <button type="button" style={{...S.btnSec,flex:1}} disabled={busy} onClick={close}>{L("cancel")}</button>
+                <button type="button" style={{...S.btnDng,flex:1,opacity:busy?.6:1}} disabled={busy} onClick={block}>{L("mod_block_yes")}</button>
+              </div>
+            </>}
+          </div>
+        </div>,document.body);
+      return <>
+        <button type="button" style={{...S.circBtn,color:t.textSec}} onClick={()=>setStep("menu")} aria-label={L("mod_more")} aria-haspopup="dialog">{I.more()}</button>
+        {sheet}
+      </>;
+    }
+
+    function UserProfileView({L,lang,userId,publicFeed,isFollowing,onFollow,onUnfollow,onBlocked,S,t,onBack,onSelect,onExpandPhotos}){
       const swipeRef=useEdgeSwipeBack(onBack);
       useEffect(()=>{window.scrollTo(0,0);},[]);
       // Kun OFFENTLIGE fangster fra denne brukeren. publicFeed inneholder
@@ -2414,8 +2567,9 @@
       const photos=theirCatches.filter(c=>(c.photos||[]).length>0);
       const biggest=theirCatches.reduce((max,c)=>(c.weight!=null&&c.weight>max?c.weight:max),0);
       return(<div ref={swipeRef} className="safe-top safe-bottom" style={{...S.app,minHeight:"100vh"}}>
-        <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:18}}>
-          <button onClick={onBack} style={S.backBtn}>{I.back()}</button>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,marginBottom:18}}>
+          <button onClick={onBack} style={S.backBtn} aria-label={L("a11y_back")}>{I.back()}</button>
+          <ModMenu L={L} S={S} t={t} userId={userId} userName={name} onBlocked={onBlocked}/>
         </div>
         <div style={{display:"flex",flexDirection:"column",alignItems:"center",textAlign:"center",gap:10,marginBottom:8}}>
           <Avatar url={avatarUrl} name={name} seed={seed} size={84} t={t}/>
@@ -2453,7 +2607,7 @@
     }
 
     // ── ProfileView ──
-    function ProfileView({L,lang,switchLang,session,profile,catches,myGroups,onGroupsChange,following,onViewUser,S,t,themeKey,switchTheme,onBack,onStats,onUpdate,onSignOut}){
+    function ProfileView({L,lang,switchLang,session,profile,catches,myGroups,onGroupsChange,following,blocked,onUnblock,onViewUser,S,t,themeKey,switchTheme,onBack,onStats,onUpdate,onSignOut}){
       const swipeRef=useEdgeSwipeBack(onBack);
       const fileRef=useRef();
       const[displayName,setDisplayName]=useState(profile?.display_name||"");
@@ -2470,6 +2624,23 @@
       const[shareGroup,setShareGroup]=useState(null); // gruppen som skal inviteres til
       const[leaveGroup,setLeaveGroup]=useState(null);
       const[profileAboutOpen,setProfileAboutOpen]=useState(false);
+      const[delAccount,setDelAccount]=useState(false);
+      const[delBusy,setDelBusy]=useState(false);
+      // Sletter kontoen på serveren (Edge Function delete-account) og rydder så denne enheten.
+      const deleteAccount=async()=>{
+        if(delBusy)return;
+        setDelBusy(true);
+        let ok=false;
+        try{
+          const {data,error}=await sb.functions.invoke("delete-account",{body:{confirm:true}});
+          ok=!error&&!!data&&data.deleted===true;
+          if(!ok)console.error("delete-account failed",error||data);
+        }catch(e){console.error("delete-account threw",e);}
+        if(!ok){setDelBusy(false);speyToast(L("account_delete_failed"));return;}
+        try{Object.keys(localStorage).filter(k=>k.startsWith("fl_")&&k!=="fl_theme"&&k!=="fl_lang").forEach(k=>localStorage.removeItem(k));}catch(e){}
+        speyToast(L("account_deleted"));
+        try{await sb.auth.signOut({scope:"local"});}catch(e){}
+      };
       const sendFeedback=()=>{
         const subject=encodeURIComponent(L("feedback_subject"));
         window.location.href=`mailto:magnus@jepson.no?subject=${subject}`;
@@ -2792,12 +2963,36 @@
           </div>
         </div>
 
+        {blocked&&blocked.length>0&&<div style={S.sec}>
+          <p style={{...S.secT,marginBottom:10}}>{L("blocked_title")}</p>
+          <div style={{display:"flex",flexDirection:"column",gap:2}}>
+            {blocked.map(p=>(
+              <div key={p.id} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 6px"}}>
+                <Avatar url={p.avatar_url} name={p.display_name||p.username} seed={p.username||p.id} size={34} t={t}/>
+                <span style={{fontSize:15,color:t.text,flex:1,minWidth:0,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{p.display_name||p.username||"—"}</span>
+                <button type="button" onClick={()=>onUnblock&&onUnblock(p.id)} style={{padding:"6px 10px",borderRadius:8,background:"transparent",color:t.primary,border:"none",fontSize:14,fontWeight:600,fontFamily:t.font,cursor:"pointer",flexShrink:0}}>{L("blocked_unblock")}</button>
+              </div>
+            ))}
+          </div>
+        </div>}
+
         {msg&&<p style={{fontSize:14,color:msg.startsWith("Feil")?t.danger:t.primary,textAlign:"center",margin:"0 0 14px",fontWeight:500}}>{msg}</p>}
 
         <button onClick={shareApp} style={{...S.btnSec,width:"100%",display:"flex",alignItems:"center",justifyContent:"center",gap:8,marginTop:6,marginBottom:8}}>{I.share()} {L("share_app")}</button>
         <button onClick={sendFeedback} style={{...S.btnSec,width:"100%",display:"flex",alignItems:"center",justifyContent:"center",gap:8,marginBottom:8}}>{I.mail()} {L("feedback")}</button>
         <button onClick={onSignOut} style={{...S.btnSec,width:"100%",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>{I.logout()} {L("profile_logout")}</button>
+        <button type="button" onClick={()=>setDelAccount(true)} style={{display:"block",margin:"14px auto 0",padding:"8px 12px",background:"none",border:"none",color:t.danger,fontSize:14,fontWeight:500,fontFamily:t.font,cursor:"pointer"}}>{L("account_delete")}</button>
         <div style={{height:30}}/>
+
+        {/* Tegnes i <body>: profilsiden har will-change:transform, og da ville dialogen blitt midtstilt på hele siden i stedet for på skjermen. */}
+        {delAccount&&ReactDOM.createPortal(<div style={{...S.overlay,zIndex:220,fontFamily:t.font}}><div style={S.modal} role="alertdialog" aria-modal="true">
+          <p style={{fontSize:17,fontWeight:600,margin:"0 0 6px",color:t.text}}>{L("account_delete_title")}</p>
+          <p style={{fontSize:14,color:t.textMuted,margin:"0 0 20px",lineHeight:1.45}}>{L("account_delete_text")}</p>
+          <div style={{display:"flex",flexDirection:"column",gap:8}}>
+            <button style={S.btnSec} disabled={delBusy} onClick={()=>setDelAccount(false)}>{L("cancel")}</button>
+            <button style={{...S.btnDng,opacity:delBusy?.6:1}} disabled={delBusy} onClick={deleteAccount}>{delBusy?L("account_deleting"):L("account_delete_yes")}</button>
+          </div>
+        </div></div>,document.body)}
 
         {profileAboutOpen&&<AboutModal L={L} S={S} t={t} onClose={()=>setProfileAboutOpen(false)}/>}
 
@@ -2833,7 +3028,7 @@
     }
 
     // ── DetailView ──
-    function DetailView({L,lang,c,session,profile,myGroups,catchGroupIds,isFollowing,onFollow,onUnfollow,onViewUser,S,t,onBack,onEdit,onDelete,desktop,onPrev,onNext}){
+    function DetailView({L,lang,c,session,profile,myGroups,catchGroupIds,isFollowing,onFollow,onUnfollow,onBlocked,onViewUser,S,t,onBack,onEdit,onDelete,desktop,onPrev,onNext}){
       const swipeRef=useEdgeSwipeBack(onBack);
       const[lightbox,setLightbox]=useState(null);
       const[sharing,setSharing]=useState(false);
@@ -2861,6 +3056,7 @@
           <div style={{display:"flex",gap:8}}>
             {photos.length>0&&<button style={S.circBtn} onClick={handleShare} disabled={sharing} aria-label={L("a11y_share")}>{sharing?<div className="spinner" style={{width:14,height:14,borderWidth:2}}/>:I.share()}</button>}
             {isOwn&&<><button style={S.circBtn} onClick={onEdit} aria-label={L("a11y_edit")}>{I.edit()}</button><button style={{...S.circBtn,color:t.danger}} onClick={onDelete} aria-label={L("a11y_delete")}>{I.trash()}</button></>}
+            {!isOwn&&<ModMenu L={L} S={S} t={t} userId={c.user_id} userName={ownerName} catchId={c.id} onBlocked={onBlocked}/>}
             {desktop&&<button style={{...S.circBtn,color:t.textSec}} onClick={onBack} aria-label={L("desk_close")} title={L("desk_close")+" (Esc)"}>{I.x()}</button>}
           </div>
         </div>
